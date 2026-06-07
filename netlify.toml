@@ -16,6 +16,16 @@
   to     = "/.netlify/functions/:splat"
   status = 200
 
+# Firebase Auth handler proxy — required so Firebase SDK can use
+# galaxyride.in as the authDomain instead of firebaseapp.com.
+# When signInWithPopup opens https://galaxyride.in/__/auth/handler,
+# Netlify transparently serves it from the Firebase project endpoint.
+[[redirects]]
+  from   = "/__/auth/*"
+  to     = "https://galaxyride-4f219.firebaseapp.com/__/auth/:splat"
+  status = 200
+  force  = true
+
 # Security headers for all pages
 [[headers]]
   for = "/*"

@@ -43,10 +43,13 @@ import {
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
 
 // ── Config ───────────────────────────────────────────────────────────────────
-// Values fall back to window.* so Netlify env vars work via a meta-script tag
+// authDomain is set to galaxyride.in so the Google Sign-In popup handler
+// runs under /__/auth/handler on our own domain (proxied to Firebase via
+// Netlify redirect) rather than on firebaseapp.com.
+// Required console steps — see SETUP.md § Firebase Auth Custom Domain.
 const firebaseConfig = {
   apiKey:            window.FIREBASE_API_KEY            || "AIzaSyBcmBnSMiMJui28q9AlBvoVVHH6wmbgm_c",
-  authDomain:        window.FIREBASE_AUTH_DOMAIN        || "galaxyride-4f219.firebaseapp.com",
+  authDomain:        window.FIREBASE_AUTH_DOMAIN        || "galaxyride.in",
   projectId:         window.FIREBASE_PROJECT_ID         || "galaxyride-4f219",
   storageBucket:     window.FIREBASE_STORAGE_BUCKET     || "galaxyride-4f219.firebasestorage.app",
   messagingSenderId: window.FIREBASE_MESSAGING_SENDER_ID || "351465763874",
