@@ -17,9 +17,454 @@ const GEO_AUTOCOMPLETE = 'https://api.geoapify.com/v1/geocode/autocomplete';
 const GEO_SEARCH       = 'https://api.geoapify.com/v1/geocode/search';
 // Nominatim (OpenStreetMap official geocoder) — deepest India village coverage
 const NOMINATIM_SEARCH = 'https://nominatim.openstreetmap.org/search';
-// Tamil Nadu proximity bias — Tiruchirappalli (geographic center of TN)
+// South India proximity bias — Madurai (geographic center of South India)
 // Format: lon,lat  (Geoapify uses longitude-first)
-const TN_BIAS = '78.6869,10.7905';
+const TN_BIAS = '78.1198,9.9252';
+
+// South India states accepted in Tier 3 filtering
+const SOUTH_INDIA_STATES = [
+  'tamil nadu', 'karnataka', 'kerala', 'andhra pradesh',
+  'telangana', 'puducherry', 'pondicherry',
+];
+
+// ── Village/hamlet suffix patterns common in Tamil Nadu & South India ─────────
+// When a query ends with one of these, Geoapify has poor coverage.
+// We skip directly to Nominatim (OSM) which indexes every OSM village node.
+const VILLAGE_SUFFIX_RE = /(?:patti|puram|kulam|pettai|mangalam|palayam|eri|thurai|kuppam|agaram|kadu|kottai|thoppu|pattinam|pattanam|pandi|salai|kappu|nallur|nagar|colony|layout|street|road)$/i;
+// Also detect Tamil-script input — Nominatim handles Unicode queries natively.
+const TAMIL_SCRIPT_RE   = /[஀-௿]/;
+
+function isVillagePattern(q) {
+  const t = q.trim().toLowerCase();
+  // Village suffix match OR Tamil script input
+  return VILLAGE_SUFFIX_RE.test(t) || TAMIL_SCRIPT_RE.test(q);
+}
+
+// ── Popular South India locations shown before the user types ─────────────────
+const POPULAR_LOCATIONS = [
+  { name: 'Chennai Airport',         address: 'Chennai, Tamil Nadu',             icon: 'fa-plane',             lat: 12.9941, lon: 80.1709 },
+  { name: 'Madurai Airport',         address: 'Madurai, Tamil Nadu',             icon: 'fa-plane',             lat:  9.8345, lon: 78.0934 },
+  { name: 'Coimbatore Airport',      address: 'Coimbatore, Tamil Nadu',          icon: 'fa-plane',             lat: 11.0296, lon: 77.0434 },
+  { name: 'Bengaluru Airport',       address: 'Bengaluru, Karnataka',            icon: 'fa-plane',             lat: 13.1979, lon: 77.7063 },
+  { name: 'Trichy Airport',          address: 'Trichy, Tamil Nadu',              icon: 'fa-plane',             lat: 10.7654, lon: 78.7093 },
+  { name: 'Kodaikanal',              address: 'Dindigul District, Tamil Nadu',   icon: 'fa-mountain',          lat: 10.2381, lon: 77.4892 },
+  { name: 'Ooty',                    address: 'Nilgiris, Tamil Nadu',            icon: 'fa-mountain',          lat: 11.4102, lon: 76.6950 },
+  { name: 'Munnar',                  address: 'Idukki, Kerala',                  icon: 'fa-mountain',          lat: 10.0889, lon: 77.0595 },
+  { name: 'Rameswaram',              address: 'Ramanathapuram, Tamil Nadu',      icon: 'fa-place-of-worship',  lat:  9.2881, lon: 79.3129 },
+  { name: 'Kanyakumari',             address: 'Kanyakumari District, Tamil Nadu',icon: 'fa-map-marker-alt',    lat:  8.0883, lon: 77.5385 },
+  { name: 'Theni',                   address: 'Theni District, Tamil Nadu',      icon: 'fa-map-pin',           lat: 10.0104, lon: 77.4767 },
+  { name: 'Madurai',                 address: 'Tamil Nadu',                      icon: 'fa-city',              lat:  9.9252, lon: 78.1198 },
+  { name: 'Chennai',                 address: 'Tamil Nadu',                      icon: 'fa-city',              lat: 13.0827, lon: 80.2707 },
+  { name: 'Coimbatore',              address: 'Tamil Nadu',                      icon: 'fa-city',              lat: 11.0168, lon: 76.9558 },
+  { name: 'Mysore',                  address: 'Karnataka',                       icon: 'fa-city',              lat: 12.2958, lon: 76.6394 },
+];
+
+// ==================== LOCAL VILLAGE DATABASE ====================
+// Offline fallback: ~420 Tamil Nadu villages + all major South India cities.
+// Loaded once on page start; used when all 5 API tiers return 0 results,
+// and for instant results when a village-suffix query matches exactly.
+
+let LOCAL_VILLAGE_DB = null;          // null = not yet loaded, [] = loaded but empty
+
+async function loadVillageDB() {
+  if (LOCAL_VILLAGE_DB !== null) return;   // already loaded/attempted
+  try {
+    const res = await fetch('/data/villages-tamilnadu.json');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    LOCAL_VILLAGE_DB = Array.isArray(data.villages) ? data.villages : [];
+    console.info(`[VillageDB] ✅ Loaded ${LOCAL_VILLAGE_DB.length} villages`);
+  } catch (e) {
+    console.warn('[VillageDB] ⚠ Could not load local DB:', e.message);
+    LOCAL_VILLAGE_DB = [];   // mark as attempted so we don't retry every keystroke
+  }
+}
+
+/**
+ * Levenshtein edit distance — used for fuzzy village name matching.
+ * Returns 0 for identical strings; larger values = more different.
+ * Capped at strings ≤ 40 chars to keep it fast.
+ */
+function levenshtein(a, b) {
+  const m = a.length, n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+  // Single row rolling approach — O(m*n) time, O(n) space
+  let prev = Array.from({ length: n + 1 }, (_, i) => i);
+  for (let i = 1; i <= m; i++) {
+    const curr = [i];
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      curr[j] = Math.min(curr[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost);
+    }
+    prev = curr;
+  }
+  return prev[n];
+}
+
+/**
+ * Search the local village DB.
+ * Scoring:
+ *   200 — exact name match
+ *   170 — alias exact match
+ *   150 — name starts with query
+ *   120 — query starts with name (user typed a longer form)
+ *   100 — name contains query
+ *    80 — alias starts with query
+ *   60+ — fuzzy match within 25% edit distance (only for query ≥ 5 chars)
+ * Returns GeoJSON feature array compatible with renderAutocomplete().
+ */
+function searchLocalVillageDB(query) {
+  if (!LOCAL_VILLAGE_DB || LOCAL_VILLAGE_DB.length === 0) return [];
+
+  const q   = query.trim().toLowerCase();
+  const qLen = q.length;
+  const results = [];
+
+  for (const v of LOCAL_VILLAGE_DB) {
+    const name    = v.n.toLowerCase();
+    const aliases = (v.a || []).map(s => s.toLowerCase());
+    let score = 0;
+
+    if (name === q)                        score = 200;
+    else if (aliases.includes(q))          score = 170;
+    else if (name.startsWith(q))           score = 150 + (10 - Math.min(10, name.length - qLen));
+    else if (q.startsWith(name))           score = 120;
+    else if (name.includes(q))             score = 100;
+    else if (aliases.some(a => a.startsWith(q))) score = 80;
+    else if (qLen >= 5) {
+      const dist    = levenshtein(q, name);
+      const maxDist = Math.max(1, Math.floor(qLen * 0.25));  // allow ≤25% edit distance
+      if (dist <= maxDist) score = Math.max(10, 70 - dist * 12);
+    }
+
+    if (score > 0) results.push({ v, score });
+  }
+
+  results.sort((a, b) => b.score - a.score);
+
+  return results.slice(0, 8).map(({ v }) => ({
+    type: 'Feature',
+    geometry: { type: 'Point', coordinates: [v.lon, v.lat] },
+    properties: {
+      name:           v.n,
+      village:        v.n,
+      taluk:          v.t,
+      county:         v.t,
+      state_district: `${v.d} District`,
+      state:          'Tamil Nadu',
+      country:        'India',
+      country_code:   'in',
+      formatted:      `${v.n}, ${v.t} Taluk, ${v.d} District, Tamil Nadu`,
+      result_type:    'village',
+      source:         'local-db',
+    },
+  }));
+}
+
+// ==================== CHENNAI POI DATABASE ====================
+// Two-tier Chennai database:
+//   Tier A — chennai-pois.json       (504 curated entries, loads at page start)
+//   Tier B — chennai-pois-large.json (30k OSM entries,    lazy-loads on first use)
+//
+// Search order: Large DB (when loaded) → Small curated DB → Geoapify → Nominatim
+// Search uses a prefix index so lookups in 30k entries run under 5ms.
+
+const CAT_LABELS = {
+  met: 'Metro Station', bus: 'Bus Stand',  hop: 'Hospital',
+  hot: 'Hotel',         itp: 'IT Park',    mal: 'Mall',
+  com: 'Company',       str: 'Street',     apt: 'Apartment',
+  lmk: 'Landmark',     edu: 'College',    tem: 'Temple',
+  sta: 'Railway Station', mkt: 'Market',  rst: 'Restaurant',
+};
+const CAT_ICONS = {
+  met: 'fa-subway',      bus: 'fa-bus',        hop: 'fa-hospital',
+  hot: 'fa-hotel',       itp: 'fa-laptop',     mal: 'fa-shopping-bag',
+  com: 'fa-building',    str: 'fa-road',        apt: 'fa-home',
+  lmk: 'fa-map-marker-alt', edu: 'fa-graduation-cap', tem: 'fa-place-of-worship',
+  sta: 'fa-train',       mkt: 'fa-store',       rst: 'fa-utensils',
+};
+
+// ── Category priority for tie-breaking (higher = shown first) ────────────────
+const CAT_PRIORITY = {
+  lmk:80, apt:78, itp:75, com:73, mal:72, hop:70, edu:68,
+  met:65, sta:64, bus:62, hot:60, tem:55, rst:50, mkt:48, str:20,
+};
+
+// ── Small curated DB (504 entries) — loaded at page start ─────────────────────
+let CHENNAI_POI_DB = null;
+
+async function loadChennaiDB() {
+  if (CHENNAI_POI_DB !== null) return;
+  try {
+    const res = await fetch('/data/chennai-pois.json');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    CHENNAI_POI_DB = Array.isArray(data.pois) ? data.pois : [];
+    console.info(`[ChennaiDB] ✅ Curated DB loaded (${CHENNAI_POI_DB.length} POIs)`);
+  } catch (e) {
+    console.warn('[ChennaiDB] ⚠ Could not load curated DB:', e.message);
+    CHENNAI_POI_DB = [];
+  }
+}
+
+// ── Large OSM DB (30k entries) — lazy-loaded on first Chennai query ───────────
+let CHENNAI_LARGE_DB    = null;   // null=not attempted, []=loaded (empty on error)
+let CHENNAI_LARGE_LOADING = false;
+// Prefix search index: 2-5 char lowercase token → Int32Array of POI indices
+// Built once after the large DB loads. Enables O(1) candidate lookup.
+let CHENNAI_INDEX = null;
+
+async function loadChennaiLargeDB() {
+  if (CHENNAI_LARGE_DB !== null || CHENNAI_LARGE_LOADING) return;
+  CHENNAI_LARGE_LOADING = true;
+  try {
+    const t0  = performance.now();
+    const res = await fetch('/data/chennai-pois-large.json');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    // Merge curated small DB entries first (they have better names/aliases)
+    const small  = CHENNAI_POI_DB || [];
+    const byName = new Map(small.map(p => [p.n.toLowerCase(), p]));
+    const large  = Array.isArray(data.pois) ? data.pois : [];
+
+    // Deduplicate: keep curated entry when the same name exists in both
+    const merged = [...small];
+    for (const p of large) {
+      if (!byName.has(p.n.toLowerCase())) merged.push(p);
+    }
+
+    CHENNAI_LARGE_DB = merged;
+    buildChennaiIndex(CHENNAI_LARGE_DB);
+
+    const ms = (performance.now() - t0).toFixed(0);
+    console.info(`[ChennaiDB] ✅ Large DB loaded & indexed (${CHENNAI_LARGE_DB.length} POIs, ${ms}ms)`);
+  } catch (e) {
+    console.warn('[ChennaiDB] ⚠ Could not load large DB — falling back to curated:', e.message);
+    CHENNAI_LARGE_DB = CHENNAI_POI_DB || [];
+    if (CHENNAI_LARGE_DB.length > 0) buildChennaiIndex(CHENNAI_LARGE_DB);
+  } finally {
+    CHENNAI_LARGE_LOADING = false;
+  }
+}
+
+/**
+ * Build a prefix search index from a POI array.
+ *
+ * For each POI at index i we tokenise its name + area into lowercase words,
+ * then register every 2-5 char prefix of each word against i.
+ * Index structure: Map<string, number[]>  (prefix → array of poi indices)
+ *
+ * This reduces a 30k linear scan to typically <300 candidates per query.
+ */
+function buildChennaiIndex(pois) {
+  const t0  = performance.now();
+  const idx = new Map();
+
+  for (let i = 0; i < pois.length; i++) {
+    const p    = pois[i];
+    const text = ((p.n || '') + ' ' + (p.area || '')).toLowerCase();
+    const toks = text.split(/[\s,.()\-\/]+/).filter(t => t.length >= 2);
+
+    for (const tok of toks) {
+      const maxLen = Math.min(tok.length, 6);
+      for (let len = 2; len <= maxLen; len++) {
+        const key = tok.slice(0, len);
+        let arr   = idx.get(key);
+        if (!arr) { arr = []; idx.set(key, arr); }
+        arr.push(i);
+      }
+    }
+    // Also index aliases
+    if (p.a) {
+      for (const alias of p.a) {
+        const at = alias.toLowerCase().split(/[\s,.()\-\/]+/).filter(t => t.length >= 2);
+        for (const tok of at) {
+          const key = tok.slice(0, Math.min(tok.length, 5));
+          let arr   = idx.get(key);
+          if (!arr) { arr = []; idx.set(key, arr); }
+          arr.push(i);
+        }
+      }
+    }
+  }
+
+  CHENNAI_INDEX = idx;
+  const ms = (performance.now() - t0).toFixed(0);
+  console.info(`[ChennaiDB] 🔍 Index built: ${idx.size} prefixes in ${ms}ms`);
+}
+
+// ── Chennai area keywords ─────────────────────────────────────────────────────
+const CHENNAI_CONTEXT_RE = /\b(?:chennai|anna\s*nagar|t\s*nagar|tnagar|omr|velachery|adyar|tambaram|guindy|nungambakkam|mylapore|egmore|perambur|koyambedu|ambattur|sholinganallur|porur|kodambakkam|vadapalani|saidapet|kilpauk|mogappair|kolathur|chromepet|chrompet|pallavaram|thoraipakkam|perungudi|taramani|tidel|siruseri|kelambakkam|medavakkam|pallikaranai|villivakkam|avadi|poonamallee|besant\s*nagar|thiruvanmiyur|alwarpet|royapettah|chetpet|triplicane|chepauk|marina|parrys|broadway|royapuram|tiruvottiyur|madhavaram|arumbakkam|aminjikarai|shenoy\s*nagar|ashok\s*nagar|kk\s*nagar|nanganallur|alandur|maraimalai\s*nagar|ecr|gst|potheri|mahabalipuram|mamallapuram|sriperumbudur|nerkundram|mogappair|navalur|perungalathur|kovilambakkam|palavakkam|neelankarai|injambakkam|akkarai)\b/i;
+
+function isChennaiContext(q) {
+  return CHENNAI_CONTEXT_RE.test(q.trim());
+}
+
+/**
+ * Search Chennai POIs.  Uses the prefix index when available (large DB),
+ * falls back to linear scan of the curated small DB.
+ *
+ * Scoring:
+ *   220 — exact name match
+ *   190 — alias exact match
+ *   170 — name starts with query  (full query = prefix of name)
+ *   155 — all query words match name+area tokens
+ *   140 — any single query word starts the name
+ *   125 — name contains query as substring
+ *   110 — alias starts with query
+ *    95 — alias contains query
+ *    85 — area exactly matches query
+ *    75 — area starts with query
+ *    65 — area contains query
+ *    55 — name+area contains query
+ *    40 — fuzzy (≤22% edit distance, query ≥ 4 chars)
+ *
+ * Category priority bonus (lmk/apt/itp > str) added to break ties.
+ * Streets are deprioritised unless the query looks like a road name.
+ */
+function searchChennaiDB(query) {
+  const t0     = performance.now();
+  const active = CHENNAI_LARGE_DB || CHENNAI_POI_DB;
+  if (!active || active.length === 0) return [];
+
+  const q      = query.trim().toLowerCase();
+  const qLen   = q.length;
+  const qWords = q.split(/\s+/).filter(Boolean);
+
+  // ── Candidate selection via index (large DB only) ─────────────────────────
+  let candidates; // array of POI objects or null (= scan all)
+
+  if (CHENNAI_INDEX && qLen >= 2) {
+    const sets   = [];
+    const scored = new Set();
+
+    for (const w of qWords) {
+      const key  = w.slice(0, Math.min(w.length, 6));
+      const idxs = CHENNAI_INDEX.get(key) || [];
+      sets.push(new Set(idxs));
+      for (const i of idxs) scored.add(i);
+    }
+
+    // Prefer indices that appear in ALL word sets (intersection gives better precision)
+    let inter;
+    if (sets.length > 1) {
+      inter = sets[0];
+      for (let s = 1; s < sets.length; s++) {
+        inter = new Set([...inter].filter(x => sets[s].has(x)));
+      }
+    }
+    const candidateSet = (inter && inter.size > 0) ? inter : scored;
+
+    // If no index hit, scan all (short query / unknown prefix)
+    candidates = candidateSet.size > 0
+      ? [...candidateSet].map(i => active[i])
+      : null;
+  }
+
+  // ── Scoring pass ─────────────────────────────────────────────────────────
+  const pool    = candidates || active;
+  const results = [];
+  const isRoadQ = /\b(?:road|street|salai|nagar|marg|path|lane|avenue|way|rd|st)\b/i.test(q);
+
+  // Token-aware word check: every query word must be a prefix of at least one
+  // token in the target string (prevents "bus" from matching "business").
+  function allWordsMatch(target, words) {
+    const toks = target.split(/[\s,.()\-\/]+/).filter(Boolean);
+    return words.every(w => toks.some(tok => tok.startsWith(w)));
+  }
+
+  for (const p of pool) {
+    const name    = p.n.toLowerCase();
+    const area    = (p.area || '').toLowerCase();
+    const aliases = p.a ? p.a.map(s => s.toLowerCase()) : [];
+    const na      = name + ' ' + area;
+    let score     = 0;
+
+    if (name === q)                                                       score = 220;
+    else if (aliases.includes(q))                                         score = 190;
+    else if (name.startsWith(q))                                          score = 170 + Math.max(0, 8 - (name.length - qLen));
+    else if (qWords.length > 1 && allWordsMatch(na, qWords))             score = 155;
+    else if (qWords.length > 1 && qWords[0] && name.startsWith(qWords[0])) score = 140;
+    else if (name.includes(q))                                            score = 125;
+    else if (aliases.some(a => a.startsWith(q)))                         score = 110;
+    else if (aliases.some(a => a.includes(q)))                           score = 95;
+    else if (area === q)                                                  score = 85;
+    else if (area.startsWith(q))                                          score = 75;
+    else if (area.includes(q))                                            score = 65;
+    else if (na.includes(q))                                              score = 55;
+    else if (qLen >= 4) {
+      const dist    = levenshtein(q, name);
+      const maxDist = Math.max(1, Math.floor(qLen * 0.22));
+      if (dist <= maxDist) score = Math.max(10, 45 - dist * 10);
+    }
+
+    if (score === 0) continue;
+
+    // Category priority tie-breaker
+    score += (CAT_PRIORITY[p.cat] || 30);
+
+    // Deprioritise streets unless query looks like a road query
+    if (p.cat === 'str' && !isRoadQ) score -= 25;
+
+    results.push({ p, score });
+  }
+
+  results.sort((a, b) => b.score - a.score);
+
+  // Deduplicate by name (keep highest-scored entry for each unique name)
+  const seenNames = new Set();
+  const deduped   = [];
+  for (const r of results) {
+    const key = r.p.n.toLowerCase();
+    if (!seenNames.has(key)) { seenNames.add(key); deduped.push(r); }
+    if (deduped.length >= 10) break;
+  }
+
+  const ms  = (performance.now() - t0).toFixed(1);
+  const src = CHENNAI_LARGE_DB ? 'large-db' : 'curated-db';
+  console.log(`[Search] 🏙 Chennai "${q}" → ${deduped.length} results [${src}, ${ms}ms, pool=${pool.length}]`);
+
+  return deduped.map(({ p }) => ({
+    type: 'Feature',
+    geometry: { type: 'Point', coordinates: [p.lon, p.lat] },
+    properties: {
+      name:         p.n,
+      suburb:       p.area,
+      city:         'Chennai',
+      state:        'Tamil Nadu',
+      country:      'India',
+      country_code: 'in',
+      formatted:    `${p.n}, ${p.area}, Chennai, Tamil Nadu`,
+      result_type:  p.cat === 'met' ? 'amenity'
+                  : p.cat === 'sta' ? 'amenity'
+                  : p.cat === 'bus' ? 'amenity'
+                  : p.cat === 'str' ? 'street'
+                  : p.cat === 'apt' ? 'locality'
+                  : 'amenity',
+      poi_category: p.cat,
+      poi_icon:     CAT_ICONS[p.cat] || 'fa-map-marker-alt',
+      poi_label:    CAT_LABELS[p.cat] || 'Place',
+      source:       'chennai-db',
+    },
+  }));
+}
+
+// ── Search result cache — prevents redundant API calls for repeated queries ───
+const AC_CACHE     = new Map();
+const AC_CACHE_MAX = 200;
+
+function cacheSet(key, value) {
+  if (AC_CACHE.size >= AC_CACHE_MAX) {
+    // Evict the oldest (first inserted) entry
+    AC_CACHE.delete(AC_CACHE.keys().next().value);
+  }
+  AC_CACHE.set(key.toLowerCase(), value);
+}
+
+function cacheGet(key) {
+  return AC_CACHE.get(key.toLowerCase()) ?? null;
+}
 
 const TARIFF = {
   local: {
@@ -93,6 +538,12 @@ document.addEventListener('DOMContentLoaded', () => {
   animateOnScroll();
   setupWaPopup();
   setupPrefillFromUrl();
+  // Preload local DBs in background so they're ready for the first keystroke
+  loadVillageDB();            // Tamil Nadu villages (~276 entries, ~50KB)
+  loadChennaiDB();            // Chennai curated POIs (~504 entries, ~60KB)
+  // Large Chennai DB (~30k entries, ~2.5MB) starts loading after a short delay
+  // to avoid competing with critical page resources on first load.
+  setTimeout(loadChennaiLargeDB, 3000);
 });
 
 // ==================== ONE-CLICK BOOKING PREFILL (from destination pages) ====================
@@ -107,37 +558,53 @@ function setupPrefillFromUrl() {
   const p = new URLSearchParams(window.location.search);
   if (![...p.keys()].length) return;
 
-  const type = p.get('type');
-  if (type && ['oneway', 'roundtrip', 'hourly'].includes(type)) {
-    const btn = document.querySelector(`.tab-btn[data-tab="${type}"]`);
-    if (btn) switchTab(type, btn);
-  }
-
-  const pickup = p.get('pickup');
-  const drop   = p.get('drop');
-  const date   = p.get('date');
-  if (pickup && $('pickup')) $('pickup').value = pickup;
-  if (drop   && $('drop'))   $('drop').value   = drop;
-  if (date   && $('date'))   $('date').value   = date;
-
-  const vehicle = p.get('vehicle');
-  if (vehicle) {
-    const radio = document.querySelector(`input[name="vehicle"][value="${vehicle}"]`);
-    if (radio) { radio.checked = true; radio.dispatchEvent(new Event('change')); }
-  }
-
+  // Snapshot all params immediately (synchronous — URL won't change)
+  const type       = p.get('type');
+  const pickup     = p.get('pickup');
+  const drop       = p.get('drop');
+  const date       = p.get('date');
+  const vehicle    = p.get('vehicle');
   const passengers = parseInt(p.get('passengers'), 10);
-  if (passengers >= 1) changePassengers(passengers - (state.passengers || 1));
 
-  // Bring the booking card into view and flash it
-  const card = $('bookingCard');
-  if (card) {
-    setTimeout(() => {
-      $('home')?.scrollIntoView({ behavior: 'smooth' });
+  // Defer ALL DOM writes to run after the full init stack (setMinDate,
+  // setupAutocomplete, etc.) has settled.  Without this delay the browser's
+  // own autocomplete / form-reset timing can overwrite values we set here.
+  setTimeout(() => {
+    // 1. Switch trip type tab first (so returnDateRow visibility is correct)
+    if (type && ['oneway', 'roundtrip', 'hourly'].includes(type)) {
+      const btn = document.querySelector(`.tab-btn[data-tab="${type}"]`);
+      if (btn) switchTab(type, btn);
+    }
+
+    // 2. Fill text inputs (direct assignment — does NOT fire `input` event,
+    //    so Geoapify autocomplete listener is never triggered)
+    const pickupEl = $('pickup');
+    const dropEl   = $('drop');
+    const dateEl   = $('date');
+    if (pickup && pickupEl) pickupEl.value = pickup;
+    if (drop   && dropEl)   dropEl.value   = drop;
+    if (date   && dateEl)   dateEl.value   = date;
+
+    // 3. Select vehicle radio
+    if (vehicle) {
+      const radio = document.querySelector(`input[name="vehicle"][value="${vehicle}"]`);
+      if (radio) { radio.checked = true; radio.dispatchEvent(new Event('change')); }
+    }
+
+    // 4. Set passenger count (changePassengers accepts a delta)
+    if (passengers >= 1) {
+      const delta = passengers - (state.passengers || 1);
+      if (delta !== 0) changePassengers(delta);
+    }
+
+    // 5. Scroll to booking card and flash it
+    $('home')?.scrollIntoView({ behavior: 'smooth' });
+    const card = $('bookingCard');
+    if (card) {
       card.classList.add('prefill-flash');
       setTimeout(() => card.classList.remove('prefill-flash'), 1800);
-    }, 250);
-  }
+    }
+  }, 120);
 }
 
 // ==================== WHATSAPP POPUP (auto after 15s) ====================
@@ -351,6 +818,21 @@ function setupAutocomplete() {
     });
   }
 
+  // Show popular destinations on focus when the field is empty
+  [
+    { input: pickupInput, dropdownId: 'pickupDropdown', onSelect: acPickupSelect },
+    { input: dropInput,   dropdownId: 'dropDropdown',   onSelect: acDropSelect   },
+  ].forEach(({ input, dropdownId, onSelect }) => {
+    if (!input) return;
+    input.addEventListener('focus', () => {
+      // Pre-warm large Chennai DB as soon as user taps a location field
+      if (CHENNAI_LARGE_DB === null) loadChennaiLargeDB();
+      if (!input.value.trim()) {
+        showPopularSuggestions(dropdownId, input, onSelect);
+      }
+    });
+  });
+
   // Keyboard navigation for both dropdowns
   [
     { input: pickupInput, dropdownId: 'pickupDropdown' },
@@ -358,6 +840,40 @@ function setupAutocomplete() {
   ].forEach(({ input, dropdownId }) => {
     if (!input) return;
     input.addEventListener('keydown', (e) => handleAcKeydown(e, dropdownId));
+  });
+}
+
+// ── Show pre-typed popular South India destinations ───────────────────────────
+function showPopularSuggestions(dropdownId, inputEl, onSelect) {
+  const dropdown = $(dropdownId);
+  if (!dropdown) return;
+  const group = inputEl?.closest('.autocomplete-group');
+
+  dropdown.innerHTML = `
+    <div class="ac-popular-header">
+      <i class="fas fa-fire"></i> Popular Destinations
+    </div>
+    ${POPULAR_LOCATIONS.map((loc, i) => `
+      <div class="autocomplete-item ac-popular-item" tabindex="0" role="option" data-idx="${i}"
+           aria-label="${escapeHtml(loc.name + ', ' + loc.address)}">
+        <i class="fas ${loc.icon}"></i>
+        <div>
+          <div class="place-name">${escapeHtml(loc.name)}</div>
+          <div class="place-address">${escapeHtml(loc.address)}</div>
+        </div>
+      </div>`).join('')}`;
+  dropdown.classList.remove('hidden');
+  if (group) group.classList.add('is-open');
+
+  dropdown.querySelectorAll('.ac-popular-item').forEach((item, i) => {
+    item.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      const loc = POPULAR_LOCATIONS[i];
+      onSelect({
+        coords: { lat: loc.lat, lon: loc.lon },
+        label:  `${loc.name}, ${loc.address}`,
+      });
+    });
   });
 }
 
@@ -369,10 +885,14 @@ function acDebounce(field, query, dropdownId, onSelect) {
   const inputEl = $(field === 'pickup' ? 'pickup' : 'drop');
   const group   = inputEl?.closest('.autocomplete-group');
 
-  // Require at least 3 characters — avoids wasting API quota on single-char
-  // queries and prevents Geoapify from returning irrelevant broad results.
-  if (!query || query.trim().length < 3) {
-    closeDropdown(dropdownId, inputEl);
+  // Require at least 2 characters before firing an API call
+  if (!query || query.trim().length < 2) {
+    // If completely cleared, restore popular suggestions; otherwise just close
+    if (!query || !query.trim()) {
+      showPopularSuggestions(dropdownId, inputEl, onSelect);
+    } else {
+      closeDropdown(dropdownId, inputEl);
+    }
     return;
   }
 
@@ -382,7 +902,7 @@ function acDebounce(field, query, dropdownId, onSelect) {
 
   state[timerKey] = setTimeout(
     () => fetchAutocomplete(query.trim(), dropdownId, onSelect, field),
-    400
+    250                      // 250 ms debounce — fast enough for South India villages
   );
 }
 
@@ -504,6 +1024,60 @@ function rankAndDedup(features, query) {
       score += 20;
     }
 
+    // India-specific POI boosts — ensures airports, stations, temples rank above generic areas
+    const nameAndAddr = (p.name || '') + ' ' + (p.formatted || '');
+    if (/airport|aerodrome/i.test(nameAndAddr))                             score += 35;
+    if (/railway station|train station|junction|central station|rail terminus/i.test(nameAndAddr)) score += 28;
+    if (/bus stand|bus station|bus depot|ksrtc|setc|tnstc/i.test(nameAndAddr)) score += 22;
+    if (/temple|kovil|mandir|amman|swamy|devasthanam/i.test(nameAndAddr))   score += 12;
+    if (/masjid|mosque|dargah|church|cathedral/i.test(nameAndAddr))         score += 10;
+    if (/hospital|medical college|nursing home/i.test(nameAndAddr))         score +=  8;
+    if (/resort|hotel|lodge|guest house/i.test(nameAndAddr))                score +=  8;
+    if (/college|university|institute|school/i.test(nameAndAddr))           score +=  6;
+
+    // ── State-level priority: Tamil Nadu first, then other South India states ──
+    // This ensures "Theni" always ranks above anything else when typing "the",
+    // "Madurai" above "Madrid" for "mad", etc.
+    const state = (p.state || '').toLowerCase();
+    if (state.includes('tamil nadu'))     score += 200;
+    else if (state.includes('karnataka') ||
+             state.includes('kerala')    ||
+             state.includes('andhra')    ||
+             state.includes('telangana') ||
+             state.includes('puducherry') ||
+             state.includes('pondicherry')) score += 80;
+
+    // ── Explicit boost for key Tamil Nadu cities / towns / villages ─────────────
+    // Applied when the result name exactly matches (or starts with) a known city.
+    // Ensures these always surface at the top of their respective prefix searches.
+    const TN_CITY_BOOSTS = {
+      'chennai': 120, 'madurai': 120, 'coimbatore': 100, 'trichy': 100,
+      'tiruchirappalli': 100, 'salem': 100, 'tirunelveli': 100, 'tuticorin': 90,
+      'thoothukudi': 90, 'erode': 90, 'vellore': 90, 'karur': 90,
+      'namakkal': 90, 'theni': 90, 'dindigul': 90, 'kodaikanal': 120,
+      'ooty': 120, 'udhagamandalam': 100, 'periyakulam': 90,
+      'devadanapatti': 90, 'batlagundu': 90, 'bodinayakanur': 90,
+      'chinnamanur': 90, 'cumbum': 90, 'andipatti': 90, 'usilampatti': 90,
+      'tiruppur': 90, 'tirupur': 90, 'krishnagiri': 80, 'dharmapuri': 80,
+      'cuddalore': 80, 'nagapattinam': 80, 'thanjavur': 90, 'tanjore': 80,
+      'kumbakonam': 80, 'pudukkottai': 80, 'sivaganga': 80,
+      'ramanathapuram': 80, 'rameswaram': 100, 'kanyakumari': 100,
+      'nagercoil': 90, 'tirunelveli junction': 90, 'madurai airport': 100,
+      'chennai airport': 100, 'coimbatore airport': 100, 'trichy airport': 100,
+    };
+    const resultName = (p.name || '').toLowerCase();
+    if (TN_CITY_BOOSTS[resultName] !== undefined) {
+      score += TN_CITY_BOOSTS[resultName];
+    } else {
+      // Partial match — check if a known city name starts with the result name
+      for (const [city, boost] of Object.entries(TN_CITY_BOOSTS)) {
+        if (city.startsWith(resultName) && resultName.length >= 3) {
+          score += Math.round(boost * 0.7);
+          break;
+        }
+      }
+    }
+
     return { f, score };
   });
 
@@ -549,7 +1123,9 @@ function rankAndDedup(features, query) {
  *  Tier 1 — Geoapify autocomplete + India filter + TN bias          (fast, cities/towns)
  *  Tier 2 — Geoapify geocode/search + India filter + TN bias        (full OSM, villages/buildings)
  *  Tier 3 — Geoapify geocode/search + "query Tamil Nadu India"      (regional context fallback)
- *  Tier 4 — Nominatim (OpenStreetMap official geocoder)             (maximum rural coverage)
+ *  Tier 3 — Nominatim/OSM bare query                               (villages, hamlets, panchayats)
+ *  Tier 4 — Nominatim/OSM + Tamil Nadu context                    (ambiguous TN village names)
+ *  Tier 5 — Nominatim/OSM + South India context                   (last-resort wider fallback)
  *
  * Each tier returns up to 10 candidates.
  * Results are ranked by rankAndDedup() before rendering.
@@ -565,41 +1141,125 @@ async function fetchAutocomplete(query, dropdownId, onSelect, field, searchTier 
     return;
   }
 
-  if (!query || query.trim().length < 3) {
+  if (!query || query.trim().length < 2) {
     closeDropdown(dropdownId, null);
     return;
   }
 
   const q         = query.trim();
+
+  // ── Cache hit — serve instantly, skip all API tiers ─────────────────────────
+  if (searchTier === 1) {
+    const cached = cacheGet(q);
+    if (cached) {
+      console.log(`[Search] 📦 Cache hit for "${q}" (${cached.length} results)`);
+      const inputEl = $(field === 'pickup' ? 'pickup' : 'drop');
+      const group   = inputEl?.closest('.autocomplete-group');
+      if (group) group.classList.add('is-open');
+      renderAutocomplete(cached, dropdownId, onSelect, q);
+      return;
+    }
+  }
+
+  // ── Chennai POI shortcut ─────────────────────────────────────────────────────
+  // Pre-Tier 1: search local Chennai DB (up to 30k entries) before any API call.
+  // Large DB lazy-loads in background; curated small DB serves immediate results.
+  if (searchTier === 1 && isChennaiContext(q)) {
+    // Ensure curated DB is loaded (fast, ~40KB)
+    if (CHENNAI_POI_DB === null) await loadChennaiDB();
+    // Trigger large DB load in background if not yet started
+    if (CHENNAI_LARGE_DB === null) loadChennaiLargeDB();
+
+    const chennaiHits = searchChennaiDB(q);
+    if (chennaiHits.length > 0) {
+      cacheSet(q, chennaiHits);
+      const inputEl = $(field === 'pickup' ? 'pickup' : 'drop');
+      const group   = inputEl?.closest('.autocomplete-group');
+      if (group) group.classList.add('is-open');
+      renderAutocomplete(chennaiHits, dropdownId, onSelect, q);
+      return;
+    }
+    // No local match → fall through to Geoapify (with Chennai proximity bias)
+    console.log(`[Search] Chennai context "${q}" not in local DB → Geoapify Tier 1`);
+  }
+
+  // ── Village shortcut — local DB first (instant), then Nominatim ─────────────
+  // Geoapify has limited coverage for small Tamil Nadu villages.
+  // For village-suffix / Tamil-script queries:
+  //   1. Try local DB immediately (<2ms, no network)
+  //   2. If not in local DB → jump to Nominatim (Tier 3), skip Geoapify
+  if (searchTier === 1 && isVillagePattern(q)) {
+    // Ensure DB is loaded (no-op if already loading/loaded)
+    if (LOCAL_VILLAGE_DB === null) loadVillageDB();
+
+    const localHits = LOCAL_VILLAGE_DB ? searchLocalVillageDB(q) : [];
+    if (localHits.length > 0) {
+      console.log(`[Search] 📍 Local DB instant hit: "${q}" → ${localHits.length} result(s)`);
+      cacheSet(q, localHits);
+      const inputEl = $(field === 'pickup' ? 'pickup' : 'drop');
+      const group   = inputEl?.closest('.autocomplete-group');
+      if (group) group.classList.add('is-open');
+      renderAutocomplete(localHits, dropdownId, onSelect, q);
+      return;
+    }
+    console.log(`[Search] Village pattern "${q}" not in local DB → Nominatim Tier 3`);
+    return fetchAutocomplete(q, dropdownId, onSelect, field, 3);
+  }
+
   const sq        = encodeURIComponent(q);
   const retryArgs = { query: q, field, onSelect };
 
   // ── Build URL for each tier ───────────────────────────────────────────────
   let url, tierLabel, isNominatim = false;
 
+  // ── Tier structure ────────────────────────────────────────────────────────────
+  // Tier 1: Geoapify autocomplete  — fast, good for cities/airports/popular places
+  // Tier 2: Geoapify search        — broader, handles roads/buildings Geoapify knows
+  // Tier 3: Nominatim bare         — OSM village-level data, exact name match
+  // Tier 4: Nominatim + "Tamil Nadu" context — anchors ambiguous names to TN
+  // Tier 5: Nominatim + "South India" context — last-resort wider search
+  //
+  // Geoapify filter/bias uses COLON notation (bracket notation is silently ignored):
+  //   ✅ filter=countrycode:in   ✅ bias=proximity:lon,lat
+  //   ❌ filter[countrycode]=in  ❌ bias[proximity]=lon,lat
+
+  // Chennai-specific proximity bias (lat/lon of Chennai city center)
+  const CHENNAI_BIAS = '80.2707,13.0827';
+  const activeBias   = isChennaiContext(q) ? CHENNAI_BIAS : TN_BIAS;
+
   if (searchTier === 1) {
-    tierLabel = 'Geoapify-autocomplete[IN+TN]';
+    tierLabel = 'Geoapify-autocomplete[IN+TN-bias]';
     url = `${GEO_AUTOCOMPLETE}?text=${sq}&lang=en&limit=10` +
-          `&filter[countrycode]=in&bias[proximity]=${TN_BIAS}` +
+          `&filter=countrycode:in&bias=proximity:${activeBias}` +
           `&apiKey=${GEOAPIFY_API_KEY}`;
 
   } else if (searchTier === 2) {
-    tierLabel = 'Geoapify-search[IN+TN]';
+    tierLabel = 'Geoapify-search[IN+TN-bias]';
     url = `${GEO_SEARCH}?text=${sq}&lang=en&limit=10` +
-          `&filter[countrycode]=in&bias[proximity]=${TN_BIAS}` +
+          `&filter=countrycode:in&bias=proximity:${activeBias}` +
           `&apiKey=${GEOAPIFY_API_KEY}`;
 
   } else if (searchTier === 3) {
-    tierLabel = 'Geoapify-search[TN-suffix]';
-    const sqTN = encodeURIComponent(q + ' Tamil Nadu India');
-    url = `${GEO_SEARCH}?text=${sqTN}&lang=en&limit=10` +
-          `&apiKey=${GEOAPIFY_API_KEY}`;
+    // Nominatim/OSM — best coverage for TN villages, hamlets, panchayats, streets
+    tierLabel = 'Nominatim-OSM[IN-bare]';
+    isNominatim = true;
+    url = `${NOMINATIM_SEARCH}?q=${sq}&format=json&limit=20` +
+          `&countrycodes=in&addressdetails=1&namedetails=1&accept-language=en`;
 
-  } else {
-    tierLabel = 'Nominatim-OSM[IN]';
+  } else if (searchTier === 4) {
+    // Nominatim with Tamil Nadu state context — improves recall for ambiguous village names
+    tierLabel = 'Nominatim-OSM[TN-context]';
     isNominatim = true;
     const sqTN = encodeURIComponent(q + ' Tamil Nadu');
-    url = `${NOMINATIM_SEARCH}?q=${sqTN}&format=json&limit=10` +
+    url = `${NOMINATIM_SEARCH}?q=${sqTN}&format=json&limit=15` +
+          `&countrycodes=in&addressdetails=1&namedetails=1&accept-language=en`;
+
+  } else {
+    // Tier 5: Nominatim with South India context — catches AP/Karnataka/Kerala villages
+    tierLabel = 'Nominatim-OSM[SouthIndia-context]';
+    isNominatim = true;
+    const sqSI = encodeURIComponent(q + ' South India');
+    url = `${NOMINATIM_SEARCH}?q=${sqSI}&format=json&limit=10` +
           `&countrycodes=in&addressdetails=1&accept-language=en`;
   }
 
@@ -628,8 +1288,8 @@ async function fetchAutocomplete(query, dropdownId, onSelect, field, searchTier 
     let body = '';
     try { body = await res.text(); } catch { /**/ }
     console.error(`[Search] tier=${searchTier} HTTP ${res.status}:`, body);
-    if (searchTier < 4) {
-      console.warn(`[Search] escalating tier ${searchTier} → ${searchTier + 1}`);
+    if (searchTier < 5) {
+      console.warn(`[Search] escalating tier ${searchTier} → ${searchTier + 1} (HTTP error)`);
       return fetchAutocomplete(q, dropdownId, onSelect, field, searchTier + 1);
     }
     showAcError(dropdownId, describeGeoapifyStatus(res.status), retryArgs);
@@ -697,9 +1357,13 @@ async function fetchAutocomplete(query, dropdownId, onSelect, field, searchTier 
           town:      item.address?.town,
           city:      item.address?.city || item.address?.town,
           county:    item.address?.county,
-          state:     item.address?.state,
-          country:   item.address?.country_code === 'in' ? 'India' : item.address?.country,
-          formatted: item.display_name,
+          state:          item.address?.state,
+          // In TN/South India: county = Taluk/Block, state_district = District
+          taluk:          item.address?.county || '',
+          state_district: item.address?.state_district || item.address?.county || '',
+          country:        item.address?.country_code === 'in' ? 'India' : (item.address?.country || ''),
+          country_code:   (item.address?.country_code || '').toLowerCase(),
+          formatted:      item.display_name,
           result_type,
         },
       };
@@ -713,22 +1377,21 @@ async function fetchAutocomplete(query, dropdownId, onSelect, field, searchTier 
     features = rawData.features;
   }
 
-  // ── Tier 3 state guard ────────────────────────────────────────────────────
-  // "query Tamil Nadu India" can match wrong-state results (e.g. "Nadu, UP").
-  // Keep only Tamil Nadu results; escalate to Tier 4 if all are filtered out.
-  if (searchTier === 3 && features.length > 0) {
-    const tnFeatures = features.filter(f => {
-      const s = (f.properties.state || '').toLowerCase();
-      return s.includes('tamil') || s === 'tn';
-    });
-    if (tnFeatures.length > 0) {
-      const ranked = rankAndDedup(tnFeatures, q);
-      console.log(`[Search] Tier 3 — ${ranked.length} TN results ranked (${features.length} raw)`);
-      renderAutocomplete(ranked, dropdownId, onSelect, q);
-      return;
-    }
-    console.log('[Search] Tier 3: all results non-TN — escalating to Tier 4 (Nominatim)...');
-    return fetchAutocomplete(q, dropdownId, onSelect, field, 4);
+  // ── Hard India-only post-filter (defensive — catches any API filter failure) ─
+  // Removes results whose country_code or country property explicitly points
+  // outside India. Results with no country data are kept (trust the API filter).
+  const beforeFilter = features.length;
+  features = features.filter(f => {
+    const p    = f.properties;
+    const code = (p.country_code || p.countrycode || '').toLowerCase();
+    const name = (p.country || '').toLowerCase();
+    // If we have explicit country data that is NOT India → reject
+    if (code && code !== 'in') return false;
+    if (name && name !== 'india') return false;
+    return true;
+  });
+  if (features.length < beforeFilter) {
+    console.log(`[Search] 🚫 India filter removed ${beforeFilter - features.length} non-India result(s)`);
   }
 
   console.log(`[Search] Tier ${searchTier} (${tierLabel}) → ${features.length} raw results for "${q}"`);
@@ -737,23 +1400,34 @@ async function fetchAutocomplete(query, dropdownId, onSelect, field, searchTier 
   const ranked = rankAndDedup(features, q);
   console.log(`[Search] Tier ${searchTier} → ${ranked.length} ranked results`);
 
-  // ── Escalate on 0 results after dedup ────────────────────────────────────
+  // ── Escalate on 0 results (5-tier pipeline + local DB fallback) ─────────────
   if (ranked.length === 0) {
-    if (searchTier < 4) {
+    if (searchTier < 5) {
       console.log(`[Location] 0 results at tier ${searchTier} — escalating to tier ${searchTier + 1}...`);
       return fetchAutocomplete(q, dropdownId, onSelect, field, searchTier + 1);
     }
-    // All 4 tiers exhausted — structured failure log for debugging
-    console.warn('[Search] ❌ No results found:', {
-      query:           q,
-      tiers_attempted: 4,
-      timestamp:       new Date().toISOString(),
-      suggestion:      'Location may not exist in Geoapify/OSM. Try nearby town or district name.',
+    // All 5 API tiers exhausted — try local village DB with fuzzy matching
+    if (LOCAL_VILLAGE_DB && LOCAL_VILLAGE_DB.length > 0) {
+      const localFuzzy = searchLocalVillageDB(q);
+      if (localFuzzy.length > 0) {
+        console.log(`[Search] 📍 Local DB fuzzy fallback: "${q}" → ${localFuzzy.length} result(s)`);
+        cacheSet(q, localFuzzy);
+        renderAutocomplete(localFuzzy, dropdownId, onSelect, q);
+        return;
+      }
+    }
+    // Truly not found anywhere
+    console.warn('[Search] ❌ No results found after all 5 tiers + local DB:', {
+      query:      q,
+      timestamp:  new Date().toISOString(),
+      suggestion: 'Village may not be mapped in OpenStreetMap. Try taluk or district name.',
     });
     renderAutocomplete([], dropdownId, onSelect, q);
     return;
   }
 
+  // Store results in cache before rendering (only when we have actual results)
+  cacheSet(q, ranked);
   renderAutocomplete(ranked, dropdownId, onSelect, q);
 }
 
@@ -780,8 +1454,11 @@ function renderAutocomplete(features, dropdownId, onSelect, query = '') {
     dropdown.innerHTML = `
       <div class="ac-empty" style="padding:14px 16px; text-align:left;">
         <div style="font-weight:600; margin-bottom:4px;">Location not found</div>
-        <div style="font-size:12px; opacity:0.75;">Try: nearby town, taluk, or district name.<br>
-        Example: search "Salem" or "Namakkal" instead of a small village.</div>
+        <div style="font-size:12px; opacity:0.75;">
+          Village may not be in OpenStreetMap yet.<br>
+          Try: full name + taluk (e.g. "Pullakapatti Periyakulam")<br>
+          or search by nearby town / district.
+        </div>
       </div>`;
     dropdown.classList.remove('hidden');
     return;
@@ -799,30 +1476,59 @@ function renderAutocomplete(features, dropdownId, onSelect, query = '') {
       p.address_line1 ||
       p.formatted || 'Unknown';
 
-    // Address sub-line for disambiguation
-    const rawParts = [
-      p.building && p.building !== name ? p.building : null,
-      p.hamlet   && p.hamlet   !== name ? p.hamlet   : null,
-      p.village  && p.village  !== name ? p.village  : null,
-      p.suburb   && p.suburb   !== name ? p.suburb   : null,
-      p.city     && p.city     !== name ? p.city     : null,
-      p.county,
-      p.state_district,
-      p.state,
-    ];
-    const address = rawParts.filter(Boolean).join(', ')
-                 || p.address_line2
-                 || p.formatted
-                 || '';
+    // Address sub-line: Village → Taluk → District → State
+    // De-duplicate: skip any part that equals name or a previously included part.
+    const seen = new Set([name.toLowerCase()]);
+    function addPart(val) {
+      if (!val) return null;
+      const v = val.trim();
+      if (!v || seen.has(v.toLowerCase())) return null;
+      seen.add(v.toLowerCase());
+      return v;
+    }
 
-    // Icon per result_type (amenity = apartment/building/shop/landmark)
-    const icon = p.result_type === 'amenity'                           ? 'fa-building'
-               : p.result_type === 'street'                            ? 'fa-road'
-               : p.result_type === 'city'                              ? 'fa-city'
+    // Build address hierarchy from most-specific to most-general
+    const addrParts = [
+      addPart(p.building),
+      addPart(p.hamlet),
+      addPart(p.village),
+      addPart(p.suburb),
+      addPart(p.quarter),
+      addPart(p.town  && p.town  !== p.city ? p.town  : null),
+      addPart(p.city),
+      // Taluk / Block (county field in Nominatim for TN)
+      addPart(p.taluk),
+      // District — prefer state_district over county (may already be taluk)
+      addPart(p.state_district !== p.taluk ? p.state_district : null),
+      addPart(p.state),
+    ];
+    let address = addrParts.filter(Boolean).join(', ')
+                || p.address_line2
+                || p.formatted
+                || '';
+    // Chennai DB: prepend category label for clarity (e.g. "Metro Station · Anna Nagar, Chennai")
+    if (p.source === 'chennai-db' && p.poi_label) {
+      address = address ? `${p.poi_label} · ${address}` : p.poi_label;
+    }
+
+    // Icon — Chennai DB has pre-computed category icons; fall through for others
+    const nameAddr = (name + ' ' + address).toLowerCase();
+    const icon = p.poi_icon                                                       ? p.poi_icon
+               : /airport|aerodrome/.test(nameAddr)                              ? 'fa-plane'
+               : /railway station|train station|junction|rail terminus/.test(nameAddr) ? 'fa-train'
+               : /bus stand|bus station|bus depot|ksrtc|setc|tnstc/.test(nameAddr) ? 'fa-bus'
+               : /temple|kovil|mandir|amman|swamy|devasthanam/.test(nameAddr)    ? 'fa-place-of-worship'
+               : /masjid|mosque|dargah/.test(nameAddr)                           ? 'fa-mosque'
+               : /church|cathedral/.test(nameAddr)                               ? 'fa-church'
+               : /hospital|medical|clinic/.test(nameAddr)                        ? 'fa-hospital'
+               : /resort|hotel|lodge/.test(nameAddr)                             ? 'fa-hotel'
+               : p.result_type === 'amenity'                                     ? 'fa-building'
+               : p.result_type === 'street'                                      ? 'fa-road'
+               : p.result_type === 'city'                                        ? 'fa-city'
                : (p.result_type === 'locality' ||
                   p.result_type === 'village'  ||
-                  p.result_type === 'hamlet')                          ? 'fa-map-pin'
-               : p.result_type === 'postcode'                          ? 'fa-envelope'
+                  p.result_type === 'hamlet')                                    ? 'fa-map-pin'
+               : p.result_type === 'postcode'                                    ? 'fa-envelope'
                : 'fa-map-marker-alt';
 
     // Bold the matching part of the name
