@@ -1788,68 +1788,117 @@ function setupClickOutside() {
 // ==================== GEOLOCATION ====================
 
 /**
- * Build a clean, human-readable address from Geoapify reverse-geocode properties.
+ * Build the most detailed possible address from Geoapify reverse-geocode props.
  *
- * WHY NOT props.formatted:
- *   Geoapify's formatted string includes POI/street names when the nearest
- *   feature is an amenity, e.g.:
- *     "Tamilnadu forest department office, NH45, Devadānappatti - 625602, TN, India"
- *   Users expect:
- *     "Devadanappatti, Theni, Tamil Nadu, India"
+ * Field priority (most → least specific):
+ *   housenumber  →  street  →  suburb/area  →  village/city  →  district  →  state  →  country
  *
- * Strategy: build from locality components → fall back to formatted only if
- *   component data is sparse.
+ * POI/amenity names (e.g. "Tamilnadu forest dept office") are intentionally
+ * skipped — result_type tells us when the nearest feature is a building/amenity.
+ * Residential building names are kept (result_type === 'building').
+ *
+ * Returns: full address string, or null if too sparse (< 2 parts).
  */
-function buildPickupLabel(props) {
-  if (!props) return 'Current Location';
+function buildGeoapifyLabel(props) {
+  if (!props) return null;
 
-  // ── Component-based label (preferred) ────────────────────────────────────
-  const locality = props.village || props.hamlet || props.suburb
-                || props.city   || props.town   || props.quarter || '';
+  const parts = [];
+
+  // 1. Building name — only for actual residential/commercial buildings, not amenities
+  const RESIDENTIAL_TYPES = ['building', 'amenity.residential', 'residential'];
+  if (props.name && RESIDENTIAL_TYPES.includes(props.result_type)) {
+    parts.push(props.name);
+  }
+
+  // 2. House / door number
+  if (props.housenumber) parts.push(`No. ${props.housenumber}`);
+
+  // 3. Street / road name
+  if (props.street) parts.push(props.street);
+
+  // 4. Suburb / locality / area (finer grain than city)
+  const area = props.suburb || props.quarter || props.neighbourhood || '';
+  if (area) parts.push(area);
+
+  // 5. Village / hamlet / city / town  (most specific settlement name)
+  const settlement = props.village || props.hamlet || props.city || props.town || '';
+  if (settlement) parts.push(settlement);
+
+  // 6. District  (state_district = taluk/district in India; county is Geoapify's fallback)
   const district = props.state_district || props.county || '';
-  const state    = props.state    || '';
-  const country  = props.country  || '';
+  if (district) parts.push(district);
 
-  const parts = [locality, district, state, country].filter(Boolean);
-  if (parts.length >= 2) return parts.join(', ');
+  // 7. State
+  if (props.state) parts.push(props.state);
 
-  // ── Fallback: formatted string (strip leading POI name if possible) ──────
-  if (props.address_line2) return props.address_line2.replace(/\s*-\s*\d{5,6}\s*/g, ', ').trim();
-  if (props.formatted)     return props.formatted;
+  // 8. Country
+  if (props.country) parts.push(props.country);
 
-  return 'Current Location';
+  console.log('[GeoLoc] Geoapify label parts:', parts);
+  return parts.length >= 2 ? parts.join(', ') : null;
 }
 
 /**
- * Nominatim (OpenStreetMap) reverse geocoder — free, no API key.
- * Used as fallback when Geoapify reverse geocode fails.
- * Returns a clean address string, or null on failure.
+ * Build the most detailed possible address from Nominatim address object.
+ *
+ * Nominatim zoom=18 returns building-level detail.
+ * Field priority mirrors Geoapify builder above.
+ *
+ * Returns: full address string, or null if too sparse.
+ */
+function buildNominatimLabel(addr, displayName) {
+  if (!addr) return displayName || null;
+
+  const parts = [];
+
+  // 1. House / door number
+  if (addr.house_number) parts.push(`No. ${addr.house_number}`);
+
+  // 2. Street / road
+  if (addr.road) parts.push(addr.road);
+
+  // 3. Suburb / neighbourhood / area
+  const area = addr.neighbourhood || addr.suburb || '';
+  if (area) parts.push(area);
+
+  // 4. Village / hamlet / city / town
+  const settlement = addr.village || addr.hamlet
+                   || addr.city_district || addr.city || addr.town || '';
+  if (settlement) parts.push(settlement);
+
+  // 5. District
+  const district = addr.state_district || addr.county || '';
+  if (district) parts.push(district);
+
+  // 6. State
+  if (addr.state) parts.push(addr.state);
+
+  // 7. Country
+  if (addr.country) parts.push(addr.country);
+
+  console.log('[GeoLoc] Nominatim label parts:', parts);
+  if (parts.length >= 2) return parts.join(', ');
+  return displayName || null;
+}
+
+/**
+ * Nominatim (OpenStreetMap) reverse geocoder — free, no API key required.
+ * zoom=18 requests building-level detail (most specific available).
+ * Used as fallback when Geoapify fails.
+ *
+ * Returns: address string, or null on failure.
  */
 async function nominatimReverseGeocode(lat, lon) {
-  try {
-    const url = `https://nominatim.openstreetmap.org/reverse` +
-                `?lat=${lat}&lon=${lon}&format=json&accept-language=en&zoom=14`;
-    console.log('[GeoLoc] Nominatim URL:', url);
-    const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
-    if (!res.ok) throw new Error(`Nominatim HTTP ${res.status}`);
+  const url = `https://nominatim.openstreetmap.org/reverse` +
+              `?lat=${lat}&lon=${lon}&format=json&accept-language=en&zoom=18`;
+  console.log('[GeoLoc] Nominatim URL:', url);
+  const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+  if (!res.ok) throw new Error(`Nominatim HTTP ${res.status} ${res.statusText}`);
 
-    const data = await res.json();
-    console.log('[GeoLoc] Nominatim response:', data);
+  const data = await res.json();
+  console.log('[GeoLoc] Nominatim full response:', data);
 
-    const addr = data.address || {};
-    const locality = addr.village || addr.suburb || addr.city_district
-                   || addr.city   || addr.town   || addr.hamlet  || '';
-    const district = addr.state_district || addr.county || '';
-    const state    = addr.state   || '';
-    const country  = addr.country || '';
-
-    const parts = [locality, district, state, country].filter(Boolean);
-    if (parts.length >= 2) return parts.join(', ');
-    return data.display_name || null;
-  } catch (e) {
-    console.error('[GeoLoc] Nominatim error:', e.message);
-    return null;
-  }
+  return buildNominatimLabel(data.address || {}, data.display_name);
 }
 
 function useCurrentLocation() {
@@ -1907,7 +1956,7 @@ function useCurrentLocation() {
         const res = await fetch(url);
         console.log('[GeoLoc] Geoapify status:', res.status, res.statusText);
 
-        if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+        if (!res.ok) throw new Error(`Geoapify HTTP ${res.status} ${res.statusText}`);
 
         const data  = await res.json();
         console.log('[GeoLoc] Geoapify full response:', data);
@@ -1917,22 +1966,44 @@ function useCurrentLocation() {
 
         if (!props) throw new Error('Geoapify returned no features');
 
-        label = buildPickupLabel(props);
-        console.log('[GeoLoc] Geoapify label built:', label);
+        label = buildGeoapifyLabel(props);
+        console.log('[GeoLoc] Geoapify label:', label);
+
+        // If Geoapify gave a sparse result (just city+state), also try Nominatim
+        // and prefer whichever has more detail (more comma-separated parts)
+        if (!label || label.split(',').length < 3) {
+          console.log('[GeoLoc] Geoapify result sparse — also trying Nominatim for more detail…');
+          try {
+            const nomLabel = await nominatimReverseGeocode(lat, lon);
+            if (nomLabel && nomLabel.split(',').length > (label || '').split(',').length) {
+              console.log('[GeoLoc] Nominatim more detailed — using:', nomLabel);
+              label = nomLabel;
+            }
+          } catch (nomErr) {
+            console.warn('[GeoLoc] Nominatim detail-boost failed:', nomErr.message);
+          }
+        }
 
       } catch (geoErr) {
         // ── Geoapify failed: log exact reason, try Nominatim ─────────────
-        console.error('[GeoLoc] Geoapify reverse geocode failed:', geoErr.message);
+        console.error('[GeoLoc] Geoapify failed:', geoErr.message);
         console.log('[GeoLoc] Falling back to Nominatim (OpenStreetMap)…');
-
-        label = await nominatimReverseGeocode(lat, lon);
-
-        if (label) {
-          console.log('[GeoLoc] Nominatim label:', label);
-        } else {
-          console.warn('[GeoLoc] Both geocoders failed — showing "Current Location"');
-          label = 'Current Location';
+        try {
+          label = await nominatimReverseGeocode(lat, lon);
+          if (label) {
+            console.log('[GeoLoc] Nominatim label:', label);
+          } else {
+            console.warn('[GeoLoc] Nominatim returned no usable data');
+          }
+        } catch (nomErr) {
+          console.error('[GeoLoc] Nominatim also failed:', nomErr.message);
         }
+      }
+
+      // Last resort — both geocoders failed
+      if (!label) {
+        console.warn('[GeoLoc] Both geocoders failed — using "Current Location"');
+        label = 'Current Location';
       }
 
       setPickup(label);
