@@ -32,6 +32,8 @@ import {
   onSnapshot,
   serverTimestamp,
   increment,
+  updateDoc,
+  deleteField,
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import {
   getStorage,
@@ -350,6 +352,186 @@ async function fbGetUserBookings(userId) {
   }
 }
 
+// ── Admin: fetch all bookings ─────────────────────────────────────────────────
+async function fbGetAllBookings(max = 200) {
+  try {
+    const snap = await getDocs(
+      query(collection(db, 'bookings'), orderBy('createdAt', 'desc'), limit(max))
+    );
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (e) {
+    console.warn('[Admin] fetch bookings failed:', e.message);
+    return [];
+  }
+}
+
+// ── Admin: real-time listener on all bookings ─────────────────────────────────
+function fbListenAllBookings(callback, max = 100) {
+  return onSnapshot(
+    query(collection(db, 'bookings'), orderBy('createdAt', 'desc'), limit(max)),
+    snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+    err => console.error('[Admin] bookings listener error:', err.message)
+  );
+}
+
+// ── Admin: update booking status ──────────────────────────────────────────────
+async function fbUpdateBookingStatus(bookingId, status, note = '') {
+  await updateDoc(doc(db, 'bookings', bookingId), {
+    status,
+    statusNote:  note,
+    updatedAt:   serverTimestamp(),
+  });
+  // Mirror status to trip_requests collection
+  try {
+    await updateDoc(doc(db, 'trip_requests', bookingId), {
+      status, updatedAt: serverTimestamp(),
+    });
+  } catch (_) { /* trip_request may not exist for older bookings */ }
+  console.log('[Admin] booking status updated:', bookingId, '→', status);
+}
+
+// ── Admin: real-time listener on trip_requests ────────────────────────────────
+function fbListenTripRequests(callback, max = 100) {
+  return onSnapshot(
+    query(collection(db, 'trip_requests'), orderBy('createdAt', 'desc'), limit(max)),
+    snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+    err => console.error('[Admin] trip_requests listener error:', err.message)
+  );
+}
+
+// ── Admin: assign driver to a trip ────────────────────────────────────────────
+async function fbAssignDriver(tripId, driver) {
+  // driver = { driverId, driverName, driverPhone, vehicleNumber }
+  const updates = {
+    status:       'assigned',
+    driverId:     driver.driverId,
+    driverName:   driver.driverName,
+    driverPhone:  driver.driverPhone  || '',
+    vehicleNumber:driver.vehicleNumber || '',
+    assignedAt:   serverTimestamp(),
+  };
+  await updateDoc(doc(db, 'trip_requests', tripId), updates);
+  // Also mirror to bookings collection
+  try {
+    await updateDoc(doc(db, 'bookings', tripId), {
+      ...updates, updatedAt: serverTimestamp(),
+    });
+  } catch (_) {}
+  console.log('[Admin] driver assigned:', tripId, '→', driver.driverName);
+}
+
+// ── Admin: unassign driver from a trip ────────────────────────────────────────
+async function fbUnassignDriver(tripId) {
+  const updates = {
+    status:       'pending',
+    driverId:     '',
+    driverName:   '',
+    driverPhone:  '',
+    vehicleNumber:'',
+    assignedAt:   deleteField(),
+  };
+  await updateDoc(doc(db, 'trip_requests', tripId), updates);
+  try {
+    await updateDoc(doc(db, 'bookings', tripId), {
+      ...updates, updatedAt: serverTimestamp(),
+    });
+  } catch (_) {}
+}
+
+// ── Drivers collection: save approved driver ──────────────────────────────────
+async function fbSaveDriver(driver) {
+  // driver = { driverId(uid), name, phone, email, vehicleType, vehicleNumber, city }
+  await setDoc(doc(db, 'drivers', driver.driverId), {
+    ...driver,
+    status:    driver.status || 'available',
+    updatedAt: serverTimestamp(),
+  }, { merge: true });
+}
+
+// ── Drivers collection: fetch all available drivers ───────────────────────────
+async function fbGetDrivers(statusFilter = null) {
+  try {
+    let q = collection(db, 'drivers');
+    if (statusFilter) {
+      q = query(q, where('status', '==', statusFilter));
+    }
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (e) {
+    console.warn('[Drivers] fetch failed:', e.message);
+    return [];
+  }
+}
+
+// ── Drivers collection: update driver status ─────────────────────────────────
+async function fbUpdateDriverStatus(driverId, status) {
+  await updateDoc(doc(db, 'drivers', driverId), {
+    status, updatedAt: serverTimestamp(),
+  });
+}
+
+// ── Driver: fetch assigned trips for a driver ─────────────────────────────────
+async function fbGetDriverTrips(driverId, max = 50) {
+  try {
+    const snap = await getDocs(
+      query(
+        collection(db, 'trip_requests'),
+        where('driverId', '==', driverId),
+        orderBy('createdAt', 'desc'),
+        limit(max)
+      )
+    );
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (e) {
+    console.warn('[Driver] fetch trips failed:', e.message);
+    return [];
+  }
+}
+
+// ── Driver: real-time listener for driver's trips ─────────────────────────────
+function fbListenDriverTrips(driverId, callback) {
+  return onSnapshot(
+    query(
+      collection(db, 'trip_requests'),
+      where('driverId', '==', driverId),
+      orderBy('createdAt', 'desc'),
+      limit(30)
+    ),
+    snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+    err => console.error('[Driver] trips listener error:', err.message)
+  );
+}
+
+// ── Driver: update a trip's status (accept / start / complete / cancel) ───────
+async function fbUpdateTripStatus(tripId, status, extra = {}) {
+  const updates = { status, updatedAt: serverTimestamp(), ...extra };
+  await updateDoc(doc(db, 'trip_requests', tripId), updates);
+  try {
+    await updateDoc(doc(db, 'bookings', tripId), updates);
+  } catch (_) {}
+  console.log('[Driver] trip status updated:', tripId, '→', status);
+}
+
+// ── Admin: fetch KPI stats ────────────────────────────────────────────────────
+async function fbGetAdminStats() {
+  try {
+    const [statsSnap, pendingSnap, assignedSnap] = await Promise.all([
+      getDoc(doc(db, 'stats', 'global')),
+      getDocs(query(collection(db, 'trip_requests'), where('status', '==', 'pending'),   limit(1))),
+      getDocs(query(collection(db, 'trip_requests'), where('status', '==', 'assigned'),  limit(1))),
+    ]);
+    const global = statsSnap.exists() ? statsSnap.data() : {};
+    return {
+      totalBookings: global.totalBookings  || 0,
+      pendingCount:  pendingSnap.size,
+      assignedCount: assignedSnap.size,
+    };
+  } catch (e) {
+    console.warn('[Admin] stats fetch failed:', e.message);
+    return { totalBookings: 0, pendingCount: 0, assignedCount: 0 };
+  }
+}
+
 // ── Expose to window (app.js is a classic script, not a module) ───────────────
 window._firebaseAuth    = auth;
 window._firebaseDb      = db;
@@ -381,6 +563,21 @@ window._firebaseFns = {
   getDriverApplications:         fbGetDriverApplications,
   updateDriverApplicationStatus: fbUpdateDriverApplicationStatus,
   listenToDriverApplication:     fbListenToDriverApplication,
+  // Admin booking management
+  getAllBookings:         fbGetAllBookings,
+  listenAllBookings:     fbListenAllBookings,
+  updateBookingStatus:   fbUpdateBookingStatus,
+  listenTripRequests:    fbListenTripRequests,
+  assignDriver:          fbAssignDriver,
+  unassignDriver:        fbUnassignDriver,
+  getAdminStats:         fbGetAdminStats,
+  // Driver management
+  saveDriver:            fbSaveDriver,
+  getDrivers:            fbGetDrivers,
+  updateDriverStatus:    fbUpdateDriverStatus,
+  getDriverTrips:        fbGetDriverTrips,
+  listenDriverTrips:     fbListenDriverTrips,
+  updateTripStatus:      fbUpdateTripStatus,
 };
 
 // ── Auth state listener ───────────────────────────────────────────────────────

@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Trips — Driver | Galaxy Ride</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23E31E24'/><text y='.9em' font-size='70' x='10'>🚗</text></svg>" />
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--primary:#E31E24;--bg:#0c0f1e;--card:#161a2e;--line:rgba(255,255,255,0.08);--muted:rgba(255,255,255,0.5);--success:#22c55e;--warn:#f59e0b;--info:#3b82f6;--danger:#ef4444}
+    body{background:var(--bg);color:#fff;font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh;padding-bottom:80px}
+
+    /* ── Nav ── */
+    .nav{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:rgba(12,15,30,0.96);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50;backdrop-filter:blur(12px)}
+    .logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:#fff;font-weight:800;font-size:17px}
+    .logo .b{width:34px;height:34px;background:var(--primary);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px}
+    .driver-pill{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:7px 14px 7px 8px}
+    .driver-avatar{width:28px;height:28px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;flex-shrink:0}
+    .driver-name-nav{font-size:13px;font-weight:600}
+    .status-toggle{border:none;border-radius:999px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;margin-left:4px}
+    .st-available{background:rgba(34,197,94,.2);color:var(--success)}
+    .st-busy{background:rgba(245,158,11,.2);color:var(--warn)}
+    .st-offline{background:rgba(255,255,255,.08);color:var(--muted)}
+
+    /* ── Hero strip ── */
+    .hero-strip{background:linear-gradient(135deg,#1a1f36,#0f1229);border-bottom:1px solid var(--line);padding:20px 20px 0}
+    .hero-tabs{display:flex;gap:4px;overflow-x:auto;padding-bottom:0}
+    .hero-tab{padding:10px 20px;border:none;background:none;color:var(--muted);font-size:13.5px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap}
+    .hero-tab.active{color:#fff;border-bottom-color:var(--primary)}
+
+    /* ── KPIs ── */
+    .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:20px 20px 0;max-width:900px;margin:0 auto}
+    .kpi{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:14px 16px}
+    .kpi-val{font-size:22px;font-weight:800}
+    .kpi-label{color:var(--muted);font-size:11.5px;margin-top:3px}
+
+    /* ── Main content ── */
+    .content{max-width:900px;margin:0 auto;padding:20px}
+
+    /* ── Trip card ── */
+    .trip-card{background:var(--card);border:1px solid var(--line);border-radius:18px;margin-bottom:14px;overflow:hidden;transition:border-color .2s}
+    .trip-card:hover{border-color:rgba(255,255,255,.15)}
+    .trip-card.urgent{border-color:rgba(245,158,11,.4);animation:pulse-border 2s infinite}
+    @keyframes pulse-border{0%,100%{border-color:rgba(245,158,11,.4)}50%{border-color:rgba(245,158,11,.8)}}
+    .trip-header{display:flex;align-items:flex-start;justify-content:space-between;padding:16px 18px 12px;gap:12px;flex-wrap:wrap}
+    .trip-id{font-size:11px;font-family:monospace;color:var(--primary);font-weight:700;margin-bottom:2px}
+    .trip-customer{font-size:15px;font-weight:700}
+    .trip-phone{font-size:12px;color:var(--muted);margin-top:3px}
+    .trip-badge{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:999px;font-size:11.5px;font-weight:700;white-space:nowrap}
+    .tb-new{background:rgba(245,158,11,.15);color:var(--warn);animation:badge-glow 1.5s infinite}
+    @keyframes badge-glow{0%,100%{background:rgba(245,158,11,.15)}50%{background:rgba(245,158,11,.28)}}
+    .tb-assigned{background:rgba(59,130,246,.15);color:var(--info)}
+    .tb-started{background:rgba(34,197,94,.15);color:var(--success)}
+    .tb-completed{background:rgba(34,197,94,.08);color:#86efac}
+    .tb-cancelled{background:rgba(239,68,68,.12);color:var(--danger)}
+    .trip-route{padding:0 18px 12px;display:flex;flex-direction:column;gap:6px}
+    .route-point{display:flex;align-items:flex-start;gap:10px}
+    .route-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:4px}
+    .route-dot.pickup{background:var(--primary)}
+    .route-dot.drop{background:var(--success)}
+    .route-line{width:1px;height:14px;background:rgba(255,255,255,.2);margin-left:4px}
+    .route-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:1px}
+    .route-addr{font-size:13px;font-weight:500;line-height:1.4}
+    .trip-meta{padding:0 18px 12px;display:flex;gap:14px;flex-wrap:wrap}
+    .meta-chip{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+    .meta-chip i{font-size:11px;color:var(--primary)}
+    .meta-chip strong{color:#fff;font-weight:600}
+    .trip-fare{padding:12px 18px;background:rgba(255,255,255,.03);border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+    .fare-amount{font-size:20px;font-weight:800}
+    .fare-method{font-size:12px;color:var(--muted);margin-top:2px}
+    .trip-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .ta-btn{flex:1;min-width:100px;padding:10px 16px;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;justify-content:center;gap:7px}
+    .ta-accept{background:var(--success);color:#fff}
+    .ta-accept:hover{background:#16a34a}
+    .ta-start{background:var(--info);color:#fff}
+    .ta-start:hover{background:#2563eb}
+    .ta-complete{background:var(--primary);color:#fff}
+    .ta-complete:hover{background:#c41a1f}
+    .ta-navigate{background:rgba(34,197,94,.15);color:var(--success);border:1px solid rgba(34,197,94,.25)}
+    .ta-navigate:hover{background:rgba(34,197,94,.25)}
+    .ta-call{background:rgba(59,130,246,.15);color:var(--info);border:1px solid rgba(59,130,246,.25)}
+    .ta-call:hover{background:rgba(59,130,246,.25)}
+
+    /* ── Empty / loading ── */
+    .empty{text-align:center;padding:60px 20px;color:var(--muted)}
+    .empty i{font-size:44px;opacity:.3;display:block;margin-bottom:14px}
+    .empty p{font-size:14px}
+    .loading{text-align:center;padding:60px 20px;color:var(--muted)}
+
+    /* ── Auth guard ── */
+    #authGuard{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;gap:16px;text-align:center;padding:24px}
+    #authGuard h2{font-size:22px;font-weight:800}
+    #authGuard p{color:var(--muted);font-size:14px}
+    .btn{display:inline-flex;align-items:center;gap:7px;border:none;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none}
+    .btn-primary{background:var(--primary);color:#fff}
+
+    /* ── New trip alert banner ── */
+    .new-trip-banner{background:linear-gradient(135deg,rgba(245,158,11,.15),rgba(245,158,11,.08));border:1px solid rgba(245,158,11,.3);border-radius:14px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:12px;display:none}
+    .new-trip-banner.show{display:flex;animation:slide-in .3s ease}
+    @keyframes slide-in{from{transform:translateY(-10px);opacity:0}to{transform:translateY(0);opacity:1}}
+    .ntb-icon{width:36px;height:36px;background:rgba(245,158,11,.2);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--warn);flex-shrink:0}
+    .ntb-text{flex:1}
+    .ntb-title{font-size:13.5px;font-weight:700;color:var(--warn)}
+    .ntb-sub{font-size:12px;color:var(--muted);margin-top:2px}
+
+    ::-webkit-scrollbar{width:5px}
+    ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:3px}
+    @media(max-width:600px){.kpis{grid-template-columns:1fr 1fr}.hero-tab{font-size:12px;padding:9px 14px}}
+  </style>
+</head>
+<body>
+
+<!-- ── Nav ──────────────────────────────────────────────────────────────────── -->
+<nav class="nav">
+  <a class="logo" href="index.html">
+    <div class="b"><i class="fas fa-car"></i></div>
+    Galaxy Ride
+  </a>
+  <div id="driverPill" style="display:none" class="driver-pill">
+    <div class="driver-avatar" id="driverAvatarNav">D</div>
+    <span class="driver-name-nav" id="driverNameNav">Driver</span>
+    <button class="status-toggle st-available" id="statusToggle" onclick="toggleStatus()">Available</button>
+  </div>
+</nav>
+
+<!-- ── Auth guard ────────────────────────────────────────────────────────────── -->
+<div id="authGuard" style="display:none">
+  <i class="fas fa-id-card" style="font-size:52px;color:var(--primary)"></i>
+  <h2>Driver Login Required</h2>
+  <p>You must be signed in as an approved driver to view your trips.</p>
+  <a class="btn btn-primary" href="index.html"><i class="fas fa-arrow-left"></i> Back to Home</a>
+</div>
+
+<!-- ── App shell ─────────────────────────────────────────────────────────────── -->
+<div id="appShell" style="display:none">
+
+  <!-- Hero tabs -->
+  <div class="hero-strip">
+    <div class="hero-tabs">
+      <button class="hero-tab active" data-tab="new"       onclick="switchTab('new',this)"><i class="fas fa-bell"></i> New Trips</button>
+      <button class="hero-tab"        data-tab="assigned"  onclick="switchTab('assigned',this)"><i class="fas fa-car"></i> Assigned</button>
+      <button class="hero-tab"        data-tab="active"    onclick="switchTab('active',this)"><i class="fas fa-route"></i> Active</button>
+      <button class="hero-tab"        data-tab="history"   onclick="switchTab('history',this)"><i class="fas fa-history"></i> History</button>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpis" id="kpisStrip">
+    <div class="kpi"><div class="kpi-val" id="kpiToday">0</div><div class="kpi-label">Today's Trips</div></div>
+    <div class="kpi"><div class="kpi-val" id="kpiEarnings">₹0</div><div class="kpi-label">Today's Earnings</div></div>
+    <div class="kpi"><div class="kpi-val" id="kpiWeek">0</div><div class="kpi-label">This Week</div></div>
+    <div class="kpi"><div class="kpi-val" id="kpiTotal">0</div><div class="kpi-label">Total Trips</div></div>
+  </div>
+
+  <!-- New trip banner -->
+  <div class="content">
+    <div class="new-trip-banner" id="newTripBanner">
+      <div class="ntb-icon"><i class="fas fa-bell"></i></div>
+      <div class="ntb-text">
+        <div class="ntb-title" id="ntbTitle">New trip assigned!</div>
+        <div class="ntb-sub" id="ntbSub">Tap to view details</div>
+      </div>
+    </div>
+
+    <div id="tripList">
+      <div class="loading"><i class="fas fa-spinner fa-spin" style="font-size:28px;opacity:.4;display:block;margin-bottom:12px"></i>Loading your trips…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Firebase ───────────────────────────────────────────────────────────────── -->
+<script type="module" src="js/firebase.js"></script>
+<script>
+/* ── State ─────────────────────────────────────────────────────────────── */
+let currentDriver   = null;
+let allTrips        = [];
+let activeTab       = 'new';
+let driverStatus    = 'available';
+let prevTripIds     = new Set();
+let unsubTrips      = null;
+
+/* ── Boot ───────────────────────────────────────────────────────────────── */
+function waitForFirebase(cb, t=0) {
+  if (window._firebaseFns) { cb(); return; }
+  if (t > 40) { document.getElementById('authGuard').style.display='flex'; return; }
+  setTimeout(() => waitForFirebase(cb, t+1), 150);
+}
+
+waitForFirebase(() => {
+  const fns  = window._firebaseFns;
+  const auth = window._firebaseAuth;
+  fns.onAuthStateChanged(auth, async user => {
+    if (!user) { document.getElementById('authGuard').style.display='flex'; return; }
+    currentDriver = user;
+    initDriver(user);
+  });
+});
+
+async function initDriver(user) {
+  // Update nav pill
+  const name = user.displayName || user.email.split('@')[0];
+  document.getElementById('driverAvatarNav').textContent  = name[0].toUpperCase();
+  document.getElementById('driverNameNav').textContent    = name;
+  document.getElementById('driverPill').style.display     = 'flex';
+  document.getElementById('appShell').style.display       = 'block';
+
+  // Start real-time listener for this driver's trips
+  startTripListener(user.uid);
+}
+
+function startTripListener(driverId) {
+  if (unsubTrips) unsubTrips();
+  unsubTrips = window._firebaseFns.listenDriverTrips(driverId, trips => {
+    detectNewTrips(trips);
+    allTrips = trips;
+    updateKpis(trips);
+    renderTrips();
+  });
+}
+
+/* ── New-trip detection ─────────────────────────────────────────────────── */
+function detectNewTrips(trips) {
+  const currentIds = new Set(trips.map(t => t.id));
+  const newOnes    = trips.filter(t => !prevTripIds.has(t.id) && t.status === 'assigned');
+  if (newOnes.length && prevTripIds.size > 0) {
+    // Vibrate on mobile
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    showNewTripBanner(newOnes[0]);
+  }
+  prevTripIds = currentIds;
+}
+
+function showNewTripBanner(trip) {
+  document.getElementById('ntbTitle').textContent = `New trip: ${short(trip.pickup)} → ${short(trip.drop||'Hourly')}`;
+  document.getElementById('ntbSub').textContent   = `${cap(trip.vehicleType||'')} · ₹${trip.estimatedFare||0}`;
+  const b = document.getElementById('newTripBanner');
+  b.classList.add('show');
+  b.onclick = () => { switchTab('assigned', document.querySelector('.hero-tab[data-tab="assigned"]')); b.classList.remove('show'); };
+  setTimeout(() => b.classList.remove('show'), 8000);
+}
+
+/* ── KPIs ───────────────────────────────────────────────────────────────── */
+function updateKpis(trips) {
+  const today   = new Date().toISOString().slice(0,10);
+  const todayT  = trips.filter(t => (t.date||'') === today);
+  const earnings= todayT.filter(t => t.status==='completed').reduce((s,t) => s+(Number(t.estimatedFare)||0),0);
+  const weekAgo = new Date(Date.now() - 7*86400000).toISOString().slice(0,10);
+  const weekT   = trips.filter(t => (t.date||'') >= weekAgo);
+
+  document.getElementById('kpiToday').textContent    = todayT.length;
+  document.getElementById('kpiEarnings').textContent = '₹' + earnings.toLocaleString('en-IN');
+  document.getElementById('kpiWeek').textContent     = weekT.length;
+  document.getElementById('kpiTotal').textContent    = trips.length;
+}
+
+/* ── Tab switching ──────────────────────────────────────────────────────── */
+function switchTab(tab, btn) {
+  activeTab = tab;
+  document.querySelectorAll('.hero-tab').forEach(b => b.classList.remove('active'));
+  btn?.classList.add('active');
+  renderTrips();
+}
+
+/* ── Trip filtering ─────────────────────────────────────────────────────── */
+function getTabTrips() {
+  switch (activeTab) {
+    case 'new':      return allTrips.filter(t => t.status === 'assigned');
+    case 'assigned': return allTrips.filter(t => ['assigned','accepted'].includes(t.status));
+    case 'active':   return allTrips.filter(t => t.status === 'started');
+    case 'history':  return allTrips.filter(t => ['completed','cancelled'].includes(t.status));
+    default:         return allTrips;
+  }
+}
+
+/* ── Render trips ───────────────────────────────────────────────────────── */
+function tripStatusBadge(s) {
+  const map = {
+    assigned:  ['tb-new','bell','New — Tap to Accept'],
+    accepted:  ['tb-assigned','check','Accepted'],
+    started:   ['tb-started','route','In Progress'],
+    completed: ['tb-completed','flag-checkered','Completed'],
+    cancelled: ['tb-cancelled','times','Cancelled'],
+  };
+  const [cls,ico,lbl] = map[s] || ['tb-assigned','circle','Unknown'];
+  return `<span class="trip-badge ${cls}"><i class="fas fa-${ico}"></i>${lbl}</span>`;
+}
+
+function tripActions(t) {
+  const id = t.id;
+  const btns = [];
+  const phoneHref = t.customerPhone ? `<button class="ta-btn ta-call" onclick="callCustomer('${t.customerPhone}')"><i class="fas fa-phone"></i>Call</button>` : '';
+  const navBtn    = t.pickup ? `<button class="ta-btn ta-navigate" onclick="navigate('${esc(t.pickup)}')"><i class="fas fa-map-marked-alt"></i>Navigate</button>` : '';
+
+  if (t.status === 'assigned') {
+    btns.push(`<button class="ta-btn ta-accept"   onclick="doTripAction('${id}','accepted')"><i class="fas fa-check"></i>Accept Trip</button>`);
+  }
+  if (t.status === 'accepted') {
+    btns.push(navBtn);
+    btns.push(phoneHref);
+    btns.push(`<button class="ta-btn ta-start" onclick="doTripAction('${id}','started')"><i class="fas fa-play"></i>Start Trip</button>`);
+  }
+  if (t.status === 'started') {
+    btns.push(navBtn);
+    btns.push(phoneHref);
+    btns.push(`<button class="ta-btn ta-complete" onclick="doTripAction('${id}','completed')"><i class="fas fa-flag-checkered"></i>Complete Trip</button>`);
+  }
+  return btns.filter(Boolean).join('');
+}
+
+function renderTrips() {
+  const list = document.getElementById('tripList');
+  const trips = getTabTrips();
+
+  const emptyMessages = {
+    new:      { icon:'bell-slash',     text:'No new trips assigned yet.\nYour next trip will appear here.' },
+    assigned: { icon:'car',            text:'No assigned trips.\nAccept a trip from the New Trips tab.' },
+    active:   { icon:'route',          text:'No active trip right now.\nStart an accepted trip to see it here.' },
+    history:  { icon:'history',        text:'No trip history yet.\nCompleted trips will appear here.' },
+  };
+
+  if (!trips.length) {
+    const m = emptyMessages[activeTab] || { icon:'inbox', text:'No trips found.' };
+    list.innerHTML = `<div class="empty"><i class="fas fa-${m.icon}"></i><p>${m.text.replace('\n','<br>')}</p></div>`;
+    return;
+  }
+
+  list.innerHTML = trips.map(t => {
+    const isUrgent = t.status === 'assigned';
+    return `
+    <div class="trip-card ${isUrgent ? 'urgent' : ''}">
+      <div class="trip-header">
+        <div>
+          <div class="trip-id">${esc((t.tripId||t.id||'').slice(0,14))}</div>
+          <div class="trip-customer">${esc(t.customerName||'Customer')}</div>
+          <div class="trip-phone"><i class="fas fa-phone" style="color:var(--primary);font-size:10px"></i> ${esc(t.customerPhone||'—')}</div>
+        </div>
+        ${tripStatusBadge(t.status||'assigned')}
+      </div>
+
+      <div class="trip-route">
+        <div class="route-point">
+          <div><div class="route-dot pickup"></div><div class="route-line"></div></div>
+          <div><div class="route-label">Pickup</div><div class="route-addr">${esc(t.pickup||'—')}</div></div>
+        </div>
+        <div class="route-point" style="margin-top:4px">
+          <div><div class="route-dot drop"></div></div>
+          <div><div class="route-label">Drop</div><div class="route-addr">${esc(t.drop||(t.tripType==='hourly'?'Hourly Package':'—'))}</div></div>
+        </div>
+      </div>
+
+      <div class="trip-meta">
+        <div class="meta-chip"><i class="fas fa-calendar-alt"></i><strong>${esc(t.date||'—')}</strong></div>
+        <div class="meta-chip"><i class="fas fa-clock"></i><strong>${esc(t.time||'—')}</strong></div>
+        <div class="meta-chip"><i class="fas fa-car"></i><strong>${cap(t.vehicleType||'—')}</strong></div>
+        <div class="meta-chip"><i class="fas fa-users"></i><strong>${t.passengers||1} pax</strong></div>
+        ${t.distanceKm ? `<div class="meta-chip"><i class="fas fa-road"></i><strong>${t.distanceKm} km</strong></div>` : ''}
+      </div>
+
+      <div class="trip-fare">
+        <div>
+          <div class="fare-amount">₹${(t.estimatedFare||0).toLocaleString('en-IN')}</div>
+          <div class="fare-method">${cap(t.paymentMethod||'cash')} · ${cap(t.paymentStatus||'—')}</div>
+        </div>
+        <div class="trip-actions">${tripActions(t)}</div>
+      </div>
+    </div>
+    `;
+  }).join('');
+}
+
+/* ── Trip actions ───────────────────────────────────────────────────────── */
+async function doTripAction(tripId, newStatus) {
+  const labels = { accepted:'Accept', started:'Start', completed:'Complete' };
+  if (newStatus === 'completed' && !confirm('Mark this trip as completed?')) return;
+  try {
+    await window._firebaseFns.updateTripStatus(tripId, newStatus);
+    if (newStatus === 'completed' && currentDriver) {
+      await window._firebaseFns.updateDriverStatus(currentDriver.uid, 'available');
+      driverStatus = 'available';
+      updateStatusToggle();
+    }
+    showToast(`✅ Trip ${labels[newStatus]||newStatus}`);
+  } catch (e) { showToast('❌ Failed: ' + e.message, true); }
+}
+
+function navigate(address) {
+  const encoded = encodeURIComponent(address);
+  // Try Google Maps app first, fallback to web
+  const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encoded}&travelmode=driving`;
+  window.open(mapsUrl, '_blank');
+}
+
+function callCustomer(phone) {
+  window.open(`tel:${phone}`);
+}
+
+/* ── Driver status toggle ───────────────────────────────────────────────── */
+async function toggleStatus() {
+  if (!currentDriver) return;
+  const next = driverStatus === 'available' ? 'offline'
+             : driverStatus === 'offline'   ? 'available'
+             : 'available'; // busy → available
+  try {
+    await window._firebaseFns.updateDriverStatus(currentDriver.uid, next);
+    driverStatus = next;
+    updateStatusToggle();
+  } catch (e) { showToast('❌ Failed: ' + e.message, true); }
+}
+
+function updateStatusToggle() {
+  const btn = document.getElementById('statusToggle');
+  btn.className = `status-toggle st-${driverStatus}`;
+  btn.textContent = cap(driverStatus);
+}
+
+/* ── Utilities ──────────────────────────────────────────────────────────── */
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function cap(s) { return s ? s.charAt(0).toUpperCase()+s.slice(1) : ''; }
+function short(s,n=24) { return s && s.length > n ? s.slice(0,n)+'…' : (s||''); }
+
+let _toastTimer;
+function showToast(msg, err=false) {
+  let t = document.getElementById('_toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = '_toast';
+    t.style.cssText = 'position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:#1a1f36;border:1px solid rgba(255,255,255,.12);color:#fff;padding:11px 22px;border-radius:12px;font-size:13.5px;font-weight:600;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,.4);transition:opacity .25s';
+    document.body.appendChild(t);
+  }
+  clearTimeout(_toastTimer);
+  t.textContent   = msg;
+  t.style.opacity = '1';
+  t.style.borderColor = err ? 'rgba(239,68,68,.4)' : 'rgba(34,197,94,.3)';
+  _toastTimer = setTimeout(() => t.style.opacity='0', 3000);
+}
+</script>
+</body>
+</html>

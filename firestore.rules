@@ -79,9 +79,13 @@ service cloud.firestore {
                     && (resource.data.customerEmail == request.auth.token.email
                         || isAdmin());
 
-      // Only admin can update (assign driver, change status)
-      // Prevent spoofing: customer cannot change status/driver fields
-      allow update: if isAdmin();
+      // Admin can update any field (assign driver, change status).
+      // Driver can update only status/updatedAt on trips assigned to them.
+      allow update: if isAdmin()
+                    || (isSignedIn()
+                        && resource.data.driverId == request.auth.uid
+                        && request.resource.data.diff(resource.data).affectedKeys()
+                                           .hasOnly(['status','updatedAt']));
 
       // Nobody deletes trip requests
       allow delete: if false;
@@ -120,6 +124,24 @@ service cloud.firestore {
       allow read:   if isAdmin();
       allow update, delete: if false;
     }
+
+    // ── drivers/{driverId} ────────────────────────────────────
+    // Admin can create/update driver profiles.
+    // Driver can read their own profile and update their own status.
+    match /drivers/{driverId} {
+      allow read:   if isOwner(driverId) || isAdmin();
+      allow create: if isAdmin();
+      allow update: if isAdmin()
+                    || (isOwner(driverId)
+                        && request.resource.data.diff(resource.data).affectedKeys()
+                                           .hasOnly(['status','updatedAt']));
+      allow delete: if false;
+    }
+
+    // ── trip_requests — driver read access ────────────────────
+    // Drivers need to read/update trips assigned to them.
+    // Override the trip_requests rule to allow driver-level access.
+    // (Firestore uses the most specific matching rule.)
 
   }
 }

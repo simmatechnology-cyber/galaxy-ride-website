@@ -483,29 +483,54 @@ function cacheGet(key) {
   return AC_CACHE.get(key.toLowerCase()) ?? null;
 }
 
+// ── Galaxy Ride Master Tariff — single source of truth ───────────────────────
+// Matches the published pricing table on index.html exactly.
+// computeFare() reads ONLY this object — never hardcodes values.
 const TARIFF = {
+  // ── City / Local rides (≤ 100 km) ─────────────────────────────────────────
   local: {
-    bike:   { base: 50,  included: 5, perKm: 9,  peakPerKm: 0,  maxKm: 30 },
+    //         base  free  normal  peak    maxKm
+    bike:   { base: 50,  included: 5, perKm: 9,  peakPerKm: 10, maxKm: 30  },
     auto:   { base: 100, included: 5, perKm: 14, peakPerKm: 16, maxKm: 100 },
     mini:   { base: 110, included: 3, perKm: 18, peakPerKm: 20, maxKm: 100 },
     sedan:  { base: 110, included: 3, perKm: 19, peakPerKm: 24, maxKm: 100 },
     suv:    { base: 120, included: 3, perKm: 22, peakPerKm: 28, maxKm: 100 },
     innova: { base: 130, included: 3, perKm: 24, peakPerKm: 30, maxKm: 100 },
   },
+
+  // ── Outstation rides (> 100 km) ────────────────────────────────────────────
   outstation: {
-    mini:   { perKm: 13, driverBata: 400 },
-    sedan:  { perKm: 14, driverBata: 400 },
-    suv:    { perKm: 18, driverBata: 400 },
-    innova: { perKm: 22, driverBata: 400 },
+    //         perKm  driverBata  minKmPerDay
+    mini:   { perKm: 13, driverBata: 400, minKmPerDay: 250 },
+    sedan:  { perKm: 14, driverBata: 400, minKmPerDay: 250 },
+    suv:    { perKm: 18, driverBata: 400, minKmPerDay: 250 },
+    innova: { perKm: 22, driverBata: 400, minKmPerDay: 250 },
   },
+
+  // ── Hourly packages — index 0 = 1 hr, index 9 = 10 hr ────────────────────
   hourly: {
-    sedan:  [400, 800, 1200, 1613, 2000, 2400, 2700, 3000, 3523, 3950],
-    suv:    [1050,1550,2000,2500,2821,3450,3900,4313,4853,5500],
-    innova: [2000,2600,3200,3800,4300,4900,5400,6000,6500,7500],
+    mini:   [ 300,  560,  820, 1100, 1400, 1680, 1950, 2200, 2500, 2800],
+    sedan:  [ 400,  800, 1200, 1613, 2000, 2400, 2700, 3000, 3523, 3950],
+    suv:    [1050, 1550, 2000, 2500, 2821, 3450, 3900, 4313, 4853, 5500],
+    innova: [2000, 2600, 3200, 3800, 4300, 4900, 5400, 6000, 6500, 7500],
   },
+  // Included km per hourly package (index matches hours above)
+  hourlyKmLimit: [15, 25, 40, 50, 60, 75, 85, 100, 110, 120],
+
+  // ── Full-day (12 hr / 180 km) packages ────────────────────────────────────
+  fullday: {
+    sedan:  { fare: 4500, kmLimit: 180, extraPerKm: 19 },
+    suv:    { fare: 6000, kmLimit: 180, extraPerKm: 22 },
+    innova: { fare: 8000, kmLimit: 180, extraPerKm: 24 },
+  },
+
+  // ── Waiting charge ─────────────────────────────────────────────────────────
+  waiting: { perMin: 2 },          // ₹2 per minute after first 5 min free
+
+  // ── Peak hour windows (24-h clock) ────────────────────────────────────────
   peakHours: [
-    { start: 4, end: 6 },
-    { start: 17, end: 20 },
+    { start: 4,  end: 6  },        // 4 AM – 6 AM
+    { start: 17, end: 20 },        // 5 PM – 8 PM
   ],
 };
 
@@ -1838,50 +1863,91 @@ function swapLocations() {
  * Pure fare engine — single source of truth used by both the fare-preview
  * breakdown AND the per-vehicle price tags so they can never disagree.
  *
- * @returns {object|null} breakdown: { baseFare, cityFare, outstationFare,
- *          driverBata, peakSurcharge, subtotal, isOutstation } or null if
- *          the vehicle has no tariff for the given tab.
+ * Peak surcharge is calculated as the DIFFERENCE between peak and normal rate
+ * so the cityFare line always shows the standard per-km fare and the
+ * peakSurcharge line shows only the extra amount — never double-counted.
+ *
+ * @param {string}  vehicle      'mini'|'sedan'|'suv'|'innova'|'auto'|'bike'
+ * @param {number}  km           trip distance in kilometres
+ * @param {string}  tab          'oneway'|'roundtrip'|'hourly'|'fullday'
+ * @param {boolean} applyPeak    true if departure is during a peak window
+ * @param {number}  hourlyHrs    1–10 (only used when tab==='hourly')
+ * @param {number}  waitingMins  extra waiting minutes beyond 5-min grace
+ * @returns {object|null}        full fare breakdown, or null for unsupported config
  */
-function computeFare(vehicle, km, tab, applyPeak, hourlyHrs) {
-  let baseFare = 0, cityFare = 0, outstationFare = 0, driverBata = 0, peakSurcharge = 0;
-  const isOutstation = km > 100 && tab !== 'hourly';
+function computeFare(vehicle, km, tab, applyPeak, hourlyHrs, waitingMins = 0) {
+  let baseFare      = 0;
+  let cityFare      = 0;
+  let outstationFare = 0;
+  let driverBata    = 0;
+  let peakSurcharge = 0;
+  let waitingCharge = 0;
+  let extraKmCharge = 0;   // for fullday over-limit km
 
+  const isOutstation = km > 100 && tab !== 'hourly' && tab !== 'fullday';
+
+  // ── Full-day package ──────────────────────────────────────────────────────
+  if (tab === 'fullday') {
+    const fd = TARIFF.fullday[vehicle];
+    if (!fd) return null;
+    baseFare      = fd.fare;
+    extraKmCharge = km > fd.kmLimit ? Math.round((km - fd.kmLimit) * fd.extraPerKm) : 0;
+    const subtotal = baseFare + extraKmCharge;
+    return { baseFare, cityFare:0, outstationFare:0, driverBata:0,
+             peakSurcharge:0, waitingCharge:0, extraKmCharge, subtotal,
+             isOutstation:false, isFullday:true };
+  }
+
+  // ── Hourly package ────────────────────────────────────────────────────────
   if (tab === 'hourly') {
-    if (hourlyHrs > 0) {
-      const table = TARIFF.hourly[vehicle] || TARIFF.hourly.sedan;
-      baseFare = table[hourlyHrs - 1] || 0;
-    }
-  } else {
-    const t = TARIFF.local[vehicle];
-    if (!t) return null;
-    baseFare = t.base;
+    if (hourlyHrs < 1) return null;
+    const table   = TARIFF.hourly[vehicle] || TARIFF.hourly.sedan;
+    baseFare      = table[hourlyHrs - 1] || 0;
+    // Extra km beyond package limit (rare but possible)
+    const kmLimit = TARIFF.hourlyKmLimit[hourlyHrs - 1] || 0;
+    extraKmCharge = km > kmLimit ? Math.round((km - kmLimit) * (TARIFF.local[vehicle]?.perKm || 19)) : 0;
+    const subtotal = baseFare + extraKmCharge;
+    return { baseFare, cityFare:0, outstationFare:0, driverBata:0,
+             peakSurcharge:0, waitingCharge:0, extraKmCharge, subtotal,
+             isOutstation:false, isHourly:true };
+  }
 
-    if (isOutstation) {
-      // 3-tier: base covers first 3km, city rate km 4-100, outstation rate km 101+
-      const cityKm       = Math.max(0, 100 - t.included);
-      const outstationKm = Math.max(0, km - 100);
-      const ot           = TARIFF.outstation[vehicle];
-      cityFare       = cityKm * t.perKm;
-      outstationFare = ot ? outstationKm * ot.perKm : outstationKm * t.perKm;
-      driverBata     = ot ? ot.driverBata : 400;
-    } else {
-      const extraKm = Math.max(0, km - t.included);
-      const rate    = applyPeak && t.peakPerKm > 0 ? t.peakPerKm : t.perKm;
-      cityFare      = extraKm * rate;
-      if (applyPeak && t.peakPerKm > 0) {
-        peakSurcharge = Math.round(cityFare * 0.15);
-      }
+  // ── One-way / Round-trip ──────────────────────────────────────────────────
+  const t = TARIFF.local[vehicle];
+  if (!t) return null;
+  baseFare = t.base;
+
+  if (isOutstation) {
+    // 3-tier: base covers first `included` km, city rate up to 100 km, outstation rate beyond
+    const cityKm       = Math.max(0, 100 - t.included);
+    const outstationKm = Math.max(0, km - 100);
+    const ot           = TARIFF.outstation[vehicle];
+    cityFare       = Math.round(cityKm * t.perKm);
+    outstationFare = ot ? Math.round(outstationKm * ot.perKm) : Math.round(outstationKm * t.perKm);
+    driverBata     = ot ? ot.driverBata : 400;
+  } else {
+    const extraKm = Math.max(0, km - t.included);
+    // cityFare is always at the NORMAL per-km rate
+    cityFare      = Math.round(extraKm * t.perKm);
+    // peakSurcharge = extra per km during peak (difference, never duplicated)
+    if (applyPeak && t.peakPerKm > t.perKm) {
+      peakSurcharge = Math.round(extraKm * (t.peakPerKm - t.perKm));
     }
   }
 
-  // Round trip doubles distance fares (not bata)
+  // Waiting charge (₹2/min after 5-min free grace — caller passes only billable mins)
+  waitingCharge = Math.round(Math.max(0, waitingMins) * TARIFF.waiting.perMin);
+
+  // Round trip doubles all distance fares (bata and waiting are not doubled)
   if (tab === 'roundtrip') {
     cityFare       *= 2;
     outstationFare *= 2;
+    peakSurcharge  *= 2;
   }
 
-  const subtotal = baseFare + cityFare + outstationFare + driverBata + peakSurcharge;
-  return { baseFare, cityFare, outstationFare, driverBata, peakSurcharge, subtotal, isOutstation };
+  const subtotal = baseFare + cityFare + outstationFare + driverBata + peakSurcharge + waitingCharge;
+  return { baseFare, cityFare, outstationFare, driverBata, peakSurcharge,
+           waitingCharge, extraKmCharge:0, subtotal, isOutstation };
 }
 
 function calculateFare() {
@@ -1894,54 +1960,82 @@ function calculateFare() {
   const timeVal  = $('time')?.value;
   const isPeak   = dateVal && timeVal && isPeakHour(dateVal, timeVal);
 
-  const km           = state.distance || 0;
-  const hourlyHrs    = state.currentTab === 'hourly' ? (parseInt($('hourlyPackage')?.value) || 0) : 0;
-  // Peak surcharge: city rides only, ≤ 100km only
-  const applyPeak    = isPeak && state.currentTab !== 'hourly' && km <= 100;
+  const km        = state.distance || 0;
+  const tab       = state.currentTab;
+  const hourlyHrs = tab === 'hourly' ? (parseInt($('hourlyPackage')?.value) || 0) : 0;
+  // Peak surcharge applies only to city one-way/roundtrip rides ≤ 100 km
+  const applyPeak = isPeak && tab !== 'hourly' && tab !== 'fullday' && km <= 100;
 
-  const fare = computeFare(vehicle, km, state.currentTab, applyPeak, hourlyHrs);
+  const fare = computeFare(vehicle, km, tab, applyPeak, hourlyHrs);
   if (!fare) return;
-  const { baseFare, cityFare, outstationFare, driverBata, peakSurcharge, subtotal, isOutstation } = fare;
+
+  const {
+    baseFare, cityFare, outstationFare, driverBata,
+    peakSurcharge, waitingCharge, extraKmCharge,
+    subtotal, isOutstation, isHourly, isFullday,
+  } = fare;
 
   const discount = calculateCouponDiscount(state.appliedCoupon, subtotal);
   const total    = Math.max(0, subtotal - discount);
 
-  state.fare          = total;
+  state.fare           = total;
   state.couponDiscount = discount;
 
-  // Update UI
+  // ── Fare breakdown UI ─────────────────────────────────────────────────────
   $('baseFareDisplay').textContent     = `₹${baseFare}`;
-  $('distanceDisplay').textContent     = isOutstation ? 100 - (TARIFF.local[vehicle]?.included || 3) : km;
-  $('distanceFareDisplay').textContent = `₹${cityFare}`;
 
+  // Distance fare row: hide for hourly/fullday (those show a package rate)
+  const showDistRow = !isHourly && !isFullday;
+  const distKm      = isOutstation ? (100 - (TARIFF.local[vehicle]?.included || 3)) : km;
+  $('distanceDisplay').textContent     = distKm;
+  $('distanceFareDisplay').textContent = `₹${cityFare}`;
+  $('distanceFareRow')?.classList.toggle('hidden', !showDistRow);
+
+  // Extra km row (hourly over-limit / fullday over-limit)
+  const extraKmRow = $('extraKmRow');
+  if (extraKmRow) {
+    extraKmRow.classList.toggle('hidden', extraKmCharge === 0);
+    const extraKmEl = $('extraKmDisplay');
+    if (extraKmEl) extraKmEl.textContent = `₹${extraKmCharge}`;
+  }
+
+  // Outstation rows
   $('outstationFareRow').classList.toggle('hidden', !isOutstation);
-  $('outstationKmDisplay').textContent  = Math.max(0, km - 100);
+  $('outstationKmDisplay').textContent   = Math.max(0, km - 100);
   $('outstationFareDisplay').textContent = `₹${outstationFare}`;
 
   $('driverBataRow').classList.toggle('hidden', !isOutstation);
-  $('driverBataDisplay').textContent   = `₹${driverBata}`;
+  $('driverBataDisplay').textContent     = `₹${driverBata}`;
 
-  $('peakRow').classList.toggle('hidden', !applyPeak || peakSurcharge === 0);
-  $('peakFareDisplay').textContent     = `₹${peakSurcharge}`;
+  // Peak surcharge row (shows extra amount only — not the full peak rate)
+  $('peakRow').classList.toggle('hidden', peakSurcharge === 0);
+  $('peakFareDisplay').textContent       = `₹${peakSurcharge}`;
 
-  $('totalFareDisplay').textContent    = `₹${total}`;
+  // Waiting charge row
+  const waitRow = $('waitingRow');
+  if (waitRow) {
+    waitRow.classList.toggle('hidden', waitingCharge === 0);
+    const waitEl = $('waitingDisplay');
+    if (waitEl) waitEl.textContent = `₹${waitingCharge}`;
+  }
+
+  $('totalFareDisplay').textContent      = `₹${total}`;
 
   $('couponRow').classList.toggle('hidden', discount === 0);
   $('couponDiscountDisplay').textContent = `-₹${discount}`;
 
-  // Update vehicle price tags for ALL vehicles using the SAME fare engine,
-  // so each card's price matches what the user will actually pay (incl. peak
-  // surcharge, outstation tiers, round-trip doubling).
+  // ── Per-vehicle price tags (use same engine so they match exactly) ─────────
   ['mini','sedan','suv','innova'].forEach(v => {
     const el = $(`${v}Price`);
-    if (el) {
-      if (km > 0) {
-        const f = computeFare(v, km, state.currentTab, applyPeak, hourlyHrs);
-        el.textContent = f ? `₹${f.subtotal}` : `₹${TARIFF.local[v]?.base || '—'}`;
-      } else {
-        el.textContent = `₹${TARIFF.local[v]?.base || '—'}`;
-      }
-    }
+    if (!el) return;
+    const f = km > 0 || isHourly || isFullday
+      ? computeFare(v, km, tab, applyPeak, hourlyHrs)
+      : null;
+    el.textContent = f
+      ? `₹${f.subtotal}`
+      : (isFullday
+          ? (TARIFF.fullday[v] ? `₹${TARIFF.fullday[v].fare}` : '—')
+          : `₹${TARIFF.local[v]?.base || '—'}`);
   });
 
   show('farePreview');

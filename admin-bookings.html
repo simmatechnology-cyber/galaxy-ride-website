@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Booking Management — Admin | Galaxy Ride</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23E31E24'/><text y='.9em' font-size='70' x='10'>📋</text></svg>" />
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--primary:#E31E24;--bg:#0c0f1e;--card:#161a2e;--line:rgba(255,255,255,0.08);--muted:rgba(255,255,255,0.5);--success:#22c55e;--warn:#f59e0b;--info:#3b82f6;--danger:#ef4444}
+    body{background:var(--bg);color:#fff;font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh}
+
+    /* ── Nav ── */
+    .nav{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;background:rgba(12,15,30,0.96);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50;backdrop-filter:blur(12px)}
+    .logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:#fff;font-weight:800;font-size:17px}
+    .logo .b{width:34px;height:34px;background:var(--primary);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px}
+    .nav-links{display:flex;align-items:center;gap:8px}
+    .nav-link{color:var(--muted);text-decoration:none;font-size:13px;padding:7px 14px;border-radius:8px;transition:all .2s}
+    .nav-link:hover,.nav-link.active{background:rgba(255,255,255,0.07);color:#fff}
+    .nav-link.active{color:var(--primary)}
+    #adminBadge{background:var(--primary);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:700;cursor:default}
+
+    /* ── Layout ── */
+    .wrap{max-width:1400px;margin:0 auto;padding:28px 24px 80px}
+    .page-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+    .page-title{font-size:24px;font-weight:800;font-family:'Poppins',sans-serif}
+    .page-sub{color:var(--muted);font-size:13px;margin-top:4px}
+    .header-actions{display:flex;gap:8px;align-items:center}
+
+    /* ── KPI strip ── */
+    .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px}
+    .kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+    .kpi-ico{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;margin-bottom:10px}
+    .kpi-val{font-size:26px;font-weight:800;line-height:1}
+    .kpi-label{color:var(--muted);font-size:12px;margin-top:4px}
+
+    /* ── Toolbar ── */
+    .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+    .search-box{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 14px;flex:1;min-width:220px}
+    .search-box input{background:none;border:none;outline:none;color:#fff;font-size:13px;width:100%}
+    .search-box input::placeholder{color:var(--muted)}
+    .search-box i{color:var(--muted);font-size:13px}
+    .filter-btn{background:var(--card);border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:8px 16px;font-size:12.5px;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap}
+    .filter-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+    .filter-btn:hover:not(.active){background:rgba(255,255,255,0.06);color:#fff}
+    .btn{display:inline-flex;align-items:center;gap:7px;border:none;border-radius:10px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;text-decoration:none}
+    .btn-primary{background:var(--primary);color:#fff}
+    .btn-primary:hover{background:#c41a1f}
+    .btn-ghost{background:var(--card);border:1px solid var(--line);color:var(--muted)}
+    .btn-ghost:hover{color:#fff;border-color:rgba(255,255,255,0.2)}
+
+    /* ── Table ── */
+    .table-wrap{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+    .table-head{display:grid;grid-template-columns:130px 1fr 1fr 1fr 90px 110px 120px 90px;gap:0;background:rgba(255,255,255,0.04);border-bottom:1px solid var(--line);padding:12px 16px;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+    .booking-row{display:grid;grid-template-columns:130px 1fr 1fr 1fr 90px 110px 120px 90px;gap:0;padding:14px 16px;border-bottom:1px solid var(--line);align-items:center;transition:background .15s;cursor:pointer}
+    .booking-row:last-child{border-bottom:none}
+    .booking-row:hover{background:rgba(255,255,255,0.03)}
+    .booking-id{font-size:12px;font-weight:700;color:var(--primary);font-family:monospace}
+    .booking-customer .name{font-size:13px;font-weight:600}
+    .booking-customer .phone{font-size:11.5px;color:var(--muted);margin-top:2px}
+    .booking-route .from{font-size:12.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
+    .booking-route .to{font-size:11.5px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
+    .booking-datetime .date{font-size:12.5px;font-weight:500}
+    .booking-datetime .time{font-size:11.5px;color:var(--muted);margin-top:2px}
+    .booking-vehicle{font-size:12.5px;font-weight:600;text-transform:capitalize}
+    .booking-fare{font-size:14px;font-weight:800}
+    .booking-driver .assigned{font-size:12px;font-weight:600;color:var(--success)}
+    .booking-driver .unassigned{font-size:12px;color:var(--muted)}
+    .status-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+    .st-confirmed{background:rgba(34,197,94,.15);color:var(--success)}
+    .st-pending{background:rgba(245,158,11,.15);color:var(--warn)}
+    .st-assigned{background:rgba(59,130,246,.15);color:var(--info)}
+    .st-completed{background:rgba(34,197,94,.1);color:#86efac}
+    .st-cancelled{background:rgba(239,68,68,.15);color:var(--danger)}
+    .st-cash_pending{background:rgba(245,158,11,.12);color:#fcd34d}
+    .empty-state{text-align:center;padding:60px 20px;color:var(--muted)}
+    .empty-state i{font-size:40px;margin-bottom:12px;display:block;opacity:.4}
+    .loading-state{text-align:center;padding:60px 20px;color:var(--muted);font-size:14px}
+
+    /* ── Detail panel (slide-in) ── */
+    .panel-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity .25s}
+    .panel-overlay.open{opacity:1;pointer-events:all}
+    .detail-panel{position:fixed;right:0;top:0;bottom:0;width:460px;background:#1a1f36;border-left:1px solid var(--line);z-index:101;overflow-y:auto;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1)}
+    .detail-panel.open{transform:none}
+    .panel-header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#1a1f36;z-index:1}
+    .panel-title{font-size:15px;font-weight:800}
+    .panel-close{background:rgba(255,255,255,0.07);border:none;color:#fff;border-radius:8px;width:32px;height:32px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px}
+    .panel-body{padding:20px}
+    .detail-section{margin-bottom:22px}
+    .detail-section h4{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:12px}
+    .detail-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9px;gap:12px}
+    .detail-row .lbl{font-size:12.5px;color:var(--muted);white-space:nowrap}
+    .detail-row .val{font-size:12.5px;font-weight:600;text-align:right;word-break:break-word}
+
+    /* ── Assign driver modal ── */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+    .modal-overlay.open{opacity:1;pointer-events:all}
+    .modal-box{background:#1a1f36;border:1px solid var(--line);border-radius:20px;padding:28px;width:100%;max-width:440px;transform:scale(.96);transition:transform .2s}
+    .modal-overlay.open .modal-box{transform:scale(1)}
+    .modal-title{font-size:17px;font-weight:800;margin-bottom:6px}
+    .modal-sub{font-size:13px;color:var(--muted);margin-bottom:22px}
+    .field{margin-bottom:16px}
+    .field label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:7px;text-transform:uppercase;letter-spacing:.4px}
+    .field select,.field input{width:100%;background:#0c0f1e;border:1px solid var(--line);border-radius:10px;padding:10px 14px;color:#fff;font-size:13px;outline:none;transition:border-color .2s}
+    .field select:focus,.field input:focus{border-color:var(--primary)}
+    .modal-actions{display:flex;gap:10px;margin-top:6px}
+    .driver-card{display:flex;align-items:center;gap:12px;background:#0c0f1e;border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer;transition:all .2s;margin-bottom:8px}
+    .driver-card:hover,.driver-card.selected{border-color:var(--primary);background:rgba(227,30,36,.08)}
+    .driver-avatar{width:38px;height:38px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex-shrink:0}
+    .driver-info .dn{font-size:13px;font-weight:700}
+    .driver-info .dp{font-size:11.5px;color:var(--muted);margin-top:2px}
+    .driver-status{margin-left:auto;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px}
+    .ds-available{background:rgba(34,197,94,.15);color:var(--success)}
+    .ds-busy{background:rgba(245,158,11,.15);color:var(--warn)}
+    .ds-offline{background:rgba(255,255,255,.08);color:var(--muted)}
+    .no-drivers{text-align:center;padding:28px 12px;color:var(--muted);font-size:13px}
+
+    /* ── Status action buttons in panel ── */
+    .status-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+    .sa-btn{padding:7px 14px;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s}
+    .sa-confirm{background:rgba(34,197,94,.15);color:var(--success)}
+    .sa-confirm:hover{background:rgba(34,197,94,.3)}
+    .sa-complete{background:rgba(59,130,246,.15);color:var(--info)}
+    .sa-complete:hover{background:rgba(59,130,246,.3)}
+    .sa-cancel{background:rgba(239,68,68,.12);color:var(--danger)}
+    .sa-cancel:hover{background:rgba(239,68,68,.25)}
+    .sa-assign{background:var(--primary);color:#fff}
+    .sa-assign:hover{background:#c41a1f}
+    .sa-unassign{background:rgba(255,255,255,.07);color:var(--muted)}
+    .sa-unassign:hover{color:#fff;background:rgba(255,255,255,.12)}
+
+    /* ── Auth guard ── */
+    #authGuard{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;gap:16px;text-align:center}
+    #authGuard h2{font-size:22px;font-weight:800}
+    #authGuard p{color:var(--muted);font-size:14px}
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar{width:6px;height:6px}
+    ::-webkit-scrollbar-track{background:transparent}
+    ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:3px}
+
+    @media(max-width:1100px){
+      .table-head,.booking-row{grid-template-columns:110px 1fr 1fr 80px 100px 80px}
+      .col-datetime,.col-driver{display:none}
+    }
+    @media(max-width:700px){
+      .table-head,.booking-row{grid-template-columns:100px 1fr 70px 80px}
+      .col-route,.col-vehicle,.col-driver,.col-datetime{display:none}
+      .kpis{grid-template-columns:1fr 1fr}
+      .detail-panel{width:100%}
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Nav ──────────────────────────────────────────────────────────────────── -->
+<nav class="nav">
+  <a class="logo" href="index.html">
+    <div class="b"><i class="fas fa-car"></i></div>
+    Galaxy Ride
+  </a>
+  <div class="nav-links">
+    <a class="nav-link active" href="admin-bookings.html"><i class="fas fa-list"></i> Bookings</a>
+    <a class="nav-link" href="driver-admin.html"><i class="fas fa-id-card"></i> Drivers</a>
+    <a class="nav-link" href="travel-admin.html"><i class="fas fa-chart-bar"></i> Analytics</a>
+    <a class="nav-link" href="driver-trips.html"><i class="fas fa-route"></i> Driver View</a>
+    <span id="adminBadge"><i class="fas fa-shield-alt"></i> Admin</span>
+  </div>
+</nav>
+
+<!-- ── Auth guard ────────────────────────────────────────────────────────────── -->
+<div id="authGuard" style="display:none">
+  <i class="fas fa-lock" style="font-size:48px;color:var(--primary)"></i>
+  <h2>Admin Access Required</h2>
+  <p>You must be signed in as an admin to view this page.</p>
+  <a class="btn btn-primary" href="index.html"><i class="fas fa-arrow-left"></i> Back to Home</a>
+</div>
+
+<!-- ── Main content ──────────────────────────────────────────────────────────── -->
+<div id="mainContent" style="display:none">
+<div class="wrap">
+
+  <!-- Page header -->
+  <div class="page-header">
+    <div>
+      <div class="page-title">Booking Management</div>
+      <div class="page-sub" id="lastUpdated">Loading…</div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-ghost" onclick="refreshAll()"><i class="fas fa-sync-alt"></i> Refresh</button>
+      <button class="btn btn-primary" onclick="exportCsv()"><i class="fas fa-download"></i> Export CSV</button>
+    </div>
+  </div>
+
+  <!-- KPI strip -->
+  <div class="kpis">
+    <div class="kpi">
+      <div class="kpi-ico" style="background:rgba(227,30,36,.15);color:var(--primary)"><i class="fas fa-ticket-alt"></i></div>
+      <div class="kpi-val" id="kpiTotal">—</div>
+      <div class="kpi-label">Total Bookings</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-ico" style="background:rgba(245,158,11,.15);color:var(--warn)"><i class="fas fa-clock"></i></div>
+      <div class="kpi-val" id="kpiPending">—</div>
+      <div class="kpi-label">Pending Assignment</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-ico" style="background:rgba(59,130,246,.15);color:var(--info)"><i class="fas fa-car-side"></i></div>
+      <div class="kpi-val" id="kpiAssigned">—</div>
+      <div class="kpi-label">Assigned</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-ico" style="background:rgba(34,197,94,.15);color:var(--success)"><i class="fas fa-check-circle"></i></div>
+      <div class="kpi-val" id="kpiCompleted">—</div>
+      <div class="kpi-label">Completed</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-ico" style="background:rgba(227,30,36,.1);color:#ff6b6b"><i class="fas fa-rupee-sign"></i></div>
+      <div class="kpi-val" id="kpiRevenue">—</div>
+      <div class="kpi-label">Total Revenue</div>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="search-box">
+      <i class="fas fa-search"></i>
+      <input type="text" id="searchInput" placeholder="Search by name, phone, booking ID, location…" oninput="applyFilters()">
+    </div>
+    <button class="filter-btn active" data-status="all"     onclick="setFilter('all',this)">All</button>
+    <button class="filter-btn"        data-status="pending"   onclick="setFilter('pending',this)">Pending</button>
+    <button class="filter-btn"        data-status="assigned"  onclick="setFilter('assigned',this)">Assigned</button>
+    <button class="filter-btn"        data-status="confirmed" onclick="setFilter('confirmed',this)">Confirmed</button>
+    <button class="filter-btn"        data-status="completed" onclick="setFilter('completed',this)">Completed</button>
+    <button class="filter-btn"        data-status="cancelled" onclick="setFilter('cancelled',this)">Cancelled</button>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <div class="table-head">
+      <div>Booking ID</div>
+      <div>Customer</div>
+      <div class="col-route">Route</div>
+      <div class="col-datetime">Date & Time</div>
+      <div>Vehicle</div>
+      <div>Fare</div>
+      <div class="col-driver">Driver</div>
+      <div>Status</div>
+    </div>
+    <div id="bookingList">
+      <div class="loading-state"><i class="fas fa-spinner fa-spin" style="margin-right:8px"></i>Loading bookings…</div>
+    </div>
+  </div>
+
+</div><!-- /wrap -->
+</div><!-- /mainContent -->
+
+<!-- ── Detail panel ──────────────────────────────────────────────────────────── -->
+<div class="panel-overlay" id="panelOverlay" onclick="closePanel()"></div>
+<div class="detail-panel" id="detailPanel">
+  <div class="panel-header">
+    <div class="panel-title" id="panelTitle">Booking Details</div>
+    <button class="panel-close" onclick="closePanel()"><i class="fas fa-times"></i></button>
+  </div>
+  <div class="panel-body" id="panelBody"></div>
+</div>
+
+<!-- ── Assign driver modal ────────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="assignModal">
+  <div class="modal-box">
+    <div class="modal-title">Assign Driver</div>
+    <div class="modal-sub" id="assignModalSub">Select a driver for this trip</div>
+    <div style="max-height:300px;overflow-y:auto;margin-bottom:16px" id="driverListEl">
+      <div class="loading-state"><i class="fas fa-spinner fa-spin"></i> Loading drivers…</div>
+    </div>
+    <div class="field">
+      <label>Or enter driver manually</label>
+      <input type="text" id="manualDriverName"  placeholder="Driver full name" style="margin-bottom:8px" />
+      <input type="text" id="manualDriverPhone" placeholder="Driver phone number" style="margin-bottom:8px" />
+      <input type="text" id="manualDriverVeh"   placeholder="Vehicle number (e.g. TN01AB1234)" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" style="flex:1" onclick="confirmAssign()"><i class="fas fa-check"></i> Assign</button>
+      <button class="btn btn-ghost"   style="flex:1" onclick="closeAssignModal()"><i class="fas fa-times"></i> Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Firebase ───────────────────────────────────────────────────────────────── -->
+<script type="module" src="js/firebase.js"></script>
+<script>
+/* ── State ─────────────────────────────────────────────────────────────── */
+let allBookings     = [];
+let filteredBookings= [];
+let activeFilter    = 'all';
+let activeTrip      = null;   // booking currently open in panel
+let selectedDriver  = null;   // selected in assign modal
+let assignTripId    = null;
+let unsubscribeBookings = null;
+
+/* ── Auth guard ─────────────────────────────────────────────────────────── */
+function waitForFirebase(cb, tries = 0) {
+  if (window._firebaseFns) { cb(); return; }
+  if (tries > 40) { showAuthGuard(); return; }
+  setTimeout(() => waitForFirebase(cb, tries + 1), 150);
+}
+
+function showAuthGuard() {
+  document.getElementById('authGuard').style.display = 'flex';
+}
+
+waitForFirebase(() => {
+  const fns  = window._firebaseFns;
+  const auth = window._firebaseAuth;
+  fns.onAuthStateChanged(auth, async user => {
+    if (!user) { showAuthGuard(); return; }
+    // Check admin claim
+    const token = await user.getIdTokenResult();
+    const isAdmin = token.claims?.admin === true
+                 || user.email?.endsWith('@galaxyride.in')
+                 || user.email === 'admin@galaxyride.in'
+                 || user.email === 'simmatechnology@gmail.com';
+    if (!isAdmin) { showAuthGuard(); return; }
+    document.getElementById('mainContent').style.display = 'block';
+    init();
+  });
+});
+
+/* ── Init ───────────────────────────────────────────────────────────────── */
+async function init() {
+  updateKpis([]);
+  startListener();
+  loadDrivers();
+}
+
+function startListener() {
+  if (unsubscribeBookings) unsubscribeBookings();
+  unsubscribeBookings = window._firebaseFns.listenAllBookings(bookings => {
+    allBookings = bookings;
+    applyFilters();
+    updateKpis(bookings);
+    document.getElementById('lastUpdated').textContent =
+      'Last updated: ' + new Date().toLocaleTimeString('en-IN');
+  }, 200);
+}
+
+async function refreshAll() {
+  startListener();
+}
+
+/* ── KPIs ───────────────────────────────────────────────────────────────── */
+function updateKpis(bookings) {
+  const total     = bookings.length;
+  const pending   = bookings.filter(b => b.status === 'pending').length;
+  const assigned  = bookings.filter(b => b.status === 'assigned').length;
+  const completed = bookings.filter(b => b.status === 'completed').length;
+  const revenue   = bookings.filter(b => b.paymentMethod === 'online' || b.status === 'completed')
+                            .reduce((s, b) => s + (Number(b.fare) || 0), 0);
+  document.getElementById('kpiTotal').textContent    = total;
+  document.getElementById('kpiPending').textContent  = pending;
+  document.getElementById('kpiAssigned').textContent = assigned;
+  document.getElementById('kpiCompleted').textContent= completed;
+  document.getElementById('kpiRevenue').textContent  = '₹' + revenue.toLocaleString('en-IN');
+}
+
+/* ── Filtering ──────────────────────────────────────────────────────────── */
+function setFilter(status, btn) {
+  activeFilter = status;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  applyFilters();
+}
+
+function applyFilters() {
+  const q = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+  filteredBookings = allBookings.filter(b => {
+    if (activeFilter !== 'all' && b.status !== activeFilter) return false;
+    if (!q) return true;
+    const haystack = [b.bookingId, b.customerName, b.customerPhone,
+                      b.pickup, b.drop, b.vehicle, b.driverName]
+                     .map(s => (s || '').toLowerCase()).join(' ');
+    return haystack.includes(q);
+  });
+  renderTable();
+}
+
+/* ── Table render ───────────────────────────────────────────────────────── */
+function statusBadge(s) {
+  const map = {
+    confirmed:    ['st-confirmed','check-circle','Confirmed'],
+    pending:      ['st-pending','clock','Pending'],
+    assigned:     ['st-assigned','car','Assigned'],
+    completed:    ['st-completed','flag-checkered','Completed'],
+    cancelled:    ['st-cancelled','times-circle','Cancelled'],
+    cash_pending: ['st-cash_pending','money-bill-wave','Cash Pending'],
+  };
+  const [cls,ico,lbl] = map[s] || ['st-pending','question','Unknown'];
+  return `<span class="status-badge ${cls}"><i class="fas fa-${ico}"></i>${lbl}</span>`;
+}
+
+function fmtDate(d) {
+  if (!d) return '—';
+  try { return new Date(d).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'2-digit'}); } catch { return d; }
+}
+
+function renderTable() {
+  const el = document.getElementById('bookingList');
+  if (!filteredBookings.length) {
+    el.innerHTML = `<div class="empty-state"><i class="fas fa-inbox"></i>No bookings found</div>`;
+    return;
+  }
+  el.innerHTML = filteredBookings.map(b => `
+    <div class="booking-row" onclick="openPanel('${b.bookingId || b.id}')">
+      <div><div class="booking-id">${(b.bookingId||b.id||'').slice(0,10)}</div>
+           <div style="font-size:10.5px;color:var(--muted);margin-top:2px">${b.paymentMethod||'—'}</div></div>
+      <div class="booking-customer">
+        <div class="name">${esc(b.customerName||'Guest')}</div>
+        <div class="phone">${esc(b.customerPhone||'')}</div>
+      </div>
+      <div class="booking-route col-route">
+        <div class="from"><i class="fas fa-map-marker-alt" style="color:var(--primary);font-size:10px;margin-right:4px"></i>${esc(short(b.pickup))}</div>
+        <div class="to"><i class="fas fa-location-arrow" style="color:var(--muted);font-size:10px;margin-right:4px"></i>${esc(short(b.drop||'—'))}</div>
+      </div>
+      <div class="booking-datetime col-datetime">
+        <div class="date">${fmtDate(b.date)}</div>
+        <div class="time">${b.time||'—'}</div>
+      </div>
+      <div class="booking-vehicle">${cap(b.vehicle||'—')}</div>
+      <div class="booking-fare">₹${(b.fare||0).toLocaleString('en-IN')}</div>
+      <div class="booking-driver col-driver">
+        ${b.driverName
+          ? `<div class="assigned"><i class="fas fa-user-circle"></i> ${esc(b.driverName)}</div>`
+          : `<div class="unassigned">Not assigned</div>`}
+      </div>
+      <div>${statusBadge(b.status||'confirmed')}</div>
+    </div>
+  `).join('');
+}
+
+/* ── Detail panel ───────────────────────────────────────────────────────── */
+function openPanel(bookingId) {
+  const b = allBookings.find(x => (x.bookingId||x.id) === bookingId);
+  if (!b) return;
+  activeTrip = b;
+  document.getElementById('panelTitle').textContent = 'Booking ' + (b.bookingId||b.id||'').slice(0,14);
+
+  const body = document.getElementById('panelBody');
+  body.innerHTML = `
+    <!-- Status badge -->
+    <div style="margin-bottom:20px">${statusBadge(b.status||'confirmed')}</div>
+
+    <!-- Customer -->
+    <div class="detail-section">
+      <h4><i class="fas fa-user" style="color:var(--primary)"></i> Customer</h4>
+      <div class="detail-row"><span class="lbl">Name</span><span class="val">${esc(b.customerName||'—')}</span></div>
+      <div class="detail-row"><span class="lbl">Phone</span><span class="val"><a href="tel:${esc(b.customerPhone)}" style="color:var(--info)">${esc(b.customerPhone||'—')}</a></span></div>
+      <div class="detail-row"><span class="lbl">Email</span><span class="val">${esc(b.userEmail||'—')}</span></div>
+    </div>
+
+    <!-- Trip -->
+    <div class="detail-section">
+      <h4><i class="fas fa-route" style="color:var(--primary)"></i> Trip Details</h4>
+      <div class="detail-row"><span class="lbl">Type</span><span class="val">${cap(b.type||'—')}</span></div>
+      <div class="detail-row"><span class="lbl">Pickup</span><span class="val">${esc(b.pickup||'—')}</span></div>
+      <div class="detail-row"><span class="lbl">Drop</span><span class="val">${esc(b.drop||'—')}</span></div>
+      <div class="detail-row"><span class="lbl">Date</span><span class="val">${esc(b.date||'—')}</span></div>
+      <div class="detail-row"><span class="lbl">Time</span><span class="val">${esc(b.time||'—')}</span></div>
+      <div class="detail-row"><span class="lbl">Vehicle</span><span class="val">${cap(b.vehicle||'—')}</span></div>
+      <div class="detail-row"><span class="lbl">Passengers</span><span class="val">${b.passengers||1}</span></div>
+      <div class="detail-row"><span class="lbl">Distance</span><span class="val">${b.distance ? b.distance + ' km' : '—'}</span></div>
+    </div>
+
+    <!-- Fare -->
+    <div class="detail-section">
+      <h4><i class="fas fa-rupee-sign" style="color:var(--primary)"></i> Fare</h4>
+      <div class="detail-row"><span class="lbl">Total Fare</span><span class="val" style="font-size:16px;font-weight:800">₹${(b.fare||0).toLocaleString('en-IN')}</span></div>
+      ${b.discount ? `<div class="detail-row"><span class="lbl">Discount</span><span class="val" style="color:var(--success)">-₹${b.discount}</span></div>` : ''}
+      ${b.coupon   ? `<div class="detail-row"><span class="lbl">Coupon</span><span class="val">${esc(b.coupon)}</span></div>` : ''}
+      <div class="detail-row"><span class="lbl">Payment</span><span class="val">${cap(b.paymentMethod||'—')}</span></div>
+      <div class="detail-row"><span class="lbl">Pay Status</span><span class="val">${statusBadge(b.paymentStatus||b.status||'confirmed')}</span></div>
+      ${b.paymentId ? `<div class="detail-row"><span class="lbl">Payment ID</span><span class="val" style="font-family:monospace;font-size:11px">${esc(b.paymentId)}</span></div>` : ''}
+    </div>
+
+    <!-- Driver -->
+    <div class="detail-section">
+      <h4><i class="fas fa-car" style="color:var(--primary)"></i> Driver Assignment</h4>
+      ${b.driverName ? `
+        <div class="detail-row"><span class="lbl">Driver</span><span class="val" style="color:var(--success)">${esc(b.driverName)}</span></div>
+        <div class="detail-row"><span class="lbl">Phone</span><span class="val">${esc(b.driverPhone||'—')}</span></div>
+        <div class="detail-row"><span class="lbl">Vehicle No.</span><span class="val">${esc(b.vehicleNumber||'—')}</span></div>
+        <div class="detail-row"><span class="lbl">Assigned At</span><span class="val">${b.assignedAt ? new Date(b.assignedAt.seconds*1000).toLocaleString('en-IN') : '—'}</span></div>
+      ` : `<div style="color:var(--muted);font-size:13px">No driver assigned yet.</div>`}
+    </div>
+
+    <!-- Actions -->
+    <div class="detail-section">
+      <h4><i class="fas fa-bolt" style="color:var(--primary)"></i> Actions</h4>
+      <div class="status-actions">
+        ${b.status !== 'assigned' && b.status !== 'completed' && b.status !== 'cancelled'
+          ? `<button class="sa-btn sa-assign" onclick="openAssignModal('${b.bookingId||b.id}')"><i class="fas fa-user-plus"></i> Assign Driver</button>` : ''}
+        ${b.driverName && b.status === 'assigned'
+          ? `<button class="sa-btn sa-unassign" onclick="doUnassign('${b.bookingId||b.id}')"><i class="fas fa-user-minus"></i> Unassign</button>` : ''}
+        ${b.status !== 'completed' && b.status !== 'cancelled'
+          ? `<button class="sa-btn sa-complete" onclick="doStatus('${b.bookingId||b.id}','completed')"><i class="fas fa-flag-checkered"></i> Mark Completed</button>` : ''}
+        ${b.status !== 'cancelled'
+          ? `<button class="sa-btn sa-cancel" onclick="doStatus('${b.bookingId||b.id}','cancelled')"><i class="fas fa-times"></i> Cancel</button>` : ''}
+      </div>
+    </div>
+
+    <!-- Meta -->
+    <div class="detail-section">
+      <h4><i class="fas fa-info-circle" style="color:var(--primary)"></i> Meta</h4>
+      <div class="detail-row"><span class="lbl">Booking ID</span><span class="val" style="font-family:monospace;font-size:11px">${esc(b.bookingId||b.id||'—')}</span></div>
+      <div class="detail-row"><span class="lbl">Created</span><span class="val">${b.createdAt ? new Date(b.createdAt).toLocaleString('en-IN') : '—'}</span></div>
+      <div class="detail-row"><span class="lbl">Confirmed</span><span class="val">${b.confirmedAt ? new Date(b.confirmedAt).toLocaleString('en-IN') : '—'}</span></div>
+    </div>
+  `;
+
+  document.getElementById('panelOverlay').classList.add('open');
+  document.getElementById('detailPanel').classList.add('open');
+}
+
+function closePanel() {
+  document.getElementById('panelOverlay').classList.remove('open');
+  document.getElementById('detailPanel').classList.remove('open');
+  activeTrip = null;
+}
+
+/* ── Status updates ─────────────────────────────────────────────────────── */
+async function doStatus(bookingId, status) {
+  if (!confirm(`Mark booking as "${status}"?`)) return;
+  try {
+    await window._firebaseFns.updateBookingStatus(bookingId, status);
+    showToast(`✅ Status updated to "${status}"`);
+    closePanel();
+  } catch (e) { showToast('❌ Failed: ' + e.message, true); }
+}
+
+async function doUnassign(bookingId) {
+  if (!confirm('Remove driver assignment for this trip?')) return;
+  try {
+    await window._firebaseFns.unassignDriver(bookingId);
+    showToast('✅ Driver unassigned');
+    closePanel();
+  } catch (e) { showToast('❌ Failed: ' + e.message, true); }
+}
+
+/* ── Assign driver modal ────────────────────────────────────────────────── */
+let allDrivers = [];
+
+async function loadDrivers() {
+  allDrivers = await (window._firebaseFns?.getDrivers?.() || []);
+}
+
+function openAssignModal(tripId) {
+  assignTripId   = tripId;
+  selectedDriver = null;
+  const b = allBookings.find(x => (x.bookingId||x.id) === tripId);
+  document.getElementById('assignModalSub').textContent =
+    b ? `Trip: ${short(b.pickup)} → ${short(b.drop||'Hourly')}` : 'Select a driver';
+  document.getElementById('manualDriverName').value  = '';
+  document.getElementById('manualDriverPhone').value = '';
+  document.getElementById('manualDriverVeh').value   = '';
+
+  renderDriverList();
+  document.getElementById('assignModal').classList.add('open');
+}
+
+function closeAssignModal() {
+  document.getElementById('assignModal').classList.remove('open');
+  assignTripId   = null;
+  selectedDriver = null;
+}
+
+function renderDriverList() {
+  const el = document.getElementById('driverListEl');
+  if (!allDrivers.length) {
+    el.innerHTML = `<div class="no-drivers"><i class="fas fa-user-slash" style="font-size:26px;opacity:.3;margin-bottom:8px;display:block"></i>No drivers in database yet.<br><small>Add drivers via Driver Admin or use manual entry below.</small></div>`;
+    return;
+  }
+  el.innerHTML = allDrivers.map(d => `
+    <div class="driver-card" id="dc_${d.id}" onclick="selectDriver('${d.id}')">
+      <div class="driver-avatar">${(d.name||'D')[0].toUpperCase()}</div>
+      <div class="driver-info">
+        <div class="dn">${esc(d.name||'—')}</div>
+        <div class="dp">${esc(d.phone||'')} · ${cap(d.vehicleType||'')} · ${esc(d.vehicleNumber||'')}</div>
+      </div>
+      <span class="driver-status ds-${d.status||'offline'}">${cap(d.status||'offline')}</span>
+    </div>
+  `).join('');
+}
+
+function selectDriver(driverId) {
+  selectedDriver = allDrivers.find(d => d.id === driverId);
+  document.querySelectorAll('.driver-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('dc_' + driverId)?.classList.add('selected');
+  // Pre-fill manual fields from selected driver
+  if (selectedDriver) {
+    document.getElementById('manualDriverName').value  = selectedDriver.name  || '';
+    document.getElementById('manualDriverPhone').value = selectedDriver.phone || '';
+    document.getElementById('manualDriverVeh').value   = selectedDriver.vehicleNumber || '';
+  }
+}
+
+async function confirmAssign() {
+  if (!assignTripId) return;
+  const name  = document.getElementById('manualDriverName').value.trim();
+  const phone = document.getElementById('manualDriverPhone').value.trim();
+  const veh   = document.getElementById('manualDriverVeh').value.trim();
+  if (!name) { showToast('⚠ Enter driver name', true); return; }
+
+  const driver = {
+    driverId:      selectedDriver?.driverId || selectedDriver?.id || '',
+    driverName:    name,
+    driverPhone:   phone,
+    vehicleNumber: veh,
+  };
+
+  try {
+    await window._firebaseFns.assignDriver(assignTripId, driver);
+    // Mark driver as busy in drivers collection
+    if (selectedDriver?.id) {
+      await window._firebaseFns.updateDriverStatus(selectedDriver.id, 'busy');
+    }
+    showToast(`✅ Driver "${name}" assigned`);
+    closeAssignModal();
+    closePanel();
+  } catch (e) { showToast('❌ Failed: ' + e.message, true); }
+}
+
+/* ── Export CSV ─────────────────────────────────────────────────────────── */
+function exportCsv() {
+  const rows = [
+    ['Booking ID','Customer','Phone','Email','Type','Vehicle','Pickup','Drop','Date','Time','Distance','Fare','Payment','Status','Driver','Assigned At'],
+    ...filteredBookings.map(b => [
+      b.bookingId||b.id, b.customerName, b.customerPhone, b.userEmail,
+      b.type, b.vehicle, b.pickup, b.drop||'', b.date, b.time,
+      b.distance||'', b.fare, b.paymentMethod, b.status,
+      b.driverName||'', b.assignedAt ? new Date(b.assignedAt.seconds*1000).toISOString() : '',
+    ].map(v => '"' + String(v||'').replace(/"/g,'""') + '"'))
+  ];
+  const csv  = rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `galaxy-ride-bookings-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ── Utilities ──────────────────────────────────────────────────────────── */
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function cap(s) { return s ? s.charAt(0).toUpperCase()+s.slice(1) : ''; }
+function short(s,n=28) { return s && s.length > n ? s.slice(0,n)+'…' : (s||''); }
+
+let _toastTimer;
+function showToast(msg, err=false) {
+  let t = document.getElementById('_toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = '_toast';
+    t.style.cssText = 'position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:#1a1f36;border:1px solid rgba(255,255,255,.12);color:#fff;padding:11px 22px;border-radius:12px;font-size:13.5px;font-weight:600;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,.4);transition:opacity .25s';
+    document.body.appendChild(t);
+  }
+  clearTimeout(_toastTimer);
+  t.textContent  = msg;
+  t.style.opacity= '1';
+  t.style.borderColor = err ? 'rgba(239,68,68,.4)' : 'rgba(34,197,94,.3)';
+  _toastTimer = setTimeout(() => t.style.opacity='0', 3000);
+}
+</script>
+</body>
+</html>

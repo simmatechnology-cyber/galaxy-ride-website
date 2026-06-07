@@ -147,6 +147,9 @@
         <button class="tab-btn" data-tab="hourly" onclick="switchTab('hourly', this)">
           <i class="fas fa-clock"></i> Hourly Ride
         </button>
+        <button class="tab-btn" data-tab="fullday" onclick="switchTab('fullday', this)">
+          <i class="fas fa-sun"></i> Full Day
+        </button>
       </div>
 
       <form class="booking-form" id="bookingForm" onsubmit="handleBookingSubmit(event)">
@@ -299,9 +302,17 @@
               <span><i class="fas fa-user"></i> Driver Bata</span>
               <span id="driverBataDisplay">₹400</span>
             </div>
+            <div class="fare-row hidden" id="extraKmRow">
+              <span><i class="fas fa-tachometer-alt"></i> Extra KM Charge</span>
+              <span id="extraKmDisplay">₹0</span>
+            </div>
             <div class="fare-row peak-row hidden" id="peakRow">
               <span><i class="fas fa-exclamation-triangle"></i> Peak Hour Surcharge</span>
               <span id="peakFareDisplay">₹0</span>
+            </div>
+            <div class="fare-row hidden" id="waitingRow">
+              <span><i class="fas fa-hourglass-half"></i> Waiting Charge</span>
+              <span id="waitingDisplay">₹0</span>
             </div>
             <div class="fare-row coupon-row hidden" id="couponRow">
               <span><i class="fas fa-tag"></i> Coupon Discount</span>
