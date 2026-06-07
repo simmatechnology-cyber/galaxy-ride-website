@@ -1788,31 +1788,74 @@ function setupClickOutside() {
 // ==================== GEOLOCATION ====================
 
 /**
- * Build a human-readable pickup label from Geoapify reverse-geocode properties.
+ * Build a clean, human-readable address from Geoapify reverse-geocode properties.
  *
- * Rules:
- *   API returns data → show props.formatted  (e.g. "Devadanappatti, Theni, Tamil Nadu")
- *   API returns nothing → "Current Location" (never show raw coordinates to the user)
+ * WHY NOT props.formatted:
+ *   Geoapify's formatted string includes POI/street names when the nearest
+ *   feature is an amenity, e.g.:
+ *     "Tamilnadu forest department office, NH45, Devadānappatti - 625602, TN, India"
+ *   Users expect:
+ *     "Devadanappatti, Theni, Tamil Nadu, India"
  *
- * Returns: { short, full }
- *   short — what shows in the input box
- *   full  — stored internally (same as short here; coords kept in state.pickupCoords)
+ * Strategy: build from locality components → fall back to formatted only if
+ *   component data is sparse.
  */
-function buildPickupLabel(props, accuracy, lat, lon) {
-  // ── No geocode data: clean fallback, no raw lat/lon in UI ────────────────
-  if (!props || !props.formatted) {
-    return { short: 'Current Location', full: 'Current Location' };
-  }
+function buildPickupLabel(props) {
+  if (!props) return 'Current Location';
 
-  // ── API succeeded: always show the full human-readable formatted address ──
-  const formatted = props.formatted;
-  return { short: formatted, full: formatted };
+  // ── Component-based label (preferred) ────────────────────────────────────
+  const locality = props.village || props.hamlet || props.suburb
+                || props.city   || props.town   || props.quarter || '';
+  const district = props.state_district || props.county || '';
+  const state    = props.state    || '';
+  const country  = props.country  || '';
+
+  const parts = [locality, district, state, country].filter(Boolean);
+  if (parts.length >= 2) return parts.join(', ');
+
+  // ── Fallback: formatted string (strip leading POI name if possible) ──────
+  if (props.address_line2) return props.address_line2.replace(/\s*-\s*\d{5,6}\s*/g, ', ').trim();
+  if (props.formatted)     return props.formatted;
+
+  return 'Current Location';
+}
+
+/**
+ * Nominatim (OpenStreetMap) reverse geocoder — free, no API key.
+ * Used as fallback when Geoapify reverse geocode fails.
+ * Returns a clean address string, or null on failure.
+ */
+async function nominatimReverseGeocode(lat, lon) {
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse` +
+                `?lat=${lat}&lon=${lon}&format=json&accept-language=en&zoom=14`;
+    console.log('[GeoLoc] Nominatim URL:', url);
+    const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+    if (!res.ok) throw new Error(`Nominatim HTTP ${res.status}`);
+
+    const data = await res.json();
+    console.log('[GeoLoc] Nominatim response:', data);
+
+    const addr = data.address || {};
+    const locality = addr.village || addr.suburb || addr.city_district
+                   || addr.city   || addr.town   || addr.hamlet  || '';
+    const district = addr.state_district || addr.county || '';
+    const state    = addr.state   || '';
+    const country  = addr.country || '';
+
+    const parts = [locality, district, state, country].filter(Boolean);
+    if (parts.length >= 2) return parts.join(', ');
+    return data.display_name || null;
+  } catch (e) {
+    console.error('[GeoLoc] Nominatim error:', e.message);
+    return null;
+  }
 }
 
 function useCurrentLocation() {
   // ── Guard: browser support ────────────────────────────────────────────────
   if (!navigator.geolocation) {
-    console.error('[GeoLoc] navigator.geolocation not available in this browser/context.');
+    console.error('[GeoLoc] navigator.geolocation not supported.');
     showToast('error', 'Location not supported by this browser.');
     return;
   }
@@ -1827,68 +1870,87 @@ function useCurrentLocation() {
     if (input) { input.disabled = loading; }
   }
 
-  function setPickup(short, full) {
+  function setPickup(label) {
     if (!input) return;
-    input.value               = short;
-    input.dataset.fullAddress = full;       // booking system reads this
-    input.title               = full;       // tooltip shows full address on hover
-    state.pickupFullAddress   = full;       // also kept in state
-    setInputValid(input);                   // green border — same as autocomplete selection
+    input.value               = label;
+    input.dataset.fullAddress = label;
+    input.title               = label;
+    state.pickupFullAddress   = label;
+    setInputValid(input);                 // green border — same as autocomplete selection
   }
 
   setBtnState(true);
-  console.log('[GeoLoc] Requesting browser location permission…');
+  console.log('[GeoLoc] Requesting browser location…');
+  console.log('[GeoLoc] Geoapify key loaded:', GEOAPIFY_API_KEY
+    ? `${GEOAPIFY_API_KEY.slice(0, 4)}…${GEOAPIFY_API_KEY.slice(-4)} (${GEOAPIFY_API_KEY.length} chars)`
+    : '(MISSING)');
 
   navigator.geolocation.getCurrentPosition(
 
     // ── SUCCESS ──────────────────────────────────────────────────────────────
     async (pos) => {
       const { latitude: lat, longitude: lon, accuracy } = pos.coords;
-      console.log(`[GeoLoc] ✓ Position — lat: ${lat}, lon: ${lon}, accuracy: ±${Math.round(accuracy)}m`);
+      console.log(`[GeoLoc] ✓ GPS fix — lat:${lat}, lon:${lon}, accuracy:±${Math.round(accuracy)}m`);
 
+      // Coords stored before any API call — route calc always has them
       state.pickupCoords = { lat, lon };
 
+      let label = null;
+
       try {
+        // ── Attempt 1: Geoapify reverse geocode ──────────────────────────
         const url = `https://api.geoapify.com/v1/geocode/reverse` +
                     `?lat=${lat}&lon=${lon}&lang=en&apiKey=${GEOAPIFY_API_KEY}`;
-        console.log('[GeoLoc] Reverse geocoding…');
-        const res = await fetch(url);
+        console.log('[GeoLoc] Geoapify URL:',
+          url.replace(GEOAPIFY_API_KEY, `${GEOAPIFY_API_KEY.slice(0, 4)}…KEY`));
 
-        if (!res.ok) throw new Error(`HTTP ${res.status} from reverse geocode`);
+        const res = await fetch(url);
+        console.log('[GeoLoc] Geoapify status:', res.status, res.statusText);
+
+        if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
 
         const data  = await res.json();
-        const props = data.features?.[0]?.properties || null;
-        console.log('[GeoLoc] Reverse geocode props:', props);
+        console.log('[GeoLoc] Geoapify full response:', data);
 
-        const { short, full } = buildPickupLabel(props, accuracy, lat, lon);
-        console.log(`[GeoLoc] Label → short: "${short}" | full: "${full}"`);
+        const props = data.features?.[0]?.properties;
+        console.log('[GeoLoc] Geoapify properties:', props);
 
-        setPickup(short, full);
-        if (state.dropCoords) calcDistance();
-        showToast('success', 'Current location set as pickup!');
+        if (!props) throw new Error('Geoapify returned no features');
 
-      } catch (fetchErr) {
-        console.warn('[GeoLoc] Reverse geocode failed:', fetchErr.message);
-        // Coordinates stay in state.pickupCoords for route calc; show clean label in UI
-        setPickup('Current Location', 'Current Location');
-        showToast('info', 'Location found. Address lookup unavailable — using current position.');
-      } finally {
-        setBtnState(false);
+        label = buildPickupLabel(props);
+        console.log('[GeoLoc] Geoapify label built:', label);
+
+      } catch (geoErr) {
+        // ── Geoapify failed: log exact reason, try Nominatim ─────────────
+        console.error('[GeoLoc] Geoapify reverse geocode failed:', geoErr.message);
+        console.log('[GeoLoc] Falling back to Nominatim (OpenStreetMap)…');
+
+        label = await nominatimReverseGeocode(lat, lon);
+
+        if (label) {
+          console.log('[GeoLoc] Nominatim label:', label);
+        } else {
+          console.warn('[GeoLoc] Both geocoders failed — showing "Current Location"');
+          label = 'Current Location';
+        }
       }
+
+      setPickup(label);
+      if (state.dropCoords) calcDistance();
+      showToast('success', 'Current location set as pickup!');
+      setBtnState(false);
     },
 
-    // ── ERROR ─────────────────────────────────────────────────────────────────
+    // ── GPS ERROR ────────────────────────────────────────────────────────────
     (err) => {
       setBtnState(false);
-
       const messages = {
-        1: 'Location permission denied. Enable it in browser/device settings and try again.',
+        1: 'Location permission denied. Enable it in browser settings and try again.',
         2: 'GPS signal unavailable. Check your device location settings.',
         3: 'Location request timed out. Move to an open area and try again.',
       };
       const msg = messages[err.code] || `Location error (code ${err.code}): ${err.message}`;
-
-      console.error(`[GeoLoc] ✗ code: ${err.code}, message: "${err.message}"`);
+      console.error(`[GeoLoc] GPS error — code:${err.code} "${err.message}"`);
       showToast('error', msg);
     },
 
