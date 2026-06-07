@@ -2493,3 +2493,95 @@ h1,h2,h3,h4,h5,h6 { font-family: var(--font-heading); font-weight: 700; line-hei
   #driverForm .form-row { grid-template-columns: 1fr; gap: 0; }
   .driver-uploads { grid-template-columns: 1fr 1fr; }
 }
+
+/* ── Hero highlights ─────────────────────────────────────────────────────── */
+.hero-highlights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 16px 0 20px;
+}
+.hero-highlight-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.92);
+}
+.hero-highlight-item i {
+  color: #4ade80;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+/* ── Promo strip ─────────────────────────────────────────────────────────── */
+.promo-strip {
+  background: linear-gradient(90deg, #E31E24 0%, #b01519 100%);
+  color: #fff;
+  padding: 12px 0;
+}
+.promo-strip-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  text-align: center;
+}
+.promo-icon { font-size: 22px; line-height: 1; }
+.promo-text { font-size: 14px; }
+@media (max-width: 480px) {
+  .promo-strip .btn { display: none; }
+}
+
+/* ── Pricing "Why Choose" block ──────────────────────────────────────────── */
+.pricing-why-section {
+  margin-top: 36px;
+  padding: 24px 28px;
+  background: linear-gradient(135deg, #f8f9ff 0%, #eef0ff 100%);
+  border-radius: 16px;
+  border: 1px solid rgba(99,102,241,0.12);
+}
+.pricing-why-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 0 0 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pricing-why-title i { color: #E31E24; }
+.pricing-why-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 24px;
+}
+.pricing-why-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+}
+.pricing-why-item i { color: #16a34a; font-size: 12px; }
+
+/* ── CTA outline-white button ────────────────────────────────────────────── */
+.btn-outline-white {
+  background: transparent;
+  border: 2px solid rgba(255,255,255,0.8);
+  color: #fff;
+}
+.btn-outline-white:hover {
+  background: rgba(255,255,255,0.15);
+  border-color: #fff;
+}
+.cta-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 18px;
+}
