@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /netlify/
+Disallow: /scripts/
+
+Sitemap: https://galaxyride.in/sitemap.xml

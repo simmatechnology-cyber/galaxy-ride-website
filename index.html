@@ -1,0 +1,1815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Galaxy Ride - Safe, Reliable & Affordable cab booking. Book your ride anytime, anywhere." />
+  <title>Galaxy Ride - Safe • Reliable • Affordable</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/neo-contact.css" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23E31E24'/><text y='.9em' font-size='80' x='10'>🚗</text></svg>" />
+</head>
+<body>
+
+<!-- ===================== HEADER / NAV ===================== -->
+<header class="header" id="header">
+  <div class="header-top">
+    <div class="container">
+      <a href="tel:+919597815889" style="color:inherit;text-decoration:none;"><span><i class="fas fa-phone"></i> +91 95978 15889</span></a>
+      <a href="https://wa.me/919597815889" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;"><span><i class="fab fa-whatsapp"></i> WhatsApp Support</span></a>
+      <span><i class="fas fa-clock"></i> 24/7 Available</span>
+    </div>
+  </div>
+  <nav class="navbar" id="navbar">
+    <div class="container nav-container">
+      <!-- Logo -->
+      <a href="#" class="logo">
+        <div class="logo-icon">GR</div>
+        <div class="logo-text">
+          <span class="logo-name">Galaxy Ride</span>
+          <span class="logo-tagline">Safe • Reliable • Affordable</span>
+        </div>
+      </a>
+
+      <!-- Nav Links -->
+      <ul class="nav-links" id="navLinks">
+        <li><a href="#home" class="nav-link active">Home</a></li>
+        <li><a href="#services" class="nav-link">Services</a></li>
+        <li><a href="#destinations" class="nav-link">Destinations</a></li>
+        <li><a href="#vehicles" class="nav-link">Vehicles</a></li>
+        <li><a href="#pricing" class="nav-link">Pricing</a></li>
+        <li><a href="#safety" class="nav-link">Safety</a></li>
+        <li><a href="#contact" class="nav-link">Contact</a></li>
+      </ul>
+
+      <!-- Nav Actions -->
+      <div class="nav-actions">
+        <div class="lang-selector">
+          <i class="fas fa-globe"></i>
+          <select id="languageSelect" aria-label="Language">
+            <option value="en">EN</option>
+            <option value="hi">HI</option>
+            <option value="ta">TA</option>
+          </select>
+        </div>
+        <!-- Logged Out State -->
+        <div class="auth-btns" id="authBtns">
+          <button class="btn btn-outline" onclick="openAuthModal('login')">Login</button>
+          <button class="btn btn-primary" onclick="openAuthModal('signup')">Sign Up</button>
+        </div>
+        <!-- Logged In State -->
+        <div class="user-menu hidden" id="userMenu">
+          <button class="user-avatar-btn" onclick="toggleUserDropdown()" id="userAvatarBtn">
+            <div class="user-avatar" id="userAvatar">U</div>
+            <span id="userDisplayName">User</span>
+            <i class="fas fa-chevron-down"></i>
+          </button>
+          <div class="user-dropdown hidden" id="userDropdown">
+            <a href="#" onclick="showProfile()"><i class="fas fa-user"></i> My Profile</a>
+            <a href="#" onclick="showMyBookings()"><i class="fas fa-car"></i> My Bookings</a>
+            <a href="#" onclick="showWallet()"><i class="fas fa-wallet"></i> Wallet</a>
+            <hr />
+            <a href="#" onclick="signOutUser()" class="danger"><i class="fas fa-sign-out-alt"></i> Sign Out</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hamburger -->
+      <button class="hamburger" id="hamburger" aria-label="Toggle menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+</header>
+
+<!-- ===================== HERO / BOOKING ===================== -->
+<section class="hero" id="home">
+  <div class="hero-bg">
+    <div class="hero-overlay"></div>
+    <div class="hero-particles" id="particles"></div>
+  </div>
+  <div class="container hero-container">
+    <div class="hero-content">
+      <div class="hero-badge"><i class="fas fa-star"></i> #1 Rated Cab Service</div>
+      <h1 class="hero-title">Book a ride,<br /><span class="highlight">anytime, anywhere</span></h1>
+      <p class="hero-subtitle">Reliable cabs, on time, every time.<br />Book your ride in just a few clicks.</p>
+      <div class="hero-stats">
+        <div class="stat"><span class="stat-num">50K+</span><span class="stat-label">Happy Riders</span></div>
+        <div class="stat-divider"></div>
+        <div class="stat"><span class="stat-num">500+</span><span class="stat-label">Verified Drivers</span></div>
+        <div class="stat-divider"></div>
+        <div class="stat"><span class="stat-num">4.8★</span><span class="stat-label">Average Rating</span></div>
+      </div>
+    </div>
+
+    <!-- Booking Form Card -->
+    <div class="booking-card" id="bookingCard">
+      <div class="booking-tabs">
+        <button class="tab-btn active" data-tab="oneway" onclick="switchTab('oneway', this)">
+          <i class="fas fa-arrow-right"></i> One Way
+        </button>
+        <button class="tab-btn" data-tab="roundtrip" onclick="switchTab('roundtrip', this)">
+          <i class="fas fa-sync-alt"></i> Round Trip
+        </button>
+        <button class="tab-btn" data-tab="hourly" onclick="switchTab('hourly', this)">
+          <i class="fas fa-clock"></i> Hourly Ride
+        </button>
+      </div>
+
+      <form class="booking-form" id="bookingForm" onsubmit="handleBookingSubmit(event)">
+        <!-- Pickup Location -->
+        <div class="form-group autocomplete-group">
+          <label for="pickup"><i class="fas fa-map-marker-alt pickup-icon"></i> Pickup Location</label>
+          <div class="input-with-action">
+            <input type="text" id="pickup" name="pickup" placeholder="Enter pickup location" autocomplete="off" required />
+            <button type="button" class="location-btn" onclick="useCurrentLocation()" title="Use current location">
+              <i class="fas fa-crosshairs"></i>
+            </button>
+          </div>
+          <div class="autocomplete-dropdown hidden" id="pickupDropdown"></div>
+        </div>
+
+        <!-- Swap Button -->
+        <div class="swap-btn-wrapper">
+          <button type="button" class="swap-btn" onclick="swapLocations()" title="Swap locations">
+            <i class="fas fa-exchange-alt"></i>
+          </button>
+        </div>
+
+        <!-- Drop Location -->
+        <div class="form-group autocomplete-group">
+          <label for="drop"><i class="fas fa-map-marker drop-icon"></i> Drop Location</label>
+          <input type="text" id="drop" name="drop" placeholder="Enter drop location" autocomplete="off" required />
+          <div class="autocomplete-dropdown hidden" id="dropDropdown"></div>
+        </div>
+
+        <!-- Date & Time -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="date"><i class="fas fa-calendar-alt"></i> Date</label>
+            <input type="date" id="date" name="date" required />
+          </div>
+          <div class="form-group">
+            <label for="time"><i class="fas fa-clock"></i> Time</label>
+            <input type="time" id="time" name="time" required />
+          </div>
+        </div>
+
+        <!-- Return Date (Round Trip only) -->
+        <div class="form-row hidden" id="returnDateRow">
+          <div class="form-group">
+            <label for="returnDate"><i class="fas fa-calendar-check"></i> Return Date</label>
+            <input type="date" id="returnDate" name="returnDate" />
+          </div>
+          <div class="form-group">
+            <label for="returnTime"><i class="fas fa-clock"></i> Return Time</label>
+            <input type="time" id="returnTime" name="returnTime" />
+          </div>
+        </div>
+
+        <!-- Hourly Package (Hourly only) -->
+        <div class="form-group hidden" id="hourlyPackageGroup">
+          <label for="hourlyPackage"><i class="fas fa-hourglass-half"></i> Package</label>
+          <select id="hourlyPackage" name="hourlyPackage" onchange="calculateFare()">
+            <option value="">Select Package</option>
+            <option value="1">1 Hour / 15 KM</option>
+            <option value="2">2 Hours / 25 KM</option>
+            <option value="3">3 Hours / 40 KM</option>
+            <option value="4">4 Hours / 50 KM</option>
+            <option value="5">5 Hours / 60 KM</option>
+            <option value="6">6 Hours / 75 KM</option>
+            <option value="7">7 Hours / 85 KM</option>
+            <option value="8">8 Hours / 100 KM</option>
+            <option value="9">9 Hours / 110 KM</option>
+            <option value="10">10 Hours / 120 KM</option>
+          </select>
+        </div>
+
+        <!-- Passengers -->
+        <div class="form-group">
+          <label><i class="fas fa-users"></i> Passengers</label>
+          <div class="passenger-counter">
+            <button type="button" class="counter-btn" onclick="changePassengers(-1)"><i class="fas fa-minus"></i></button>
+            <span id="passengerCount" class="counter-val">1</span>
+            <button type="button" class="counter-btn" onclick="changePassengers(1)"><i class="fas fa-plus"></i></button>
+            <span class="counter-label">Passenger(s)</span>
+          </div>
+        </div>
+
+        <!-- Vehicle Type -->
+        <div class="form-group">
+          <label><i class="fas fa-car"></i> Vehicle Type</label>
+          <div class="vehicle-selector" id="vehicleSelector">
+            <label class="vehicle-option" data-vehicle="mini">
+              <input type="radio" name="vehicle" value="mini" onchange="calculateFare()" />
+              <div class="vehicle-card">
+                <img src="./images/wagnor.png" class="vehicle-image" alt="Mini">
+                <div class="vehicle-info">
+                  <span class="vehicle-name">Mini</span>
+                  <span class="vehicle-seats">4 seats • AC</span>
+                </div>
+                <span class="vehicle-price" id="miniPrice">₹110</span>
+              </div>
+            </label>
+            <label class="vehicle-option" data-vehicle="sedan">
+              <input type="radio" name="vehicle" value="sedan" onchange="calculateFare()" />
+              <div class="vehicle-card">
+                <img src="./images/sedan.png" class="vehicle-image" alt="Sedan">
+                <div class="vehicle-info">
+                  <span class="vehicle-name">Sedan</span>
+                  <span class="vehicle-seats">4 seats • AC</span>
+                </div>
+                <span class="vehicle-price" id="sedanPrice">₹110</span>
+              </div>
+            </label>
+            <label class="vehicle-option" data-vehicle="suv">
+              <input type="radio" name="vehicle" value="suv" onchange="calculateFare()" />
+              <div class="vehicle-card">
+                <img src="./images/muv.png" class="vehicle-image" alt="MUV">
+                <div class="vehicle-info">
+                  <span class="vehicle-name">MUV/SUV</span>
+                  <span class="vehicle-seats">6 seats • AC</span>
+                </div>
+                <span class="vehicle-price" id="suvPrice">₹120</span>
+              </div>
+            </label>
+            <label class="vehicle-option" data-vehicle="innova">
+              <input type="radio" name="vehicle" value="innova" onchange="calculateFare()" />
+              <div class="vehicle-card">
+                <img src="./images/innova.png" class="vehicle-image" alt="Innova">
+                <div class="vehicle-info">
+                  <span class="vehicle-name">Innova</span>
+                  <span class="vehicle-seats">6 seats • AC</span>
+                </div>
+                <span class="vehicle-price" id="innovaPrice">₹130</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Fare Preview -->
+        <div class="fare-preview hidden" id="farePreview">
+          <div class="fare-breakdown">
+            <div class="fare-row">
+              <span>Base Fare</span>
+              <span id="baseFareDisplay">₹0</span>
+            </div>
+            <div class="fare-row" id="distanceFareRow">
+              <span>City Fare (<span id="distanceDisplay">0</span> km)</span>
+              <span id="distanceFareDisplay">₹0</span>
+            </div>
+            <div class="fare-row hidden" id="outstationFareRow">
+              <span>Outstation Fare (<span id="outstationKmDisplay">0</span> km)</span>
+              <span id="outstationFareDisplay">₹0</span>
+            </div>
+            <div class="fare-row hidden" id="driverBataRow">
+              <span><i class="fas fa-user"></i> Driver Bata</span>
+              <span id="driverBataDisplay">₹400</span>
+            </div>
+            <div class="fare-row peak-row hidden" id="peakRow">
+              <span><i class="fas fa-exclamation-triangle"></i> Peak Hour Surcharge</span>
+              <span id="peakFareDisplay">₹0</span>
+            </div>
+            <div class="fare-row coupon-row hidden" id="couponRow">
+              <span><i class="fas fa-tag"></i> Coupon Discount</span>
+              <span id="couponDiscountDisplay" class="discount">-₹0</span>
+            </div>
+            <div class="fare-row toll-row">
+              <span><i class="fas fa-road"></i> Toll &amp; Parking</span>
+              <span class="toll-extra">Extra</span>
+            </div>
+            <div class="fare-row total-row">
+              <span><strong>Estimated Total</strong></span>
+              <span id="totalFareDisplay" class="total-fare">₹0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Coupon -->
+        <div class="form-group coupon-group">
+          <label><i class="fas fa-tag"></i> Coupon Code (Optional)</label>
+          <div class="coupon-input">
+            <input type="text" id="couponCode" placeholder="Enter coupon code" />
+            <button type="button" onclick="applyCoupon()" class="apply-btn">Apply</button>
+          </div>
+          <div class="coupon-message hidden" id="couponMessage"></div>
+        </div>
+
+        <!-- Submit -->
+        <button type="submit" class="btn btn-primary btn-book" id="bookBtn">
+          <i class="fas fa-search"></i> Search Available Rides
+        </button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== TRUST BADGES ===================== -->
+<section class="trust-bar">
+  <div class="container trust-container">
+    <div class="trust-item">
+      <i class="fas fa-shield-alt"></i>
+      <span>100% Verified Drivers</span>
+    </div>
+    <div class="trust-item">
+      <i class="fas fa-rupee-sign"></i>
+      <span>Best Price Guarantee</span>
+    </div>
+    <div class="trust-item">
+      <i class="fas fa-headset"></i>
+      <span>24/7 Customer Support</span>
+    </div>
+    <div class="trust-item">
+      <i class="fas fa-map-marker-alt"></i>
+      <span>Real-Time Tracking</span>
+    </div>
+    <div class="trust-item">
+      <i class="fas fa-star"></i>
+      <span>4.8/5 Average Rating</span>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== OUR SERVICES (merged) ===================== -->
+<section class="services-merged" id="services">
+  <div class="container">
+    <div class="section-header compact">
+      <span class="section-badge">Our Services</span>
+      <h2 class="section-title">Our Services</h2>
+      <p class="section-subtitle">Book rides today. More travel services coming soon.</p>
+    </div>
+    <!-- ── ACTIVE (V1 taxi services) — 4 per row ── -->
+    <div class="svc-grid active-grid">
+      <a href="#home" class="svc-card" aria-label="City Ride">
+        <div class="svc-icon">🚕</div>
+        <h3>City Ride</h3>
+        <p>Quick rides within the city</p>
+      </a>
+      <a href="#home" class="svc-card" aria-label="Outstation">
+        <div class="svc-icon">🛣️</div>
+        <h3>Outstation</h3>
+        <p>Comfortable intercity travel</p>
+      </a>
+      <a href="#home" class="svc-card" aria-label="Airport Transfer">
+        <div class="svc-icon">✈️</div>
+        <h3>Airport Transfer</h3>
+        <p>On-time airport pickups & drops</p>
+      </a>
+      <a href="#home" class="svc-card" aria-label="Hourly Rental">
+        <div class="svc-icon">🕒</div>
+        <h3>Hourly Rental</h3>
+        <p>Book a cab by the hour</p>
+      </a>
+    </div>
+
+    <div class="svc-soon-divider"><span>Coming Soon to Galaxy Ride</span></div>
+
+    <!-- ── COMING SOON (disabled, not clickable) — 5 per row ── -->
+    <div class="svc-grid soon-grid">
+      <div class="svc-card is-soon" title="Available in a future Galaxy Ride update" aria-disabled="true" aria-label="Acting Driver — Coming Soon">
+        <span class="svc-soon-badge">Coming Soon</span>
+        <div class="svc-icon">👨‍✈️</div>
+        <h3>Acting Driver</h3>
+        <p>Professional drivers for your own vehicle</p>
+      </div>
+      <div class="svc-card is-soon" title="Available in a future Galaxy Ride update" aria-disabled="true" aria-label="Bus Tickets — Coming Soon">
+        <span class="svc-soon-badge">Coming Soon</span>
+        <div class="svc-icon">🚌</div>
+        <h3>Bus Tickets</h3>
+        <p>Intercity bus booking across India</p>
+      </div>
+      <div class="svc-card is-soon" title="Available in a future Galaxy Ride update" aria-disabled="true" aria-label="Train Tickets — Coming Soon">
+        <span class="svc-soon-badge">Coming Soon</span>
+        <div class="svc-icon">🚆</div>
+        <h3>Train Tickets</h3>
+        <p>IRCTC train ticket booking</p>
+      </div>
+      <div class="svc-card is-soon" title="Available in a future Galaxy Ride update" aria-disabled="true" aria-label="Flight Tickets — Coming Soon">
+        <span class="svc-soon-badge">Coming Soon</span>
+        <div class="svc-icon">✈️</div>
+        <h3>Flight Tickets</h3>
+        <p>Domestic &amp; international flight booking</p>
+      </div>
+      <div class="svc-card is-soon" title="Available in a future Galaxy Ride update" aria-disabled="true" aria-label="Hotel Booking — Coming Soon">
+        <span class="svc-soon-badge">Coming Soon</span>
+        <div class="svc-icon">🏨</div>
+        <h3>Hotel Booking</h3>
+        <p>Hotels and resorts across India</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== DESTINATIONS ===================== -->
+<section class="destinations-section" id="destinations">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-badge">Popular Destinations</span>
+      <h2 class="section-title">Popular Destinations in <span style="background:linear-gradient(135deg,#E31E24,#ff6b35);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">South India</span></h2>
+      <p class="section-subtitle">Discover handpicked destinations across Tamil Nadu, Kerala, Karnataka and Goa.</p>
+    </div>
+    <div class="dest-scroll-hint">
+      <span>Swipe to explore</span>
+      <i class="fas fa-arrow-right"></i>
+    </div>
+    <div class="destinations-row">
+
+      <!-- 1. Kodaikanal -->
+      <div class="dest-card" onclick="openTripPlanner('kodaikanal')">
+        <img src="public/tourism/Kodaikanal.webp" alt="Kodaikanal hill station" loading="lazy" />
+        <div class="dest-overlay"></div>
+        <span class="dest-state-badge">Tamil Nadu</span>
+        <div class="dest-body">
+          <h3 class="dest-name">Kodaikanal</h3>
+          <p class="dest-desc">Hill station, misty lakes &amp; scenic viewpoints</p>
+          <button class="dest-plan-btn"><i class="fas fa-map-marked-alt"></i> Plan Trip</button>
+        </div>
+      </div>
+
+      <!-- 2. Ooty -->
+      <div class="dest-card" onclick="openTripPlanner('ooty')">
+        <img src="public/tourism/ooty.jpg" alt="Ooty Nilgiris" loading="lazy" />
+        <div class="dest-overlay"></div>
+        <span class="dest-state-badge">Tamil Nadu</span>
+        <div class="dest-body">
+          <h3 class="dest-name">Ooty</h3>
+          <p class="dest-desc">Tea estates, boat house &amp; botanical garden</p>
+          <button class="dest-plan-btn"><i class="fas fa-map-marked-alt"></i> Plan Trip</button>
+        </div>
+      </div>
+
+      <!-- 3. Munnar -->
+      <div class="dest-card" onclick="openTripPlanner('munnar')">
+        <img src="public/tourism/munnar.jpg" alt="Munnar tea estates Kerala" loading="lazy" />
+        <div class="dest-overlay"></div>
+        <span class="dest-state-badge">Kerala</span>
+        <div class="dest-body">
+          <h3 class="dest-name">Munnar</h3>
+          <p class="dest-desc">Tea estates and misty mountains</p>
+          <button class="dest-plan-btn"><i class="fas fa-map-marked-alt"></i> Plan Trip</button>
+        </div>
+      </div>
+
+      <!-- 4. Alleppey -->
+      <div class="dest-card" onclick="openTripPlanner('alleppey')">
+        <img src="public/tourism/alleppey.jpg" alt="Alleppey backwaters Kerala" loading="lazy" />
+        <div class="dest-overlay"></div>
+        <span class="dest-state-badge">Kerala</span>
+        <div class="dest-body">
+          <h3 class="dest-name">Alleppey</h3>
+          <p class="dest-desc">Backwaters, houseboat cruises &amp; canals</p>
+          <button class="dest-plan-btn"><i class="fas fa-map-marked-alt"></i> Plan Trip</button>
+        </div>
+      </div>
+
+      <!-- 5. Madurai -->
+      <div class="dest-card" onclick="openTripPlanner('madurai')">
+        <img src="public/tourism/Madurai_d5167323e4.webp" alt="Madurai Meenakshi Temple" loading="lazy" />
+        <div class="dest-overlay"></div>
+        <span class="dest-state-badge">Tamil Nadu</span>
+        <div class="dest-body">
+          <h3 class="dest-name">Madurai</h3>
+          <p class="dest-desc">Meenakshi Temple and ancient Tamil culture</p>
+          <button class="dest-plan-btn"><i class="fas fa-map-marked-alt"></i> Plan Trip</button>
+        </div>
+      </div>
+
+      <!-- 6. Rameswaram -->
+      <div class="dest-card" onclick="openTripPlanner('rameswaram')">
+        <img src="public/tourism/rameshwaram.webp" alt="Rameswaram temple" loading="lazy" />
+        <div class="dest-overlay"></div>
+        <span class="dest-state-badge">Tamil Nadu</span>
+        <div class="dest-body">
+          <h3 class="dest-name">Rameswaram</h3>
+          <p class="dest-desc">Sacred temples and pristine beaches</p>
+          <button class="dest-plan-btn"><i class="fas fa-map-marked-alt"></i> Plan Trip</button>
+        </div>
+      </div>
+
+      <!-- 7. Coorg -->
+      <div class="dest-card" onclick="openTripPlanner('coorg')">
+        <img src="public/tourism/coorg3.jpg" alt="Coorg coffee plantation" loading="lazy" />
+        <div class="dest-overlay"></div>
+        <span class="dest-state-badge">Karnataka</span>
+        <div class="dest-body">
+          <h3 class="dest-name">Coorg</h3>
+          <p class="dest-desc">Coffee plantations and waterfalls</p>
+          <button class="dest-plan-btn"><i class="fas fa-map-marked-alt"></i> Plan Trip</button>
+        </div>
+      </div>
+
+      <!-- 8. Goa -->
+      <div class="dest-card" onclick="openTripPlanner('goa')">
+        <img src="public/tourism/beaches-of-goa.webp" alt="Goa beaches" loading="lazy" />
+        <div class="dest-overlay"></div>
+        <span class="dest-state-badge">Goa</span>
+        <div class="dest-body">
+          <h3 class="dest-name">Goa</h3>
+          <p class="dest-desc">Beaches, nightlife and water sports</p>
+          <button class="dest-plan-btn"><i class="fas fa-map-marked-alt"></i> Plan Trip</button>
+        </div>
+      </div>
+
+      <!-- 9. Gokarna -->
+      <div class="dest-card" onclick="openTripPlanner('gokarna')">
+        <img src="public/tourism/Thrilling-Adventures-in-Gokarna1-popular.jpg" alt="Gokarna beach Karnataka" loading="lazy" />
+        <div class="dest-overlay"></div>
+        <span class="dest-state-badge">Karnataka</span>
+        <div class="dest-body">
+          <h3 class="dest-name">Gokarna</h3>
+          <p class="dest-desc">Serene beaches and ancient temples</p>
+          <button class="dest-plan-btn"><i class="fas fa-map-marked-alt"></i> Plan Trip</button>
+        </div>
+      </div>
+
+      <!-- 10. Tirupati -->
+      <div class="dest-card" onclick="openTripPlanner('tirupati')">
+        <img src="public/tourism/tirupati.jpg" alt="Tirupati Venkateswara temple" loading="lazy" />
+        <div class="dest-overlay"></div>
+        <span class="dest-state-badge">Andhra Pradesh</span>
+        <div class="dest-body">
+          <h3 class="dest-name">Tirupati</h3>
+          <p class="dest-desc">Sacred Venkateswara Temple &amp; pilgrimage</p>
+          <button class="dest-plan-btn"><i class="fas fa-map-marked-alt"></i> Plan Trip</button>
+        </div>
+      </div>
+
+      <!-- 11. Abbey Falls -->
+      <div class="dest-card" onclick="openTripPlanner('abbey-falls')">
+        <img src="public/tourism/abbey-falls-coorg-tourism-header.jpg" alt="Abbey Falls Coorg" loading="lazy" />
+        <div class="dest-overlay"></div>
+        <span class="dest-state-badge">Karnataka</span>
+        <div class="dest-body">
+          <h3 class="dest-name">Abbey Falls</h3>
+          <p class="dest-desc">Majestic 70-ft waterfall amid coffee estates</p>
+          <button class="dest-plan-btn"><i class="fas fa-map-marked-alt"></i> Plan Trip</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ===================== VEHICLES ===================== -->
+<section class="vehicles-section" id="vehicles">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-badge">Our Fleet</span>
+      <h2 class="section-title">Choose Your Ride</h2>
+      <p class="section-subtitle">Clean, comfortable, and well-maintained vehicles for every trip.</p>
+    </div>
+    <div class="vehicles-grid">
+      <div class="vehicle-showcase-card">
+        <div class="vehicle-img-wrap">
+            <img src="./images/wagnor.png" 
+            class="fleet-image" loading="lazy" decoding="async">
+          <div class="vehicle-badge">Economy</div>
+                   </div>
+                   <div class="vehicle-details">
+          <h3>Mini Cab</h3>
+          <div class="vehicle-specs">
+            <span><i class="fas fa-users"></i> 4 Passengers</span>
+            <span><i class="fas fa-snowflake"></i> AC</span>
+            <span><i class="fas fa-suitcase"></i> 2 Bags</span>
+          </div>
+          <div class="vehicle-fare">
+            <span class="fare-label">Starting from</span>
+            <span class="fare-amount">₹110</span>
+            <span class="fare-unit">base fare</span>
+          </div>
+          <div class="vehicle-extras">
+            <span>+₹18/km after 3km</span>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="selectVehicleAndScroll('mini')">Select Mini</button>
+        </div>
+      </div>
+
+      <div class="vehicle-showcase-card featured-vehicle">
+        <div class="vehicle-img-wrap">
+             <img src="images/sedan.png" class="fleet-image" loading="lazy" decoding="async">
+          <div class="vehicle-badge popular">Most Popular</div>
+          </div>
+          <div class="vehicle-details">
+          <h3>Sedan</h3>
+          <div class="vehicle-specs">
+            <span><i class="fas fa-users"></i> 4 Passengers</span>
+            <span><i class="fas fa-snowflake"></i> AC</span>
+            <span><i class="fas fa-suitcase"></i> 3 Bags</span>
+          </div>
+          <div class="vehicle-fare">
+            <span class="fare-label">Starting from</span>
+            <span class="fare-amount">₹110</span>
+            <span class="fare-unit">base fare</span>
+          </div>
+          <div class="vehicle-extras">
+            <span>+₹19/km after 3km</span>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="selectVehicleAndScroll('sedan')">Select Sedan</button>
+        </div>
+      </div>
+
+      <div class="vehicle-showcase-card">
+        <div class="vehicle-img-wrap">
+    <img src="images/muv.png" class="fleet-image" loading="lazy" decoding="async">
+          <div class="vehicle-badge">Premium</div>
+        </div>
+        <div class="vehicle-details">
+          <h3>MUV / SUV</h3>
+          <div class="vehicle-specs">
+            <span><i class="fas fa-users"></i> 6 Passengers</span>
+            <span><i class="fas fa-snowflake"></i> AC</span>
+            <span><i class="fas fa-suitcase"></i> 4 Bags</span>
+          </div>
+          <div class="vehicle-fare">
+            <span class="fare-label">Starting from</span>
+            <span class="fare-amount">₹120</span>
+            <span class="fare-unit">base fare</span>
+          </div>
+          <div class="vehicle-extras">
+            <span>+₹22/km after 3km</span>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="selectVehicleAndScroll('suv')">Select MUV</button>
+        </div>
+      </div>
+
+      <div class="vehicle-showcase-card">
+        <div class="vehicle-img-wrap">
+    <img src="images/innova.png" class="fleet-image" loading="lazy" decoding="async">
+          <div class="vehicle-badge">Luxury</div>
+        </div>
+        <div class="vehicle-details">
+          <h3>Innova Crysta</h3>
+          <div class="vehicle-specs">
+            <span><i class="fas fa-users"></i> 6 Passengers</span>
+            <span><i class="fas fa-snowflake"></i> AC</span>
+            <span><i class="fas fa-suitcase"></i> 5 Bags</span>
+          </div>
+          <div class="vehicle-fare">
+            <span class="fare-label">Starting from</span>
+            <span class="fare-amount">₹130</span>
+            <span class="fare-unit">base fare</span>
+          </div>
+          <div class="vehicle-extras">
+            <span>+₹24/km after 3km</span>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="selectVehicleAndScroll('innova')">Select Innova</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== PRICING ===================== -->
+<section class="pricing-section" id="pricing">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-badge">Transparent Pricing</span>
+      <h2 class="section-title">Simple, Fair Tariffs</h2>
+      <p class="section-subtitle">No hidden charges. What you see is what you pay.</p>
+    </div>
+
+    <!-- Pricing Tabs -->
+    <div class="pricing-tabs">
+      <button class="price-tab active" onclick="showPricingTab('local', this)">Local City</button>
+      <button class="price-tab" onclick="showPricingTab('outstation', this)">Outstation</button>
+      <button class="price-tab" onclick="showPricingTab('hourly', this)">Hourly</button>
+      <button class="price-tab" onclick="showPricingTab('fullday', this)">Full Day</button>
+    </div>
+
+    <!-- Local Tariff -->
+    <div class="pricing-table-wrap active" id="pricingLocal">
+      <div class="tariff-info">
+        <div class="tariff-badge peak">
+          <i class="fas fa-clock"></i>
+          Peak Hours: 4AM–6AM & 5PM–8PM
+        </div>
+        <div class="tariff-badge waiting">
+          <i class="fas fa-hourglass"></i>
+          Waiting: ₹2/min
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="pricing-table">
+          <thead>
+            <tr>
+              <th>Vehicle</th>
+              <th>Base Fare</th>
+              <th>Included KM</th>
+              <th>Extra KM</th>
+              <th>Peak Rate</th>
+              <th>Max Trip</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="vehicle-tag bike">🛵 Bike</span></td>
+              <td class="price">₹50</td>
+              <td>5 KM</td>
+              <td>₹9/KM</td>
+              <td>—</td>
+              <td>30 KM</td>
+            </tr>
+            <tr>
+              <td><span class="vehicle-tag auto">🛺 Auto</span></td>
+              <td class="price">₹100</td>
+              <td>5 KM</td>
+              <td>₹14/KM</td>
+              <td>₹16/KM</td>
+              <td>100 KM</td>
+            </tr>
+            <tr>
+              <td><span class="vehicle-tag mini">🚗 Mini</span></td>
+              <td class="price">₹110</td>
+              <td>3 KM</td>
+              <td>₹18/KM</td>
+              <td>₹20/KM</td>
+              <td>100 KM</td>
+            </tr>
+            <tr class="highlighted">
+              <td><span class="vehicle-tag sedan">🚙 Sedan</span></td>
+              <td class="price">₹110</td>
+              <td>3 KM</td>
+              <td>₹19/KM</td>
+              <td>₹24/KM</td>
+              <td>100 KM</td>
+            </tr>
+            <tr>
+              <td><span class="vehicle-tag muv">🛻 MUV</span></td>
+              <td class="price">₹120</td>
+              <td>3 KM</td>
+              <td>₹22/KM</td>
+              <td>₹28/KM</td>
+              <td>100 KM</td>
+            </tr>
+            <tr>
+              <td><span class="vehicle-tag innova">🚐 Innova</span></td>
+              <td class="price">₹130</td>
+              <td>3 KM</td>
+              <td>₹24/KM</td>
+              <td>₹30/KM</td>
+              <td>100 KM</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="table-note">* Toll & Parking charges extra. After 100 KM, outstation tariff applies.</p>
+    </div>
+
+    <!-- Outstation Tariff -->
+    <div class="pricing-table-wrap" id="pricingOutstation">
+      <div class="tariff-info">
+        <div class="tariff-badge">
+          <i class="fas fa-road"></i>
+          Driver Bata: ₹400/day
+        </div>
+        <div class="tariff-badge">
+          <i class="fas fa-mountain"></i>
+          Hills Charge Extra
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="pricing-table">
+          <thead>
+            <tr>
+              <th>Vehicle</th>
+              <th>Rate Per KM</th>
+              <th>Min KM/Day</th>
+              <th>Driver Bata</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="vehicle-tag mini">🚗 Mini</span></td>
+              <td class="price">₹13/KM</td>
+              <td>250 KM</td>
+              <td>₹400/day</td>
+            </tr>
+            <tr class="highlighted">
+              <td><span class="vehicle-tag sedan">🚙 Sedan</span></td>
+              <td class="price">₹14/KM</td>
+              <td>250 KM</td>
+              <td>₹400/day</td>
+            </tr>
+            <tr>
+              <td><span class="vehicle-tag muv">🛻 MUV</span></td>
+              <td class="price">₹18/KM</td>
+              <td>250 KM</td>
+              <td>₹400/day</td>
+            </tr>
+            <tr>
+              <td><span class="vehicle-tag innova">🚐 Innova</span></td>
+              <td class="price">₹22/KM</td>
+              <td>250 KM</td>
+              <td>₹400/day</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="table-note">* Toll & Parking charges extra. Hills surcharge applicable for hill station routes.</p>
+    </div>
+
+    <!-- Hourly Tariff -->
+    <div class="pricing-table-wrap" id="pricingHourly">
+      <div class="table-responsive">
+        <table class="pricing-table">
+          <thead>
+            <tr>
+              <th>Package</th>
+              <th>KM Limit</th>
+              <th>Sedan</th>
+              <th>MUV</th>
+              <th>Innova</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>1 Hour</td><td>15 KM</td><td class="price">₹400</td><td class="price">₹1,050</td><td class="price">₹2,000</td></tr>
+            <tr><td>2 Hours</td><td>25 KM</td><td class="price">₹800</td><td class="price">₹1,550</td><td class="price">₹2,600</td></tr>
+            <tr><td>3 Hours</td><td>40 KM</td><td class="price">₹1,200</td><td class="price">₹2,000</td><td class="price">₹3,200</td></tr>
+            <tr class="highlighted"><td>4 Hours</td><td>50 KM</td><td class="price">₹1,613</td><td class="price">₹2,500</td><td class="price">₹3,800</td></tr>
+            <tr><td>5 Hours</td><td>60 KM</td><td class="price">₹2,000</td><td class="price">₹2,821</td><td class="price">₹4,300</td></tr>
+            <tr><td>6 Hours</td><td>75 KM</td><td class="price">₹2,400</td><td class="price">₹3,450</td><td class="price">₹4,900</td></tr>
+            <tr><td>7 Hours</td><td>85 KM</td><td class="price">₹2,700</td><td class="price">₹3,900</td><td class="price">₹5,400</td></tr>
+            <tr><td>8 Hours</td><td>100 KM</td><td class="price">₹3,000</td><td class="price">₹4,313</td><td class="price">₹6,000</td></tr>
+            <tr><td>9 Hours</td><td>110 KM</td><td class="price">₹3,523</td><td class="price">₹4,853</td><td class="price">₹6,500</td></tr>
+            <tr><td>10 Hours</td><td>120 KM</td><td class="price">₹3,950</td><td class="price">₹5,500</td><td class="price">₹7,500</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Full Day Tariff -->
+    <div class="pricing-table-wrap" id="pricingFullday">
+      <div class="table-responsive">
+        <table class="pricing-table">
+          <thead>
+            <tr>
+              <th>Vehicle</th>
+              <th>Fare</th>
+              <th>KM Limit</th>
+              <th>Extra KM</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="highlighted">
+              <td><span class="vehicle-tag sedan">🚙 Sedan</span></td>
+              <td class="price">₹4,500</td>
+              <td>180 KM</td>
+              <td>₹19/KM</td>
+            </tr>
+            <tr>
+              <td><span class="vehicle-tag muv">🛻 MUV</span></td>
+              <td class="price">₹6,000</td>
+              <td>180 KM</td>
+              <td>₹22/KM</td>
+            </tr>
+            <tr>
+              <td><span class="vehicle-tag innova">🚐 Innova</span></td>
+              <td class="price">₹8,000</td>
+              <td>180 KM</td>
+              <td>₹24/KM</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="table-note">* Full day = 12 hours. Toll, parking & driver bata extra.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== WHY CHOOSE US ===================== -->
+<section class="why-us" id="about">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-badge">Why Galaxy Ride</span>
+      <h2 class="section-title">The Galaxy Ride Difference</h2>
+      <p class="section-subtitle">We don't just move you from A to B — we make every ride an experience.</p>
+    </div>
+    <div class="why-grid">
+      <div class="why-card">
+        <div class="why-icon"><i class="fas fa-rupee-sign"></i></div>
+        <h3>Best Price Guarantee</h3>
+        <p>We match or beat any competitor price. No surge pricing, no hidden charges. What you see is what you pay.</p>
+      </div>
+      <div class="why-card">
+        <div class="why-icon"><i class="fas fa-shield-alt"></i></div>
+        <h3>Safe & Secure Rides</h3>
+        <p>All drivers are police-verified with background checks. Share your live ride with family for peace of mind.</p>
+      </div>
+      <div class="why-card">
+        <div class="why-icon"><i class="fas fa-headset"></i></div>
+        <h3>24/7 Customer Support</h3>
+        <p>Real humans available round the clock via call, WhatsApp, or chat. We resolve issues in under 5 minutes.</p>
+      </div>
+      <div class="why-card">
+        <div class="why-icon"><i class="fas fa-spray-can"></i></div>
+        <h3>Clean & Sanitized Cars</h3>
+        <p>Every vehicle is professionally sanitized before each ride. Hygiene is our top priority.</p>
+      </div>
+      <div class="why-card">
+        <div class="why-icon"><i class="fas fa-stopwatch"></i></div>
+        <h3>On-time Guarantee</h3>
+        <p>Your driver arrives on time, every time. Get ₹50 credit if your driver is more than 10 minutes late.</p>
+      </div>
+      <div class="why-card">
+        <div class="why-icon"><i class="fas fa-mobile-alt"></i></div>
+        <h3>Easy Booking</h3>
+        <p>Book in under 60 seconds on web or app. Real-time tracking and digital receipts included.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SAFETY ===================== -->
+<section class="safety-section" id="safety">
+  <div class="container">
+    <div class="safety-content">
+      <div class="safety-text">
+        <span class="section-badge">Your Safety First</span>
+        <h2 class="section-title">Ride with Confidence</h2>
+        <p>Every Galaxy Ride driver goes through a rigorous 4-step verification process before they can accept a single ride.</p>
+        <div class="safety-steps">
+          <div class="safety-step">
+            <div class="step-num">01</div>
+            <div class="step-content">
+              <h4>Identity Verification</h4>
+              <p>Government ID, driving license & Aadhaar verification</p>
+            </div>
+          </div>
+          <div class="safety-step">
+            <div class="step-num">02</div>
+            <div class="step-content">
+              <h4>Police Background Check</h4>
+              <p>Criminal background verification by local authorities</p>
+            </div>
+          </div>
+          <div class="safety-step">
+            <div class="step-num">03</div>
+            <div class="step-content">
+              <h4>Vehicle Inspection</h4>
+              <p>Annual fitness certificate and insurance verification</p>
+            </div>
+          </div>
+          <div class="safety-step">
+            <div class="step-num">04</div>
+            <div class="step-content">
+              <h4>Training Program</h4>
+              <p>Safety, customer service, and route knowledge training</p>
+            </div>
+          </div>
+        </div>
+        <div class="safety-features">
+          <span><i class="fas fa-check-circle"></i> Live GPS Tracking</span>
+          <span><i class="fas fa-check-circle"></i> SOS Emergency Button</span>
+          <span><i class="fas fa-check-circle"></i> Ride Share with Family</span>
+          <span><i class="fas fa-check-circle"></i> 24/7 Monitoring</span>
+        </div>
+      </div>
+      <div class="safety-visual">
+        <div class="safety-badge-big">
+          <i class="fas fa-shield-alt"></i>
+          <span>Safety</span>
+          <span>First</span>
+        </div>
+        <div class="safety-stats-grid">
+          <div class="safety-stat"><span class="s-num">0</span><span class="s-label">Incidents</span></div>
+          <div class="safety-stat"><span class="s-num">100%</span><span class="s-label">Verified</span></div>
+          <div class="safety-stat"><span class="s-num">24/7</span><span class="s-label">Monitored</span></div>
+          <div class="safety-stat"><span class="s-num">SOS</span><span class="s-label">Available</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== DRIVER EARNINGS ===================== -->
+<section class="earnings-section" id="earnings">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-badge">Drive With Us</span>
+      <h2 class="section-title">Earn with Galaxy Ride</h2>
+      <p class="section-subtitle">Be your own boss. Earn ₹25,000–₹50,000/month driving with Galaxy Ride.</p>
+    </div>
+    <div class="earnings-grid">
+      <div class="earnings-card">
+        <div class="earnings-icon"><i class="fas fa-money-bill-wave"></i></div>
+        <h3>₹25K–₹50K/month</h3>
+        <p>Flexible earnings based on your availability</p>
+      </div>
+      <div class="earnings-card">
+        <div class="earnings-icon"><i class="fas fa-calendar-alt"></i></div>
+        <h3>Flexible Hours</h3>
+        <p>Drive when you want. No fixed shifts.</p>
+      </div>
+      <div class="earnings-card">
+        <div class="earnings-icon"><i class="fas fa-gift"></i></div>
+        <h3>Weekly Bonuses</h3>
+        <p>Performance bonuses up to ₹5,000/week</p>
+      </div>
+      <div class="earnings-card">
+        <div class="earnings-icon"><i class="fas fa-tools"></i></div>
+        <h3>Full Support</h3>
+        <p>Maintenance, insurance & training support</p>
+      </div>
+    </div>
+    <div class="driver-cta">
+      <button class="btn btn-primary btn-lg" onclick="openDriverSignup()">
+        <i class="fas fa-car"></i> Register as Driver
+      </button>
+      <button class="btn btn-outline btn-lg" onclick="openDriverInfo()">
+        Learn More <i class="fas fa-arrow-right"></i>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== REVIEWS + FAQ (combined, compact) ===================== -->
+<section class="faq-reviews" id="faq">
+  <div class="container">
+    <div class="fr-grid">
+
+      <!-- Customer Reviews -->
+      <div class="fr-col">
+        <div class="section-header fr-head">
+          <span class="section-badge">What Riders Say</span>
+          <h2 class="section-title">Trusted by 50,000+ Riders</h2>
+        </div>
+        <div class="fr-reviews-grid">
+          <div class="testimonial-card">
+            <div class="stars">★★★★★</div>
+            <p>"Best cab service in the city! Always on time and drivers are very professional. I use Galaxy Ride every day for my office commute."</p>
+            <div class="testimonial-author">
+              <div class="author-avatar">R</div>
+              <div><strong>Rahul Sharma</strong><span>Regular Rider, Mumbai</span></div>
+            </div>
+          </div>
+          <div class="testimonial-card">
+            <div class="stars">★★★★★</div>
+            <p>"Used Galaxy Ride for an outstation trip to Pune. Clean Innova, experienced driver, and the fare was much lower than other services. Highly recommend!"</p>
+            <div class="testimonial-author">
+              <div class="author-avatar">P</div>
+              <div><strong>Priya Nair</strong><span>Business Traveler, Bangalore</span></div>
+            </div>
+          </div>
+          <div class="testimonial-card">
+            <div class="stars">★★★★★</div>
+            <p>"The SOS feature gives me peace of mind when traveling late at night. My family can track my ride in real-time. Safety-first approach is commendable."</p>
+            <div class="testimonial-author">
+              <div class="author-avatar">A</div>
+              <div><strong>Ananya Patel</strong><span>Student, Delhi</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FAQ -->
+      <div class="fr-col">
+        <div class="section-header fr-head">
+          <span class="section-badge">FAQs</span>
+          <h2 class="section-title">Frequently Asked Questions</h2>
+        </div>
+        <div class="faq-container">
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFaq(this)">
+          <span>Are toll charges included in the fare?</span>
+          <i class="fas fa-chevron-down"></i>
+        </button>
+        <div class="faq-answer">
+          <p>No, toll charges are not included in the fare. Toll and parking charges are collected separately at actual cost. You will be informed in advance about any applicable toll charges on your route.</p>
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFaq(this)">
+          <span>Are Galaxy Ride drivers verified?</span>
+          <i class="fas fa-chevron-down"></i>
+        </button>
+        <div class="faq-answer">
+          <p>Yes, absolutely. All our drivers undergo a 4-step verification process including ID verification, police background check, vehicle inspection, and a training program before they are allowed to take rides.</p>
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFaq(this)">
+          <span>Can I book Galaxy Ride for airport transfers?</span>
+          <i class="fas fa-chevron-down"></i>
+        </button>
+        <div class="faq-answer">
+          <p>Yes! We offer 24/7 airport transfer service. Our drivers track your flight and arrive 15 minutes before your scheduled pickup. We also offer return trips from the airport.</p>
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFaq(this)">
+          <span>What payment methods are accepted?</span>
+          <i class="fas fa-chevron-down"></i>
+        </button>
+        <div class="faq-answer">
+          <p>We accept all major payment methods: Credit/Debit cards, UPI (Google Pay, PhonePe, Paytm), Net Banking, and Cash. Online payments are processed securely through Razorpay.</p>
+        </div>
+      </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CONTACT (Galaxy NeoMotion X) ===================== -->
+<section class="neo-contact" id="contact">
+  <div class="neo-contact-bg" aria-hidden="true"></div>
+  <div class="container">
+    <div class="section-header neo-head">
+      <span class="section-badge">Get In Touch</span>
+      <h2 class="section-title">We're Here, <span class="neo-accent">Around the Clock</span></h2>
+      <p class="section-subtitle">Call, chat, email — or drop us a message. Galaxy Ride support never sleeps.</p>
+    </div>
+
+    <div class="neo-grid">
+
+      <!-- ── LEFT: contact cards ── -->
+      <div class="neo-left">
+        <a href="tel:+919597815889" class="neo-card reveal glow-red">
+          <div class="neo-card-ic"><i class="fas fa-phone-volume"></i></div>
+          <div class="neo-card-tx"><small>Call Us</small><strong>+91 95978 15889</strong></div>
+          <i class="fas fa-arrow-right neo-card-go"></i>
+        </a>
+        <a href="https://wa.me/919597815889" target="_blank" rel="noopener" class="neo-card reveal glow-green">
+          <div class="neo-card-ic"><i class="fab fa-whatsapp"></i></div>
+          <div class="neo-card-tx"><small>WhatsApp — Click to Chat</small><strong>+91 95978 15889</strong></div>
+          <i class="fas fa-arrow-right neo-card-go"></i>
+        </a>
+        <a href="mailto:support@galaxyride.in" class="neo-card reveal glow-orange">
+          <div class="neo-card-ic"><i class="fas fa-envelope-open-text"></i></div>
+          <div class="neo-card-tx"><small>Email</small><strong>support@galaxyride.in</strong></div>
+          <i class="fas fa-arrow-right neo-card-go"></i>
+        </a>
+        <!-- Head Office address card -->
+        <div class="neo-office reveal">
+          <div class="neo-office-head">
+            <div class="neo-card-ic"><i class="fas fa-location-dot"></i></div>
+            <div>
+              <small>Head Office</small>
+              <strong>Galaxy Ride Head Office</strong>
+            </div>
+          </div>
+          <address class="neo-office-addr">
+            Nungambakkam<br>
+            Chennai - 600034<br>
+            Tamil Nadu, India
+          </address>
+          <a href="https://www.google.com/maps/search/?api=1&query=Nungambakkam%2C+Chennai%2C+Tamil+Nadu+600034"
+             target="_blank" rel="noopener" class="neo-office-map">
+            <i class="fas fa-diamond-turn-right"></i> View on Google Maps
+          </a>
+        </div>
+
+        <!-- Instagram card -->
+        <a href="https://www.instagram.com/galaxyride.ind.cabs/" target="_blank" rel="noopener" class="neo-card reveal glow-insta">
+          <div class="neo-card-ic"><i class="fab fa-instagram"></i></div>
+          <div class="neo-card-tx"><small>Follow Us on Instagram</small><strong>@galaxyride.ind.cabs</strong></div>
+          <i class="fas fa-arrow-right neo-card-go"></i>
+        </a>
+
+        <!-- 24/7 badge -->
+        <div class="neo-247 reveal">
+          <span class="neo-pulse"></span>
+          <div><strong>24/7 Customer Support</strong><small>Always online, every day of the year</small></div>
+        </div>
+
+        <!-- response time + emergency -->
+        <div class="neo-mini-row">
+          <div class="neo-mini reveal">
+            <i class="fas fa-bolt"></i>
+            <div><strong>5 Minutes</strong><small>Average Response Time</small></div>
+          </div>
+          <div class="neo-mini emergency reveal">
+            <i class="fas fa-tower-broadcast"></i>
+            <div><strong>Emergency</strong><a href="tel:+919597815889">Call Now</a></div>
+          </div>
+        </div>
+
+        <!-- social -->
+        <div class="neo-social reveal">
+          <a href="#" aria-label="Facebook" title="Facebook"><i class="fab fa-facebook-f"></i></a>
+          <a href="https://www.instagram.com/galaxyride.ind.cabs/" target="_blank" rel="noopener" aria-label="Instagram" title="@galaxyride.ind.cabs"><i class="fab fa-instagram"></i></a>
+          <a href="#" aria-label="X" title="X"><i class="fab fa-x-twitter"></i></a>
+          <a href="https://wa.me/919597815889" target="_blank" rel="noopener" aria-label="WhatsApp" title="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+          <a href="#" aria-label="YouTube" title="YouTube"><i class="fab fa-youtube"></i></a>
+        </div>
+      </div>
+
+      <!-- ── RIGHT: glass form ── -->
+      <div class="neo-form-card reveal">
+        <h3>Send us a Message</h3>
+        <p class="neo-form-sub">We'll get back to you within 24 hours.</p>
+        <form id="contactForm" onsubmit="handleContactSubmit(event)">
+          <div class="float-group">
+            <input type="text" id="cName" placeholder=" " required />
+            <label for="cName">Your Name</label>
+          </div>
+          <div class="form-row">
+            <div class="float-group">
+              <input type="tel" id="cPhone" placeholder=" " required />
+              <label for="cPhone">Phone</label>
+            </div>
+            <div class="float-group">
+              <input type="email" id="cEmail" placeholder=" " />
+              <label for="cEmail">Email <span class="opt">(optional)</span></label>
+            </div>
+          </div>
+          <div class="float-group">
+            <textarea id="cMsg" rows="4" placeholder=" " required></textarea>
+            <label for="cMsg">Message</label>
+          </div>
+          <button type="submit" class="btn neo-submit btn-full">
+            <i class="fas fa-paper-plane"></i> Send Message
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- ── Map placeholder (full width) ── -->
+    <div class="neo-map reveal">
+      <div class="neo-map-overlay">
+        <i class="fas fa-map-location-dot"></i>
+        <strong>Galaxy Ride — Dindigul Hub</strong>
+        <span>Serving Tamil Nadu, Kerala, Karnataka &amp; beyond</span>
+        <a href="https://www.google.com/maps/search/?api=1&query=Dindigul%2C+Tamil+Nadu" target="_blank" rel="noopener" class="neo-map-btn">
+          <i class="fas fa-diamond-turn-right"></i> Open in Google Maps
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CTA BANNER ===================== -->
+<section class="cta-banner">
+  <div class="container">
+    <div class="cta-content">
+      <h2>Ready for Your First Galaxy Ride?</h2>
+      <p>Join 50,000+ happy riders. Book your first ride and get ₹100 off!</p>
+      <button class="btn btn-white btn-lg" onclick="scrollToBooking()">
+        <i class="fas fa-car"></i> Book Now — Get ₹100 Off
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SEO LINK SECTIONS ===================== -->
+<section class="seo-home" id="popular">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-badge">South India Taxi Network</span>
+      <h2 class="section-title">Popular Taxi Services Across South India</h2>
+      <p class="section-subtitle">Tamil Nadu · Karnataka · Kerala · Andhra Pradesh · Telangana · Puducherry</p>
+    </div>
+
+    <div class="seo-home-block">
+      <h3><i class="fas fa-route"></i> Popular Routes</h3>
+      <div class="seo-home-links">
+        <a href="chennai-to-madurai-taxi">Chennai to Madurai</a>
+        <a href="madurai-to-chennai-taxi">Madurai to Chennai</a>
+        <a href="chennai-to-bangalore-taxi">Chennai to Bangalore</a>
+        <a href="bangalore-to-chennai-taxi">Bangalore to Chennai</a>
+        <a href="chennai-to-coimbatore-taxi">Chennai to Coimbatore</a>
+        <a href="chennai-to-trichy-taxi">Chennai to Trichy</a>
+        <a href="chennai-to-pondicherry-taxi">Chennai to Pondicherry</a>
+        <a href="chennai-to-tirupati-taxi">Chennai to Tirupati</a>
+        <a href="chennai-to-vellore-taxi">Chennai to Vellore</a>
+        <a href="chennai-to-salem-taxi">Chennai to Salem</a>
+      </div>
+    </div>
+
+    <div class="seo-home-block">
+      <h3><i class="fas fa-plane"></i> Popular Airport Transfers</h3>
+      <div class="seo-home-links">
+        <a href="chennai-airport-taxi">Chennai Airport Taxi</a>
+        <a href="madurai-airport-taxi">Madurai Airport Taxi</a>
+        <a href="coimbatore-airport-taxi">Coimbatore Airport Taxi</a>
+        <a href="trichy-airport-taxi">Trichy Airport Taxi</a>
+        <a href="bangalore-airport-taxi">Bangalore Airport Taxi</a>
+        <a href="hyderabad-airport-taxi">Hyderabad Airport Taxi</a>
+        <a href="kochi-airport-taxi">Kochi Airport Taxi</a>
+      </div>
+    </div>
+
+    <div class="seo-home-block">
+      <h3><i class="fas fa-mountain-sun"></i> Popular Hill Station Trips</h3>
+      <div class="seo-home-links">
+        <a href="chennai-to-ooty-taxi">Chennai to Ooty</a>
+        <a href="chennai-to-kodaikanal-taxi">Chennai to Kodaikanal</a>
+        <a href="madurai-to-kodaikanal-taxi">Madurai to Kodaikanal</a>
+        <a href="coimbatore-to-ooty-taxi">Coimbatore to Ooty</a>
+        <a href="bangalore-to-ooty-taxi">Bangalore to Ooty</a>
+        <a href="madurai-to-munnar-taxi">Madurai to Munnar</a>
+        <a href="theni-to-munnar-taxi">Theni to Munnar</a>
+        <a href="madurai-to-thekkady-taxi">Madurai to Thekkady</a>
+      </div>
+    </div>
+
+    <div class="seo-home-block">
+      <h3><i class="fas fa-road"></i> Most Booked Outstation Routes</h3>
+      <div class="seo-home-links">
+        <a href="madurai-to-rameswaram-taxi">Madurai to Rameswaram</a>
+        <a href="theni-to-madurai-taxi">Theni to Madurai</a>
+        <a href="theni-to-chennai-taxi">Theni to Chennai</a>
+        <a href="madurai-to-bangalore-taxi">Madurai to Bangalore</a>
+        <a href="coimbatore-to-bangalore-taxi">Coimbatore to Bangalore</a>
+        <a href="outstation-taxi">All Outstation Taxi</a>
+      </div>
+    </div>
+
+    <div class="seo-home-block">
+      <h3><i class="fas fa-crown"></i> Premium Cab Services</h3>
+      <div class="seo-home-links">
+        <a href="premium-cab-service">Premium Cab Service</a>
+        <a href="one-way-taxi">One Way Taxi</a>
+        <a href="airport-taxi">Airport Taxi</a>
+        <a href="hourly-rental">Hourly Rental</a>
+        <a href="acting-driver">Acting Driver Service</a>
+        <a href="corporate-travel">Corporate Travel</a>
+        <a href="wedding-car-service">Wedding Car Service</a>
+        <a href="family-tour-taxi">Family Tour Taxi</a>
+      </div>
+    </div>
+
+    <div class="seo-home-block">
+      <h3><i class="fas fa-umbrella-beach"></i> South India Tourism Destinations</h3>
+      <div class="seo-home-links">
+        <a href="kodaikanal-taxi">Kodaikanal Taxi</a>
+        <a href="ooty-taxi">Ooty Taxi</a>
+        <a href="munnar-taxi">Munnar Taxi</a>
+        <a href="rameswaram-taxi">Rameswaram Taxi</a>
+        <a href="kanyakumari-taxi">Kanyakumari Taxi</a>
+        <a href="yercaud-taxi">Yercaud Taxi</a>
+        <a href="thekkady-taxi">Thekkady Taxi</a>
+        <a href="valparai-taxi">Valparai Taxi</a>
+        <a href="hogenakkal-taxi">Hogenakkal Taxi</a>
+        <a href="courtallam-taxi">Courtallam Taxi</a>
+        <a href="yelagiri-taxi">Yelagiri Taxi</a>
+        <a href="wayanad-taxi">Wayanad Taxi</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FOOTER ===================== -->
+<footer class="footer">
+  <div class="container footer-grid">
+    <div class="footer-brand">
+      <div class="footer-logo">
+        <div class="logo-icon">GR</div>
+        <div class="logo-text">
+          <span class="logo-name">Galaxy Ride</span>
+          <span class="logo-tagline">Safe • Reliable • Affordable</span>
+        </div>
+      </div>
+      <p>Your trusted cab service partner. We make every journey comfortable, safe, and affordable.</p>
+      <ul class="footer-contact">
+        <li><i class="fas fa-phone"></i> <a href="tel:+919597815889">+91 9597815889</a></li>
+        <li><i class="fab fa-instagram"></i> <a href="https://www.instagram.com/galaxyride.ind.cabs/" target="_blank" rel="noopener">@galaxyride.ind.cabs</a></li>
+        <li><i class="fas fa-location-dot"></i> Nungambakkam, Chennai</li>
+      </ul>
+      <div class="footer-follow">
+        <span>Follow Us</span>
+        <div class="social-links">
+          <a href="#" aria-label="Facebook"><i class="fab fa-facebook"></i></a>
+          <a href="https://www.instagram.com/galaxyride.ind.cabs/" target="_blank" rel="noopener" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+          <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+          <a href="#" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+          <a href="https://wa.me/919597815889" target="_blank" rel="noopener" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-links">
+      <h4>Quick Links</h4>
+      <ul>
+        <li><a href="#home">Home</a></li>
+        <li><a href="#services">Services</a></li>
+        <li><a href="#vehicles">Vehicles</a></li>
+        <li><a href="#pricing">Pricing</a></li>
+        <li><a href="#about">About Us</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ul>
+    </div>
+    <div class="footer-links">
+      <h4>Services</h4>
+      <ul>
+        <li><a href="one-way-taxi">One Way Taxi</a></li>
+        <li><a href="outstation-taxi">Outstation Taxi</a></li>
+        <li><a href="airport-taxi">Airport Transfer</a></li>
+        <li><a href="hourly-rental">Hourly Rentals</a></li>
+        <li><a href="corporate-travel">Corporate Rides</a></li>
+        <li><a href="premium-cab-service">Premium Cab Service</a></li>
+      </ul>
+    </div>
+    <div class="footer-links">
+      <h4>Support</h4>
+      <ul>
+        <li><a href="#faq">FAQs</a></li>
+        <li><a href="about-us.html">About Us</a></li>
+        <li><a href="refund-policy.html">Refund Policy</a></li>
+        <li><a href="privacy-policy.html">Privacy Policy</a></li>
+        <li><a href="terms-and-conditions.html">Terms of Service</a></li>
+        <li><a href="safety-policy.html">Safety Guidelines</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <div class="container">
+      <p>© 2025 Galaxy Ride. All rights reserved. | CIN: U60221MH2020PTC345678</p>
+      <div class="payment-icons">
+        <i class="fab fa-cc-visa" title="Visa"></i>
+        <i class="fab fa-cc-mastercard" title="Mastercard"></i>
+        <i class="fab fa-cc-amex" title="Amex"></i>
+        <i class="fab fa-google-pay" title="Google Pay"></i>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- ===================== MODALS ===================== -->
+
+<!-- Auth Modal -->
+<div class="modal-overlay hidden" id="authModal" onclick="closeModalOnOverlay(event, 'authModal')">
+  <div class="modal auth-modal">
+    <button class="modal-close" onclick="closeModal('authModal')" aria-label="Close"><i class="fas fa-times"></i></button>
+
+    <!-- Login Tab -->
+    <div class="auth-tab-content" id="loginTab">
+      <div class="auth-header">
+        <div class="auth-logo">GR</div>
+        <h2>Welcome Back!</h2>
+        <p>Sign in to your Galaxy Ride account</p>
+      </div>
+      <button class="btn-google" onclick="signInWithGoogle()">
+        <svg viewBox="0 0 48 48" width="20" height="20"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.32-8.16 2.32-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        Continue with Google
+      </button>
+      <div class="auth-divider"><span>or</span></div>
+      <form onsubmit="handleEmailLogin(event)">
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="loginEmail" placeholder="your@email.com" required />
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <div class="password-input">
+            <input type="password" id="loginPassword" placeholder="Enter password" required />
+            <button type="button" onclick="togglePassword('loginPassword')"><i class="fas fa-eye"></i></button>
+          </div>
+        </div>
+        <div class="auth-options">
+          <label class="checkbox-label"><input type="checkbox" /> Remember me</label>
+          <a href="#" onclick="forgotPassword()">Forgot password?</a>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full" id="loginBtn">
+          <span>Sign In</span>
+        </button>
+      </form>
+      <p class="auth-switch">Don't have an account? <a href="#" onclick="switchAuthTab('signup')">Sign Up</a></p>
+    </div>
+
+    <!-- Signup Tab -->
+    <div class="auth-tab-content hidden" id="signupTab">
+      <div class="auth-header">
+        <div class="auth-logo">GR</div>
+        <h2>Create Account</h2>
+        <p>Join Galaxy Ride today</p>
+      </div>
+      <button class="btn-google" onclick="signInWithGoogle()">
+        <svg viewBox="0 0 48 48" width="20" height="20"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.32-8.16 2.32-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        Sign Up with Google
+      </button>
+      <div class="auth-divider"><span>or</span></div>
+      <form onsubmit="handleEmailSignup(event)">
+        <div class="form-row">
+          <div class="form-group">
+            <label>First Name</label>
+            <input type="text" id="signupFirstName" placeholder="First name" required />
+          </div>
+          <div class="form-group">
+            <label>Last Name</label>
+            <input type="text" id="signupLastName" placeholder="Last name" required />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Phone Number</label>
+          <input type="tel" id="signupPhone" placeholder="+91 XXXXX XXXXX" required />
+        </div>
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="signupEmail" placeholder="your@email.com" required />
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <div class="password-input">
+            <input type="password" id="signupPassword" placeholder="Min 8 characters" required minlength="8" />
+            <button type="button" onclick="togglePassword('signupPassword')"><i class="fas fa-eye"></i></button>
+          </div>
+        </div>
+        <label class="checkbox-label terms">
+          <input type="checkbox" required />
+          I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+        </label>
+        <button type="submit" class="btn btn-primary btn-full" id="signupBtn">
+          <span>Create Account</span>
+        </button>
+      </form>
+      <p class="auth-switch">Already have an account? <a href="#" onclick="switchAuthTab('login')">Sign In</a></p>
+    </div>
+  </div>
+</div>
+
+<!-- Booking Confirmation Modal -->
+<div class="modal-overlay hidden" id="bookingModal" onclick="closeModalOnOverlay(event, 'bookingModal')">
+  <div class="modal booking-confirm-modal">
+    <button class="modal-close" onclick="closeModal('bookingModal')"><i class="fas fa-times"></i></button>
+    <div class="booking-confirm-header">
+      <i class="fas fa-car"></i>
+      <h2>Confirm Your Booking</h2>
+    </div>
+    <div class="booking-summary" id="bookingSummary">
+      <!-- Populated by JS -->
+    </div>
+    <div class="payment-section">
+      <h3>Select Payment Method</h3>
+      <div class="payment-methods">
+        <label class="payment-method-option">
+          <input type="radio" name="paymentMethod" value="online" checked />
+          <div class="payment-method-card">
+            <i class="fas fa-credit-card"></i>
+            <span>Pay Online</span>
+            <small>Card / UPI / Wallet</small>
+          </div>
+        </label>
+        <label class="payment-method-option">
+          <input type="radio" name="paymentMethod" value="cash" />
+          <div class="payment-method-card">
+            <i class="fas fa-money-bill-wave"></i>
+            <span>Pay Cash</span>
+            <small>Pay driver directly</small>
+          </div>
+        </label>
+      </div>
+      <button class="btn btn-primary btn-full btn-pay" onclick="processPayment()" id="payBtn">
+        <i class="fas fa-lock"></i> <span id="payBtnText">Proceed to Pay</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Notification -->
+<div class="toast hidden" id="toast">
+  <div class="toast-icon" id="toastIcon"></div>
+  <div class="toast-message" id="toastMessage"></div>
+  <button class="toast-close" onclick="hideToast()"><i class="fas fa-times"></i></button>
+</div>
+
+<!-- Loader -->
+<div class="page-loader hidden" id="pageLoader">
+  <div class="loader-inner">
+    <div class="loader-logo">GR</div>
+    <div class="loader-spinner"></div>
+  </div>
+</div>
+
+<!-- WhatsApp Popup (auto-shows after 15s) -->
+<div class="wa-popup" id="waPopup" role="dialog" aria-label="Need a cab?">
+  <button class="wa-popup-close" onclick="dismissWaPopup()" aria-label="Close">&times;</button>
+  <div class="wa-popup-head">
+    <div class="wa-popup-ic"><i class="fab fa-whatsapp"></i></div>
+    <h4>🚕 Need a Cab?</h4>
+  </div>
+  <ul class="wa-popup-list">
+    <li><i class="fas fa-plane"></i> Airport Taxi</li>
+    <li><i class="fas fa-arrow-right-long"></i> One Way Taxi</li>
+    <li><i class="fas fa-road"></i> Outstation Taxi</li>
+    <li><i class="fas fa-user-tie"></i> Acting Driver Service</li>
+  </ul>
+  <div class="wa-popup-actions">
+    <a href="https://wa.me/919597815889?text=Hi%20Galaxy%20Ride%2C%20I%20need%20a%20cab" target="_blank" rel="noopener" class="wa-btn-chat" onclick="dismissWaPopup()">
+      <i class="fab fa-whatsapp"></i> Chat on WhatsApp
+    </a>
+    <a href="tel:+919597815889" class="wa-btn-call" onclick="dismissWaPopup()">
+      <i class="fas fa-phone"></i> Call Now
+    </a>
+    <button class="wa-btn-later" onclick="dismissWaPopup()">Maybe Later</button>
+  </div>
+</div>
+
+<!-- Floating Contact Dock (WhatsApp + Call) -->
+<div class="float-dock" aria-label="Quick contact">
+  <a href="https://wa.me/919597815889" target="_blank" rel="noopener" class="float-fab wa" aria-label="Chat on WhatsApp">
+    <i class="fab fa-whatsapp"></i>
+    <span class="float-fab-label">Chat on WhatsApp</span>
+  </a>
+  <a href="tel:+919597815889" class="float-fab call" aria-label="Call Now">
+    <i class="fas fa-phone"></i>
+    <span class="float-fab-label">Call Now</span>
+  </a>
+</div>
+
+<!-- Back to Top -->
+<button class="back-to-top hidden" id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Back to top">
+  <i class="fas fa-arrow-up"></i>
+</button>
+
+<!-- Customer Details Modal -->
+<div class="modal-overlay hidden" id="customerModal" onclick="closeModalOnOverlay(event,'customerModal')">
+  <div class="modal customer-details-modal">
+    <button class="modal-close" onclick="closeModal('customerModal')"><i class="fas fa-times"></i></button>
+    <div class="customer-modal-header">
+      <div class="customer-modal-icon"><i class="fas fa-user-circle"></i></div>
+      <h2>Your Details</h2>
+      <p>Confirm your info to complete the booking</p>
+    </div>
+    <div class="customer-modal-body">
+      <form id="customerDetailsForm" onsubmit="handleCustomerDetailsSubmit(event)" novalidate>
+        <div class="form-group">
+          <label><i class="fas fa-user"></i> Full Name</label>
+          <input type="text" id="custName" placeholder="Enter your full name" required autocomplete="name" />
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-phone"></i> Phone Number</label>
+          <input type="tel" id="custPhone" placeholder="+91 XXXXX XXXXX" required autocomplete="tel" />
+        </div>
+        <div class="form-group">
+          <label><i class="fas fa-envelope"></i> Email Address</label>
+          <input type="email" id="custEmail" placeholder="your@email.com" required autocomplete="email" />
+        </div>
+        <button type="submit" class="btn btn-primary btn-full" style="margin-top:8px">
+          <i class="fas fa-arrow-right"></i>&nbsp; Continue to Booking
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Trip Status Modal -->
+<div class="modal-overlay hidden" id="tripStatusModal">
+  <div class="modal trip-status-modal">
+    <div class="trip-status-header">
+      <div class="trip-id-badge">Trip ID: <span id="statusTripId">—</span></div>
+      <h2>Booking Confirmed! 🎉</h2>
+      <div class="status-badge" id="statusBadge">
+        <i class="fas fa-clock" id="statusIcon"></i>
+        <span id="statusText">Finding your driver…</span>
+      </div>
+    </div>
+
+    <!-- Trip Details -->
+    <div class="trip-status-details">
+      <div class="status-detail-row">
+        <i class="fas fa-map-marker-alt"></i>
+        <div><small>Pickup</small><strong id="statusPickup">—</strong></div>
+      </div>
+      <div class="status-detail-row">
+        <i class="fas fa-flag-checkered"></i>
+        <div><small>Drop</small><strong id="statusDrop">—</strong></div>
+      </div>
+      <div class="status-detail-row">
+        <i class="fas fa-car"></i>
+        <div><small>Vehicle</small><strong id="statusVehicle">—</strong></div>
+      </div>
+      <div class="status-detail-row">
+        <i class="fas fa-calendar-alt"></i>
+        <div><small>Date &amp; Time</small><strong id="statusDateTime">—</strong></div>
+      </div>
+      <div class="status-detail-row">
+        <i class="fas fa-rupee-sign"></i>
+        <div><small>Estimated Fare</small><strong id="statusFare">—</strong></div>
+      </div>
+    </div>
+
+    <!-- Driver Info (shown when accepted) -->
+    <div class="driver-info-card hidden" id="driverInfoCard">
+      <div class="driver-avatar"><i class="fas fa-user-circle"></i></div>
+      <div class="driver-details">
+        <strong id="driverNameDisplay">—</strong>
+        <small>Your Driver is on the way</small>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="status-actions">
+      <a href="https://wa.me/919597815889?text=Hi%2C%20my%20Trip%20ID%20is%20" id="waSupport"
+         target="_blank" rel="noopener" class="btn-whatsapp">
+        <i class="fab fa-whatsapp"></i> WhatsApp Support
+      </a>
+      <a href="tel:+919597815889" class="btn-call">
+        <i class="fas fa-phone"></i> Call Support
+      </a>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===================== DRIVER REGISTRATION MODAL ===================== -->
+<div class="modal-overlay hidden" id="driverModal" onclick="closeModalOnOverlay(event,'driverModal')">
+  <div class="modal driver-modal">
+    <button class="modal-close" onclick="closeModal('driverModal')" aria-label="Close"><i class="fas fa-times"></i></button>
+
+    <!-- Form view -->
+    <div id="driverFormView">
+      <div class="driver-modal-head">
+        <div class="driver-modal-icon"><i class="fas fa-id-card"></i></div>
+        <h2>Register as Driver</h2>
+        <p>Join Galaxy Ride and start earning. Fill in your details below.</p>
+      </div>
+
+      <form id="driverForm" onsubmit="submitDriverApplication(event)" novalidate>
+        <div class="driver-form-section">
+          <h4><i class="fas fa-user"></i> Personal Details</h4>
+          <div class="form-row">
+            <div class="form-group"><label>Full Name *</label><input type="text" id="drvFullName" placeholder="As per license"></div>
+            <div class="form-group"><label>Mobile Number *</label><input type="tel" id="drvMobile" placeholder="10-digit mobile" maxlength="10"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Email <small>(optional)</small></label><input type="email" id="drvEmail" placeholder="you@email.com"></div>
+            <div class="form-group"><label>City *</label><input type="text" id="drvCity" placeholder="e.g. Madurai"></div>
+          </div>
+        </div>
+
+        <div class="driver-form-section">
+          <h4><i class="fas fa-car"></i> Vehicle Details</h4>
+          <div class="form-row">
+            <div class="form-group"><label>Vehicle Type *</label>
+              <select id="drvVehicleType">
+                <option value="">Select…</option>
+                <option>Mini</option><option>Sedan</option><option>SUV / MUV</option>
+                <option>Innova</option><option>Auto</option><option>Bike</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Vehicle Number *</label><input type="text" id="drvVehicleNumber" placeholder="TN 00 AB 0000" style="text-transform:uppercase"></div>
+          </div>
+        </div>
+
+        <div class="driver-form-section">
+          <h4><i class="fas fa-file-shield"></i> Identity</h4>
+          <div class="form-row">
+            <div class="form-group"><label>Driving License Number *</label><input type="text" id="drvLicense" placeholder="DL number"></div>
+            <div class="form-group"><label>Aadhaar Number *</label><input type="text" id="drvAadhaar" placeholder="12-digit Aadhaar" maxlength="12"></div>
+          </div>
+        </div>
+
+        <div class="driver-form-section">
+          <h4><i class="fas fa-cloud-arrow-up"></i> Document Uploads</h4>
+          <div class="driver-uploads">
+            <label class="upload-box" for="drvDocLicense"><i class="fas fa-id-card"></i><span>Driving License</span><em id="drvDocLicenseName">Tap to upload</em>
+              <input type="file" id="drvDocLicense" accept="image/*,.pdf" onchange="driverFileChosen(this,'drvDocLicenseName')"></label>
+            <label class="upload-box" for="drvDocRC"><i class="fas fa-book"></i><span>RC Book</span><em id="drvDocRCName">Tap to upload</em>
+              <input type="file" id="drvDocRC" accept="image/*,.pdf" onchange="driverFileChosen(this,'drvDocRCName')"></label>
+            <label class="upload-box" for="drvDocInsurance"><i class="fas fa-shield-halved"></i><span>Insurance</span><em id="drvDocInsuranceName">Tap to upload</em>
+              <input type="file" id="drvDocInsurance" accept="image/*,.pdf" onchange="driverFileChosen(this,'drvDocInsuranceName')"></label>
+            <label class="upload-box" for="drvDocPhoto"><i class="fas fa-camera"></i><span>Driver Photo</span><em id="drvDocPhotoName">Tap to upload</em>
+              <input type="file" id="drvDocPhoto" accept="image/*" onchange="driverFileChosen(this,'drvDocPhotoName')"></label>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full" id="drvSubmitBtn">
+          <i class="fas fa-paper-plane"></i> Submit Application
+        </button>
+        <p class="driver-disclaimer">Your documents are stored securely. Our team reviews applications within 24–48 hours.</p>
+      </form>
+    </div>
+
+    <!-- Success view -->
+    <div id="driverSuccessView" class="hidden">
+      <div class="driver-success-icon"><i class="fas fa-circle-check"></i></div>
+      <h2>Application Submitted!</h2>
+      <p>Thanks for applying to drive with Galaxy Ride. Our team will review your documents shortly.</p>
+      <div class="driver-appid-box">
+        <small>Your Application ID</small>
+        <strong id="drvAppId">—</strong>
+      </div>
+      <div class="driver-status-live" id="drvStatusLive">
+        <span class="dsl-badge pending"><i class="fas fa-clock"></i> Pending Review</span>
+      </div>
+      <button class="btn btn-primary btn-full" onclick="closeModal('driverModal')">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SCRIPTS ===================== -->
+
+<!-- Firebase SDK -->
+<script type="module" src="js/firebase.js"></script>
+
+<!-- Razorpay SDK -->
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+<!-- App Scripts -->
+<script src="js/app.js"></script>
+
+</body>
+</html>

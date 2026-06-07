@@ -1,0 +1,125 @@
+rules_version = '2';
+
+// ─────────────────────────────────────────────────────────────
+//  Galaxy Ride — Firestore Security Rules
+//  Last updated: 2026-05-18
+// ─────────────────────────────────────────────────────────────
+//
+//  Collections:
+//    users/{uid}                    — user profiles
+//    users/{uid}/bookings/{id}      — per-user booking references
+//    bookings/{id}                  — full booking records
+//    trip_requests/{id}             — live admin dispatch board
+//    stats/global                   — aggregate counters
+//
+//  Admin identity:
+//    Firestore does not know which Firebase Auth user is "admin."
+//    We use a custom claim  admin == true  set via Firebase Admin SDK.
+//    Admin app must call  auth.setCustomUserClaims(uid, { admin: true })
+//    once for each admin user.  Until then the admin app should use the
+//    Firebase Admin SDK directly (bypasses these rules entirely).
+// ─────────────────────────────────────────────────────────────
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── helpers ──────────────────────────────────────────────
+    function isSignedIn()  { return request.auth != null; }
+    function isOwner(uid)  { return isSignedIn() && request.auth.uid == uid; }
+    function isAdmin()     { return isSignedIn() && request.auth.token.admin == true; }
+
+    // Fields the customer is allowed to send (no role/status spoofing)
+    function validTripCreate() {
+      let allowed = [
+        'tripId','customerName','customerPhone','customerEmail',
+        'pickup','drop','tripType','vehicleType','date','time',
+        'passengers','estimatedFare','paymentMethod','paymentStatus',
+        'distanceKm','createdAt',
+        // system defaults written by fbSaveTripRequest — keep them read-only after creation
+        'status','driverId','driverName'
+      ];
+      return request.resource.data.keys().hasOnly(allowed);
+    }
+
+    // ── users/{uid} ───────────────────────────────────────────
+    match /users/{uid} {
+      // Owner can read / write their own profile; admin can read any profile
+      allow read:  if isOwner(uid) || isAdmin();
+      allow write: if isOwner(uid);   // merge: true keeps existing fields
+
+      // Per-user booking references (lightweight copy)
+      match /bookings/{bookingId} {
+        allow read:  if isOwner(uid) || isAdmin();
+        allow write: if isOwner(uid);
+        allow delete: if false;       // never delete booking history
+      }
+    }
+
+    // ── bookings/{bookingId} ──────────────────────────────────
+    match /bookings/{bookingId} {
+      // Customer can create their own booking; admin can read all
+      allow create: if isSignedIn()
+                    && request.resource.data.userId == request.auth.uid;
+      allow read:   if isSignedIn()
+                    && (resource.data.userId == request.auth.uid || isAdmin());
+      // Allow customer or admin to update status (e.g. cancellation)
+      allow update: if isAdmin()
+                    || (isSignedIn() && resource.data.userId == request.auth.uid);
+      // No one deletes bookings
+      allow delete: if false;
+    }
+
+    // ── trip_requests/{tripId} ────────────────────────────────
+    match /trip_requests/{tripId} {
+      // Any authenticated customer can create a trip request
+      allow create: if isSignedIn() && validTripCreate();
+
+      // Customer can read their own trip; admin can read all
+      allow read:   if isSignedIn()
+                    && (resource.data.customerEmail == request.auth.token.email
+                        || isAdmin());
+
+      // Only admin can update (assign driver, change status)
+      // Prevent spoofing: customer cannot change status/driver fields
+      allow update: if isAdmin();
+
+      // Nobody deletes trip requests
+      allow delete: if false;
+    }
+
+    // ── stats/global ──────────────────────────────────────────
+    match /stats/{doc} {
+      // Anyone authenticated can increment counters (increment only, via merge)
+      allow read:   if isAdmin();
+      allow write:  if isSignedIn();
+      allow delete: if false;
+    }
+
+    // ── driverApplications/{appId} ────────────────────────────
+    // Public registration form: anyone may submit an application.
+    // Only admin can read all applications or change status.
+    match /driverApplications/{appId} {
+      allow create: if request.resource.data.status == 'pending';
+      allow read:   if isAdmin();
+      allow update: if isAdmin();      // approve / reject / request more docs
+      allow delete: if false;
+    }
+
+    // ── travelRedirectAnalytics/{id} ──────────────────────────
+    // Append-only analytics: anyone may log; only admin reads.
+    match /travelRedirectAnalytics/{id} {
+      allow create: if true;
+      allow read:   if isAdmin();
+      allow update, delete: if false;
+    }
+
+    // ── contact_messages/{id} ─────────────────────────────────
+    // Public contact form: anyone may submit; only admin reads.
+    match /contact_messages/{id} {
+      allow create: if request.resource.data.status == 'new';
+      allow read:   if isAdmin();
+      allow update, delete: if false;
+    }
+
+  }
+}

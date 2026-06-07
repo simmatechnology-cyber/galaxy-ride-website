@@ -1,0 +1,211 @@
+/* ============================================================
+   GALAXY RIDE — SEO PAGES (NeoMotion X)
+   Shared styling for all generated SEO landing pages.
+   ============================================================ */
+.seo-body {
+  margin: 0; background: #07091c; color: #fff;
+  font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased;
+}
+.seo-body a { color: inherit; }
+
+/* Nav */
+.seo-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 24px; background: rgba(7,9,28,0.92);
+  backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,0.08);
+  position: sticky; top: 0; z-index: 100; flex-wrap: wrap; gap: 10px;
+}
+.seo-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #fff; font-weight: 800; font-size: 18px; }
+.seo-logo .b { width: 34px; height: 34px; background: var(--primary,#E31E24); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+.seo-nav-links { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.seo-nav-links a { text-decoration: none; color: rgba(255,255,255,0.7); font-size: 14px; font-weight: 600; }
+.seo-nav-links a:hover { color: #fff; }
+.seo-nav-call { color: #fff !important; background: linear-gradient(135deg,var(--primary,#E31E24),#ff6b35); padding: 8px 14px; border-radius: 10px; }
+
+/* Layout */
+.seo-main { max-width: 1080px; margin: 0 auto; padding: 24px 22px 60px; }
+.seo-crumbs { font-size: 12.5px; color: rgba(255,255,255,0.45); margin: 8px 0 20px; }
+.seo-crumbs a { color: rgba(255,255,255,0.6); text-decoration: none; }
+.seo-crumbs a:hover { color: #fff; }
+.seo-crumbs span { margin: 0 8px; }
+.seo-crumbs .cur { color: #ff8a3d; margin: 0; }
+
+/* Hero */
+.seo-hero {
+  position: relative; padding: 44px 34px; border-radius: 24px; overflow: hidden; margin-bottom: 26px;
+  background: radial-gradient(700px 360px at 85% -20%, rgba(227,30,36,0.25), transparent 60%),
+              linear-gradient(160deg, #16122a, #0c0f1e);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.seo-tag {
+  display: inline-block; background: rgba(227,30,36,0.18); color: #ff8a8a;
+  border: 1px solid rgba(227,30,36,0.3); padding: 6px 14px; border-radius: 999px;
+  font-size: 12.5px; font-weight: 700; margin-bottom: 14px;
+}
+.seo-hero h1 { font-size: clamp(26px, 4vw, 40px); font-weight: 900; font-family: 'Poppins', sans-serif; margin: 0 0 12px; line-height: 1.1; }
+.seo-hero p { color: rgba(255,255,255,0.7); font-size: 15.5px; line-height: 1.65; max-width: 720px; margin: 0 0 22px; }
+
+/* CTA buttons */
+.seo-cta-btns { display: flex; gap: 12px; flex-wrap: wrap; }
+.seo-btn {
+  display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
+  padding: 13px 22px; border-radius: 13px; font-weight: 700; font-size: 14.5px; color: #fff;
+  transition: transform 0.2s, box-shadow 0.2s, filter 0.2s;
+}
+.seo-btn.primary { background: linear-gradient(135deg, var(--primary,#E31E24), #ff6b35); box-shadow: 0 10px 26px rgba(227,30,36,0.4); }
+.seo-btn.wa { background: linear-gradient(135deg,#25D366,#1ba350); }
+.seo-btn.call { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.18); }
+.seo-btn:hover { transform: translateY(-2px); filter: brightness(1.05); }
+
+/* Route facts */
+.seo-route-facts { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 26px; }
+.rf {
+  display: flex; align-items: center; gap: 12px; padding: 16px; border-radius: 16px;
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+}
+.rf i { font-size: 18px; color: #ff6b35; }
+.rf small { display: block; color: rgba(255,255,255,0.5); font-size: 11.5px; }
+.rf strong { font-size: 15px; }
+
+/* Copy */
+.seo-copy { margin-bottom: 26px; }
+.seo-copy h2, .seo-trust h2, .seo-faq h2, .seo-related h2, .seo-cta h2 { font-size: 22px; font-weight: 800; font-family: 'Poppins', sans-serif; margin: 0 0 14px; }
+.seo-copy p { color: rgba(255,255,255,0.72); font-size: 15px; line-height: 1.75; }
+
+/* Trust */
+.seo-trust { margin-bottom: 30px; }
+.seo-trust-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+.seo-trust-item {
+  display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 12px;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); font-size: 13.5px; font-weight: 600;
+}
+.seo-trust-item i { color: #28d76f; }
+
+/* FAQ */
+.seo-faq { margin-bottom: 30px; }
+.seo-faq-list { display: flex; flex-direction: column; gap: 10px; }
+.seo-faq-item {
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 14px 18px;
+}
+.seo-faq-item summary { font-weight: 700; font-size: 15px; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+.seo-faq-item summary::after { content: '+'; color: #ff6b35; font-size: 20px; }
+.seo-faq-item[open] summary::after { content: '−'; }
+.seo-faq-item p { color: rgba(255,255,255,0.65); font-size: 14px; line-height: 1.65; margin: 12px 0 0; }
+
+/* Related */
+.seo-related { margin-bottom: 30px; }
+.seo-related-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+.seo-related-grid a {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 13px 16px; border-radius: 12px; text-decoration: none; font-size: 13.5px; font-weight: 600; color: #fff;
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); transition: border-color 0.2s, transform 0.2s;
+}
+.seo-related-grid a:hover { border-color: rgba(227,30,36,0.4); transform: translateY(-2px); }
+.seo-related-grid a i { color: #ff6b35; }
+
+/* CTA section */
+.seo-cta {
+  text-align: center; padding: 34px; border-radius: 22px; margin-top: 8px;
+  background: radial-gradient(600px 300px at 50% -30%, rgba(227,30,36,0.25), transparent 60%), linear-gradient(160deg,#16122a,#0c0f1e);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.seo-cta p { color: rgba(255,255,255,0.6); font-size: 14px; margin: 0 0 18px; }
+.seo-cta .seo-cta-btns { justify-content: center; }
+
+/* Article (E-E-A-T) */
+.seo-article h1 { font-size: clamp(26px,4vw,38px); font-weight: 900; font-family: 'Poppins', sans-serif; margin: 6px 0 18px; }
+.seo-article p { color: rgba(255,255,255,0.72); font-size: 15.5px; line-height: 1.8; margin: 0 0 16px; }
+
+/* Footer */
+.seo-foot { background: #05060f; border-top: 1px solid rgba(255,255,255,0.07); padding: 30px 24px 18px; }
+.seo-foot-inner { max-width: 1080px; margin: 0 auto; display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+.seo-foot-inner strong { font-size: 17px; font-weight: 800; }
+.seo-foot-inner p { color: rgba(255,255,255,0.55); font-size: 13.5px; margin: 8px 0 0; }
+.seo-foot-inner a { color: rgba(255,255,255,0.7); text-decoration: none; }
+.seo-foot-inner a:hover { color: #fff; }
+.seo-foot-links { display: flex; flex-wrap: wrap; gap: 8px 18px; align-content: flex-start; }
+.seo-foot-links a { font-size: 13.5px; }
+.seo-foot-bottom { max-width: 1080px; margin: 20px auto 0; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.07); color: rgba(255,255,255,0.4); font-size: 12.5px; text-align: center; }
+
+/* ============================================================
+   DESTINATION TOUR-TAXI PAGES (booking engine)
+   ============================================================ */
+.gr-hero .gr-tags { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 20px; }
+.gr-tag { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.18); color: #fff; font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 999px; }
+
+.gr-block { margin-bottom: 30px; }
+.gr-block > h2 { font-size: 22px; font-weight: 800; font-family: 'Poppins', sans-serif; margin: 0 0 14px; }
+.gr-muted { color: rgba(255,255,255,0.6); font-size: 14px; margin: 0 0 16px; }
+.gr-sub { font-size: 16px; font-weight: 700; margin: 22px 0 12px; }
+
+/* Travel info */
+.gr-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.gr-info { display: flex; gap: 12px; padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); }
+.gr-info i { font-size: 18px; color: #ff6b35; margin-top: 2px; }
+.gr-info small { display: block; color: rgba(255,255,255,0.5); font-size: 11.5px; margin-bottom: 3px; }
+.gr-info strong { font-size: 13.5px; font-weight: 600; line-height: 1.5; }
+.gr-dist-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 10px; }
+.gr-dist { text-align: center; padding: 14px 8px; border-radius: 14px; background: rgba(227,30,36,0.1); border: 1px solid rgba(227,30,36,0.25); }
+.gr-dist span { display: block; color: rgba(255,255,255,0.6); font-size: 12px; margin-bottom: 4px; }
+.gr-dist strong { font-size: 18px; color: #ff8a3d; }
+
+/* Attractions */
+.gr-attr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.gr-attr { display: flex; gap: 12px; padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); }
+.gr-attr i { color: #ff6b35; margin-top: 3px; }
+.gr-attr strong { font-size: 14.5px; }
+.gr-attr p { margin: 4px 0 0; color: rgba(255,255,255,0.62); font-size: 13px; line-height: 1.55; }
+
+/* AI plan */
+.gr-plan-tabs { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+.grPlanTab { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 9px 18px; border-radius: 10px; font-weight: 700; font-size: 14px; cursor: pointer; transition: all .2s; }
+.grPlanTab.active { background: linear-gradient(135deg, var(--primary,#E31E24), #ff6b35); border-color: transparent; }
+.grPlanPane { display: none; flex-direction: column; gap: 10px; }
+.grPlanPane.active { display: flex; }
+.grPlanRow { display: flex; gap: 14px; padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); }
+.grPlanWhen { flex-shrink: 0; min-width: 90px; font-weight: 700; color: #ff8a3d; font-size: 13.5px; }
+.grPlanRow p { margin: 0; color: rgba(255,255,255,0.72); font-size: 13.5px; line-height: 1.6; }
+
+/* Fare calculator */
+.gr-fare-card { padding: 20px; border-radius: 18px; background: radial-gradient(600px 300px at 90% -40%, rgba(227,30,36,0.18), transparent 60%), linear-gradient(160deg,#16122a,#0c0f1e); border: 1px solid rgba(255,255,255,0.12); }
+.gr-fare-controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+.gr-fare-controls label { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; font-weight: 600; color: rgba(255,255,255,0.7); }
+.gr-fare-controls select, .gr-fare-controls input { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.16); color: #fff; padding: 11px 12px; border-radius: 11px; font-size: 14px; }
+.gr-fare-controls option { color: #111; }
+.gr-fare-table-wrap { overflow-x: auto; }
+.gr-fare-table { width: 100%; border-collapse: collapse; }
+.gr-fare-table th { text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; color: rgba(255,255,255,0.45); padding: 8px 12px; }
+.gr-fare-table td { padding: 12px; border-top: 1px solid rgba(255,255,255,0.08); font-size: 14px; }
+.gr-fare-table td small { display: block; color: rgba(255,255,255,0.45); font-size: 11.5px; font-weight: 400; }
+.gr-fare-table .grFare { font-weight: 800; color: #fff; font-size: 16px; }
+.gr-fare-table tr.reco { background: rgba(227,30,36,0.12); }
+.grBadge { background: linear-gradient(135deg,var(--primary,#E31E24),#ff6b35); color: #fff; font-size: 10.5px; font-weight: 700; padding: 4px 9px; border-radius: 999px; white-space: nowrap; }
+.gr-fare-note { color: rgba(255,255,255,0.55); font-size: 12.5px; margin: 14px 0; line-height: 1.6; }
+.gr-fare-note i { color: #ff6b35; }
+.gr-fare-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+/* Reviews */
+.gr-rev-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.gr-rev { padding: 18px; border-radius: 16px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); }
+.gr-rev-stars { color: #ffb400; font-size: 15px; margin-bottom: 10px; }
+.gr-rev p { color: rgba(255,255,255,0.75); font-size: 13.5px; line-height: 1.65; font-style: italic; margin: 0 0 14px; }
+.gr-rev-by { display: flex; align-items: center; gap: 10px; }
+.gr-rev-av { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg,var(--primary,#E31E24),#ff6b35); display: flex; align-items: center; justify-content: center; font-weight: 700; }
+.gr-rev-by strong { display: block; font-size: 13.5px; }
+.gr-rev-by small { color: rgba(255,255,255,0.5); font-size: 12px; }
+
+/* Responsive */
+@media (max-width: 820px) {
+  .seo-route-facts { grid-template-columns: 1fr 1fr; }
+  .seo-trust-grid, .seo-related-grid { grid-template-columns: 1fr 1fr; }
+  .gr-dist-grid { grid-template-columns: 1fr 1fr 1fr; }
+}
+@media (max-width: 540px) {
+  .seo-hero { padding: 32px 22px; }
+  .seo-route-facts, .seo-trust-grid, .seo-related-grid { grid-template-columns: 1fr; }
+  .seo-nav-links { gap: 12px; font-size: 13px; }
+  .seo-btn { flex: 1; justify-content: center; }
+  .gr-info-grid, .gr-attr-grid, .gr-rev-grid, .gr-fare-controls { grid-template-columns: 1fr; }
+  .gr-dist-grid { grid-template-columns: 1fr 1fr; }
+  .grPlanWhen { min-width: 70px; }
+}

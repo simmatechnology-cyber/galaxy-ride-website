@@ -1,0 +1,20 @@
+{
+  "name": "galaxy-ride",
+  "version": "1.0.0",
+  "description": "Galaxy Ride - Safe, Reliable, Affordable cab booking service",
+  "main": "index.js",
+  "scripts": {
+    "dev": "netlify dev",
+    "build": "echo 'Static site - no build step required'",
+    "deploy": "netlify deploy --prod"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0",
+    "razorpay": "^2.9.2"
+  },
+  "devDependencies": {
+    "netlify-cli": "^17.0.0"
+  },
+  "keywords": ["cab", "ride", "booking", "galaxy-ride"],
+  "license": "MIT"
+}

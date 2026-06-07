@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Driver Applications — Admin | Galaxy Ride</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23E31E24'/><text y='.9em' font-size='66' x='14'>🪪</text></svg>" />
+  <style>
+    *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+    :root { --primary:#E31E24; --bg:#0c0f1e; --card:#161a2e; --line:rgba(255,255,255,0.08); --muted:rgba(255,255,255,0.55); }
+    body { background:var(--bg); color:#fff; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
+    .nav { display:flex; align-items:center; justify-content:space-between; padding:16px 28px; background:rgba(12,15,30,0.92); border-bottom:1px solid var(--line); position:sticky; top:0; z-index:10; }
+    .logo { display:flex; align-items:center; gap:10px; text-decoration:none; color:#fff; font-weight:800; font-size:18px; }
+    .logo .b { width:36px; height:36px; background:var(--primary); border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:13px; }
+    .back { color:var(--muted); text-decoration:none; font-size:14px; }
+    .back:hover { color:#fff; }
+    .wrap { max-width:1280px; margin:0 auto; padding:28px 24px 80px; }
+    .title { font-size:24px; font-weight:800; font-family:'Poppins',sans-serif; }
+    .sub { color:var(--muted); font-size:14px; margin:4px 0 20px; }
+    .kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:22px; }
+    .kpi { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px 18px; }
+    .kpi .n { font-size:26px; font-weight:800; }
+    .kpi .l { font-size:12.5px; color:var(--muted); margin-top:3px; }
+    .filters { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+    .filter-btn { background:var(--card); border:1px solid var(--line); color:var(--muted); border-radius:999px; padding:7px 16px; font-size:13px; font-weight:600; cursor:pointer; }
+    .filter-btn.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+    .app-card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:18px 20px; margin-bottom:14px; }
+    .app-top { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+    .app-name { font-size:16px; font-weight:800; }
+    .app-meta { color:var(--muted); font-size:13px; margin-top:4px; display:flex; flex-wrap:wrap; gap:6px 16px; }
+    .app-meta span i { color:var(--primary); margin-right:5px; }
+    .badge { padding:5px 12px; border-radius:999px; font-size:11.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.4px; white-space:nowrap; }
+    .badge.pending  { background:rgba(255,193,7,0.18); color:#ffce54; }
+    .badge.approved { background:rgba(40,167,69,0.2);  color:#5fd687; }
+    .badge.rejected { background:rgba(220,53,69,0.2);  color:#ff6b6b; }
+    .badge.more_docs{ background:rgba(23,162,184,0.2); color:#4dd8ed; }
+    .docs { display:flex; gap:8px; flex-wrap:wrap; margin:14px 0; }
+    .doc-link { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:#9fb3ff; text-decoration:none; background:rgba(255,255,255,0.05); border:1px solid var(--line); border-radius:8px; padding:6px 11px; }
+    .doc-link:hover { background:rgba(255,255,255,0.1); }
+    .doc-link.missing { color:var(--muted); opacity:0.5; pointer-events:none; }
+    .actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; }
+    .act { border:none; border-radius:10px; padding:9px 16px; font-size:13px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:7px; }
+    .act.approve { background:#1e9e4a; color:#fff; }
+    .act.reject  { background:#c0392b; color:#fff; }
+    .act.more    { background:rgba(255,255,255,0.1); color:#fff; border:1px solid var(--line); }
+    .act:hover { filter:brightness(1.1); }
+    .empty { text-align:center; color:var(--muted); padding:50px 0; font-size:14px; }
+    .appid { font-size:11.5px; color:var(--muted); font-family:monospace; margin-top:2px; }
+    @media (max-width:880px){ .kpis{grid-template-columns:1fr 1fr;} }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <a class="logo" href="index.html"><span class="b">GR</span> Driver Applications</a>
+    <a class="back" href="index.html"><i class="fas fa-arrow-left"></i> Back to Site</a>
+  </nav>
+
+  <div class="wrap">
+    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+      <div>
+        <div class="title">Driver Applications</div>
+        <div class="sub">Review, approve, reject or request more documents.</div>
+      </div>
+      <button class="filter-btn" onclick="load()"><i class="fas fa-rotate"></i> Refresh</button>
+    </div>
+
+    <div class="kpis" id="kpis">
+      <div class="kpi"><div class="n" id="kTotal">—</div><div class="l">Total</div></div>
+      <div class="kpi"><div class="n" id="kPending">—</div><div class="l">Pending</div></div>
+      <div class="kpi"><div class="n" id="kApproved">—</div><div class="l">Approved</div></div>
+      <div class="kpi"><div class="n" id="kRejected">—</div><div class="l">Rejected</div></div>
+    </div>
+
+    <div class="filters" id="filters">
+      <button class="filter-btn active" data-f="all"      onclick="setFilter('all',this)">All</button>
+      <button class="filter-btn"        data-f="pending"   onclick="setFilter('pending',this)">Pending</button>
+      <button class="filter-btn"        data-f="approved"  onclick="setFilter('approved',this)">Approved</button>
+      <button class="filter-btn"        data-f="rejected"  onclick="setFilter('rejected',this)">Rejected</button>
+      <button class="filter-btn"        data-f="more_docs" onclick="setFilter('more_docs',this)">More Docs</button>
+    </div>
+
+    <div id="list"><div class="empty">Loading…</div></div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+    import { getFirestore, collection, getDocs, query, orderBy, limit, doc, setDoc, serverTimestamp }
+      from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+    const db = getFirestore(initializeApp({
+      apiKey:"AIzaSyBcmBnSMiMJui28q9AlBvoVVHH6wmbgm_c",
+      authDomain:"galaxyride-4f219.firebaseapp.com",
+      projectId:"galaxyride-4f219",
+      storageBucket:"galaxyride-4f219.firebasestorage.app",
+      messagingSenderId:"351465763874",
+      appId:"1:351465763874:web:e2f89a58a686661566467b",
+    }));
+
+    const esc = (s) => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    let _all = [], _filter = 'all';
+
+    function fmtDate(ts) {
+      if (!ts) return '—';
+      const d = ts.toDate ? ts.toDate() : new Date(ts);
+      return d.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
+    }
+
+    window.setFilter = (f, btn) => {
+      _filter = f;
+      document.querySelectorAll('.filter-btn[data-f]').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      render();
+    };
+
+    window.load = async function () {
+      const listEl = document.getElementById('list');
+      listEl.innerHTML = '<div class="empty">Loading…</div>';
+      try {
+        const snap = await getDocs(query(collection(db,'driverApplications'), orderBy('submittedAt','desc'), limit(500)));
+        _all = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+      } catch (e) {
+        listEl.innerHTML = `<div class="empty">Failed to load: ${esc(e.message)}</div>`;
+        return;
+      }
+      // KPIs
+      document.getElementById('kTotal').textContent    = _all.length;
+      document.getElementById('kPending').textContent  = _all.filter(a=>a.status==='pending').length;
+      document.getElementById('kApproved').textContent = _all.filter(a=>a.status==='approved').length;
+      document.getElementById('kRejected').textContent = _all.filter(a=>a.status==='rejected').length;
+      render();
+    };
+
+    window.updateStatus = async function (appId, status) {
+      let note = '';
+      if (status === 'rejected')  note = prompt('Reason for rejection (optional):') || '';
+      if (status === 'more_docs') note = prompt('What documents are needed?') || 'Please re-upload clearer documents.';
+      try {
+        await setDoc(doc(db,'driverApplications',appId), { status, statusNote:note, reviewedAt:serverTimestamp() }, { merge:true });
+        const a = _all.find(x=>x.id===appId); if (a){ a.status=status; a.statusNote=note; }
+        document.getElementById('kPending').textContent  = _all.filter(x=>x.status==='pending').length;
+        document.getElementById('kApproved').textContent = _all.filter(x=>x.status==='approved').length;
+        document.getElementById('kRejected').textContent = _all.filter(x=>x.status==='rejected').length;
+        render();
+      } catch (e) { alert('Update failed: ' + e.message); }
+    };
+
+    function docLink(label, url) {
+      if (!url) return `<span class="doc-link missing"><i class="fas fa-file"></i> ${label}</span>`;
+      return `<a class="doc-link" href="${esc(url)}" target="_blank" rel="noopener"><i class="fas fa-file"></i> ${label}</a>`;
+    }
+
+    function render() {
+      const listEl = document.getElementById('list');
+      const rows = _filter === 'all' ? _all : _all.filter(a => a.status === _filter);
+      if (!rows.length) { listEl.innerHTML = '<div class="empty">No applications in this view.</div>'; return; }
+      listEl.innerHTML = rows.map(a => {
+        const d = a.documents || {};
+        return `
+        <div class="app-card">
+          <div class="app-top">
+            <div>
+              <div class="app-name">${esc(a.fullName || 'Unknown')}</div>
+              <div class="app-meta">
+                <span><i class="fas fa-phone"></i>${esc(a.mobile||'—')}</span>
+                <span><i class="fas fa-location-dot"></i>${esc(a.city||'—')}</span>
+                <span><i class="fas fa-car"></i>${esc(a.vehicleType||'—')} · ${esc(a.vehicleNumber||'—')}</span>
+                <span><i class="fas fa-calendar"></i>${fmtDate(a.submittedAt)}</span>
+              </div>
+              <div class="appid">${esc(a.applicationId || a.id)}</div>
+            </div>
+            <span class="badge ${a.status||'pending'}">${(a.status||'pending').replace('_',' ')}</span>
+          </div>
+          <div class="docs">
+            ${docLink('License', d.drivingLicense)}
+            ${docLink('RC Book', d.rcBook)}
+            ${docLink('Insurance', d.insurance)}
+            ${docLink('Photo', d.driverPhoto)}
+          </div>
+          ${a.statusNote ? `<div class="app-meta" style="margin-bottom:10px;"><span><i class="fas fa-note-sticky"></i>${esc(a.statusNote)}</span></div>` : ''}
+          <div class="actions">
+            <button class="act approve" onclick="updateStatus('${a.id}','approved')"><i class="fas fa-check"></i> Approve</button>
+            <button class="act reject"  onclick="updateStatus('${a.id}','rejected')"><i class="fas fa-xmark"></i> Reject</button>
+            <button class="act more"    onclick="updateStatus('${a.id}','more_docs')"><i class="fas fa-file-arrow-up"></i> Request More Documents</button>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    load();
+  </script>
+</body>
+</html>

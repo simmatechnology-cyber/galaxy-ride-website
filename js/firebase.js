@@ -1,0 +1,414 @@
+/**
+ * firebase.js — Galaxy Ride Firebase initialization (ES module)
+ * Exposes auth, Firestore db, and helper functions to window for app.js
+ */
+
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  sendPasswordResetEmail,
+  updateProfile,
+  setPersistence,
+  browserLocalPersistence,
+} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import {
+  getFirestore,
+  doc,
+  setDoc,
+  getDoc,
+  collection,
+  addDoc,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  limit,
+  onSnapshot,
+  serverTimestamp,
+  increment,
+} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import {
+  getStorage,
+  ref as storageRef,
+  uploadBytes,
+  getDownloadURL,
+} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
+
+// ── Config ───────────────────────────────────────────────────────────────────
+// Values fall back to window.* so Netlify env vars work via a meta-script tag
+const firebaseConfig = {
+  apiKey:            window.FIREBASE_API_KEY            || "AIzaSyBcmBnSMiMJui28q9AlBvoVVHH6wmbgm_c",
+  authDomain:        window.FIREBASE_AUTH_DOMAIN        || "galaxyride-4f219.firebaseapp.com",
+  projectId:         window.FIREBASE_PROJECT_ID         || "galaxyride-4f219",
+  storageBucket:     window.FIREBASE_STORAGE_BUCKET     || "galaxyride-4f219.firebasestorage.app",
+  messagingSenderId: window.FIREBASE_MESSAGING_SENDER_ID || "351465763874",
+  appId:             window.FIREBASE_APP_ID             || "1:351465763874:web:e2f89a58a686661566467b",
+};
+
+// ── Initialize ────────────────────────────────────────────────────────────────
+const app            = initializeApp(firebaseConfig);
+const auth           = getAuth(app);
+const db             = getFirestore(app);
+const storage        = getStorage(app);
+const googleProvider = new GoogleAuthProvider();
+
+// Persist login across page reloads
+setPersistence(auth, browserLocalPersistence).catch(console.warn);
+
+// ── Auth helpers ──────────────────────────────────────────────────────────────
+
+/**
+ * Create or merge user profile doc in Firestore → users/{uid}
+ */
+async function fbSaveUserProfile(user, extra = {}) {
+  try {
+    await setDoc(
+      doc(db, 'users', user.uid),
+      {
+        uid:         user.uid,
+        email:       user.email,
+        displayName: user.displayName || '',
+        photoURL:    user.photoURL    || '',
+        updatedAt:   serverTimestamp(),
+        ...extra,
+      },
+      { merge: true }
+    );
+  } catch (e) {
+    console.warn('Profile save failed:', e.message);
+  }
+}
+
+/**
+ * Save a confirmed booking to Firestore
+ * → bookings/{bookingId}
+ * → users/{userId}/bookings/{bookingId}
+ * → stats/global (increment counter)
+ */
+async function fbSaveBooking(booking) {
+  try {
+    // Full booking record
+    await setDoc(doc(db, 'bookings', booking.bookingId), {
+      ...booking,
+      createdServer: serverTimestamp(),
+    });
+
+    // Reference in user sub-collection
+    await setDoc(
+      doc(db, 'users', booking.userId, 'bookings', booking.bookingId),
+      {
+        bookingId:  booking.bookingId,
+        status:     booking.status || 'confirmed',
+        vehicle:    booking.vehicle,
+        pickup:     booking.pickup,
+        drop:       booking.drop       || '',
+        date:       booking.date,
+        fare:       booking.fare,
+        createdAt:  booking.createdAt,
+      }
+    );
+
+    // Increment global counter
+    await setDoc(
+      doc(db, 'stats', 'global'),
+      { totalBookings: increment(1) },
+      { merge: true }
+    );
+  } catch (e) {
+    console.warn('Booking save failed:', e.message);
+    throw e;
+  }
+}
+
+/**
+ * Save trip to trip_requests collection → admin app reads this live
+ * Schema matches what the admin app expects
+ */
+async function fbSaveTripRequest(trip) {
+  try {
+    await setDoc(doc(db, 'trip_requests', trip.tripId), {
+      tripId:        trip.tripId,
+      customerName:  trip.customerName  || '',
+      customerPhone: trip.customerPhone || '',
+      customerEmail: trip.customerEmail || '',
+      pickup:        trip.pickup        || '',
+      drop:          trip.drop          || '',
+      tripType:      trip.tripType      || 'oneway',
+      vehicleType:   trip.vehicleType   || '',
+      date:          trip.date          || '',
+      time:          trip.time          || '',
+      passengers:    trip.passengers    || 1,
+      estimatedFare: trip.estimatedFare || 0,
+      paymentMethod: trip.paymentMethod || 'cash',
+      paymentStatus: trip.paymentStatus || 'cash_pending',
+      status:        'pending',
+      driverId:      '',
+      driverName:    '',
+      distanceKm:    trip.distanceKm    || 0,
+      createdAt:     serverTimestamp(),
+    });
+    console.log('[Firebase] trip_requests saved:', trip.tripId);
+  } catch (e) {
+    console.error('[Firebase] trip_requests save failed:', e.message);
+    throw e;
+  }
+}
+
+/**
+ * Listen to a trip_request document in real-time.
+ * Returns an unsubscribe function — call it to stop listening.
+ */
+function fbListenToTripRequest(tripId, callback) {
+  const unsubscribe = onSnapshot(
+    doc(db, 'trip_requests', tripId),
+    (snap) => {
+      if (snap.exists()) {
+        callback(snap.data());
+      }
+    },
+    (err) => console.error('[Firebase] onSnapshot error:', err.message)
+  );
+  return unsubscribe;
+}
+
+/**
+ * Travel Services — log a redirect/search analytics event.
+ * Collection: travelRedirectAnalytics  (NO booking record is created)
+ * Returns the new doc id, or null on failure (analytics must never block UX).
+ */
+async function fbSaveTravelRedirect(payload) {
+  try {
+    const doc0 = {
+      serviceType:    payload.serviceType    || '',   // bus | train | flight | hotel
+      eventType:      payload.eventType      || 'search', // search | redirect
+      searchQuery:    payload.searchQuery    || {},    // {from,to,date,...}
+      routeKey:       payload.routeKey       || '',    // "Chennai→Madurai" for aggregation
+      redirectPartner:payload.redirectPartner|| '',    // redbus | irctc | ...
+      redirectUrl:    payload.redirectUrl    || '',
+      deviceType:     payload.deviceType     || 'desktop',
+      userId:         payload.userId         || null,
+      timestamp:      serverTimestamp(),               // searchTime
+      createdAt:      serverTimestamp(),
+    };
+    // Flat structured fields (e.g. flight: origin, destination, departureDate,
+    // returnDate, passengers) stored top-level for easy querying / reporting.
+    if (payload.details && typeof payload.details === 'object') {
+      Object.assign(doc0, payload.details);
+    }
+    const ref = await addDoc(collection(db, 'travelRedirectAnalytics'), doc0);
+    console.log('[Travel] analytics logged:', payload.serviceType, payload.eventType, ref.id);
+    return ref.id;
+  } catch (e) {
+    console.warn('[Travel] analytics log failed (non-blocking):', e.message);
+    return null;
+  }
+}
+
+/**
+ * Travel Services — fetch recent analytics events for the admin dashboard.
+ * Returns an array (most recent first), capped at `max`.
+ */
+async function fbGetTravelAnalytics(max = 500) {
+  try {
+    const snap = await getDocs(
+      query(
+        collection(db, 'travelRedirectAnalytics'),
+        orderBy('createdAt', 'desc'),
+        limit(max)
+      )
+    );
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (e) {
+    console.warn('[Travel] analytics fetch failed:', e.message);
+    return [];
+  }
+}
+
+/**
+ * Driver Registration — submit an application.
+ *  1. Uploads each document to Storage → driver-documents/{appId}/{field}
+ *  2. Saves the application to Firestore → driverApplications/{appId}
+ *  3. status = 'pending', generates Application ID
+ *
+ * @param {object} data  text fields
+ * @param {object} files { drivingLicense, rcBook, insurance, driverPhoto } (File objects, may be null)
+ * @returns {Promise<string>} the generated Application ID
+ */
+async function fbSubmitDriverApplication(data, files) {
+  // Generate Application ID
+  const appId = 'DRV' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 5).toUpperCase();
+
+  // 1. Upload documents (skip any that are missing)
+  const documents = {};
+  const entries = Object.entries(files || {});
+  for (const [field, file] of entries) {
+    if (!file) continue;
+    const ext  = (file.name.split('.').pop() || 'jpg').toLowerCase();
+    const path = `driver-documents/${appId}/${field}.${ext}`;
+    const snap = await uploadBytes(storageRef(storage, path), file);
+    documents[field] = await getDownloadURL(snap.ref);
+  }
+
+  // 2. Save the application
+  await setDoc(doc(db, 'driverApplications', appId), {
+    applicationId:  appId,
+    fullName:       data.fullName       || '',
+    mobile:         data.mobile         || '',
+    email:          data.email          || '',
+    city:           data.city           || '',
+    vehicleType:    data.vehicleType    || '',
+    vehicleNumber:  data.vehicleNumber  || '',
+    licenseNumber:  data.licenseNumber  || '',
+    aadhaarNumber:  data.aadhaarNumber  || '',
+    documents,                                  // { drivingLicense: url, rcBook: url, ... }
+    status:         'pending',
+    userId:         data.userId         || null,
+    submittedAt:    serverTimestamp(),
+    statusNote:     '',
+  });
+
+  console.log('[Driver] application submitted:', appId);
+  return appId;
+}
+
+/**
+ * Admin — fetch all driver applications (most recent first).
+ */
+async function fbGetDriverApplications(max = 500) {
+  try {
+    const snap = await getDocs(
+      query(collection(db, 'driverApplications'), orderBy('submittedAt', 'desc'), limit(max))
+    );
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (e) {
+    console.warn('[Driver] fetch applications failed:', e.message);
+    return [];
+  }
+}
+
+/**
+ * Admin — update an application's status.
+ * status: 'approved' | 'rejected' | 'more_docs' | 'pending'
+ */
+async function fbUpdateDriverApplicationStatus(appId, status, note = '') {
+  await setDoc(
+    doc(db, 'driverApplications', appId),
+    { status, statusNote: note, reviewedAt: serverTimestamp() },
+    { merge: true }
+  );
+  console.log('[Driver] status updated:', appId, '→', status);
+}
+
+/**
+ * Live listener for a single application (so the applicant sees approval).
+ */
+function fbListenToDriverApplication(appId, callback) {
+  return onSnapshot(doc(db, 'driverApplications', appId), (snap) => {
+    if (snap.exists()) callback(snap.data());
+  }, (err) => console.error('[Driver] onSnapshot error:', err.message));
+}
+
+/**
+ * Save a contact-form submission → contact_messages/{auto-id}
+ */
+async function fbSaveContactMessage(data) {
+  const ref = await addDoc(collection(db, 'contact_messages'), {
+    name:      data.name    || '',
+    phone:     data.phone   || '',
+    email:     data.email   || '',
+    message:   data.message || '',
+    status:    'new',
+    userId:    window._currentUser?.uid || null,
+    createdAt: serverTimestamp(),
+  });
+  console.log('[Contact] message saved:', ref.id);
+  return ref.id;
+}
+
+/**
+ * Fetch all bookings for the signed-in user
+ */
+async function fbGetUserBookings(userId) {
+  try {
+    const snap = await getDocs(
+      query(
+        collection(db, 'bookings'),
+        where('userId', '==', userId),
+        orderBy('createdAt', 'desc')
+      )
+    );
+    return snap.docs.map(d => d.data());
+  } catch (e) {
+    console.warn('Fetch bookings failed:', e.message);
+    return [];
+  }
+}
+
+// ── Expose to window (app.js is a classic script, not a module) ───────────────
+window._firebaseAuth    = auth;
+window._firebaseDb      = db;
+window._firebaseStorage = storage;
+window._googleProvider  = googleProvider;
+
+window._firebaseFns = {
+  // Auth
+  signInWithPopup,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  sendPasswordResetEmail,
+  updateProfile,
+  // Firestore helpers
+  saveUserProfile:     fbSaveUserProfile,
+  saveBooking:         fbSaveBooking,
+  getUserBookings:     fbGetUserBookings,
+  saveTripRequest:     fbSaveTripRequest,
+  listenToTripRequest: fbListenToTripRequest,
+  // Travel Services (redirect model — analytics only)
+  saveTravelRedirect:  fbSaveTravelRedirect,
+  getTravelAnalytics:  fbGetTravelAnalytics,
+  // Contact form
+  saveContactMessage:  fbSaveContactMessage,
+  // Driver registration
+  submitDriverApplication:       fbSubmitDriverApplication,
+  getDriverApplications:         fbGetDriverApplications,
+  updateDriverApplicationStatus: fbUpdateDriverApplicationStatus,
+  listenToDriverApplication:     fbListenToDriverApplication,
+};
+
+// ── Auth state listener ───────────────────────────────────────────────────────
+onAuthStateChanged(auth, async (user) => {
+  const authBtns = document.getElementById('authBtns');
+  const userMenu = document.getElementById('userMenu');
+  const nameEl   = document.getElementById('userDisplayName');
+  const avatarEl = document.getElementById('userAvatar');
+
+  if (user) {
+    authBtns?.classList.add('hidden');
+    userMenu?.classList.remove('hidden');
+    const name = user.displayName || user.email.split('@')[0];
+    if (nameEl)   nameEl.textContent   = name;
+    if (avatarEl) avatarEl.textContent = name[0].toUpperCase();
+    window._currentUser = user;
+
+    // Load saved phone from Firestore profile so booking data can include it
+    try {
+      const profileSnap = await getDoc(doc(db, 'users', user.uid));
+      window._currentUserPhone = profileSnap.exists() ? (profileSnap.data().phone || '') : '';
+    } catch {
+      window._currentUserPhone = '';
+    }
+  } else {
+    authBtns?.classList.remove('hidden');
+    userMenu?.classList.add('hidden');
+    window._currentUser      = null;
+    window._currentUserPhone = '';
+  }
+});

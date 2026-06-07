@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Trip Planner — Galaxy Ride</title>
+  <meta name="description" content="Plan your perfect South India trip with Galaxy Ride AI Trip Planner. Get day-wise itineraries and book your cab instantly." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="css/styles.css" />
+
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23E31E24'/><text y='.9em' font-size='80' x='10'>🗺</text></svg>" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #07091c; color: #fff; font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+    :root { --primary: #E31E24; --primary-dark: #c41a1f; }
+    input, select, button { font-family: inherit; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body class="tp-body">
+
+<!-- ── Navbar ─────────────────────────────────────────────── -->
+<nav class="tp-nav">
+  <a href="index.html" class="tp-logo">
+    <div class="tp-logo-icon">GR</div>
+    <span class="tp-logo-name">Galaxy Ride</span>
+  </a>
+  <a href="index.html#destinations" class="tp-back-btn">
+    <i class="fas fa-arrow-left"></i> All Destinations
+  </a>
+</nav>
+
+<!-- ── Hero ───────────────────────────────────────────────── -->
+<div class="tp-hero" id="tpHero">
+  <img id="tpHeroImg" src="" alt="" />
+  <div class="tp-hero-overlay">
+    <div class="tp-hero-content">
+      <span class="tp-dest-state" id="tpStateBadge">Loading…</span>
+      <h1 class="tp-dest-name" id="tpDestName">—</h1>
+      <p class="tp-dest-tagline" id="tpTagline">—</p>
+      <button class="tp-book-cta" onclick="scrollToBook()">
+        <i class="fas fa-car"></i> Book a Cab There
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Content ────────────────────────────────────────────── -->
+<div class="tp-content">
+  <div class="tp-grid">
+
+    <!-- Left: Info + Itinerary -->
+    <div>
+
+      <!-- Info chips -->
+      <div style="margin-bottom:36px;">
+        <div class="tp-section-label">Trip Overview</div>
+        <h2 class="tp-section-title" id="tpOverviewTitle">Plan Your Perfect Trip</h2>
+        <p class="tp-section-sub" id="tpOverviewSub">—</p>
+        <div class="tp-info-chips" id="tpInfoChips"></div>
+      </div>
+
+      <!-- Highlights -->
+      <div style="margin-bottom:40px;">
+        <div class="tp-section-label">Must-See Highlights</div>
+        <h2 class="tp-section-title">Top Attractions</h2>
+        <p class="tp-section-sub">Places you shouldn't miss on this trip.</p>
+        <div class="tp-highlights" id="tpHighlights"></div>
+      </div>
+
+      <!-- AI Itinerary -->
+      <div style="margin-bottom:56px;">
+        <div class="tp-section-label">AI-Suggested Itinerary</div>
+        <h2 class="tp-section-title" id="tpItinTitle">Day-wise Plan</h2>
+        <p class="tp-section-sub">Optimised by Galaxy Ride AI based on popular visitor patterns.</p>
+        <div class="tp-itinerary-list" id="tpItinerary"></div>
+      </div>
+
+      <!-- Related Destinations -->
+      <div>
+        <div class="tp-section-label">Explore More</div>
+        <h2 class="tp-section-title">Related Destinations</h2>
+        <p class="tp-section-sub" style="margin-bottom:24px;">Other popular spots near <span id="tpRelatedNear">—</span>.</p>
+        <div class="tp-related-grid" id="tpRelated"></div>
+      </div>
+    </div>
+
+    <!-- Right: Booking Sidebar -->
+    <div>
+      <div class="tp-sidebar-card" id="bookSection">
+        <h3><i class="fas fa-car" style="color:var(--primary);margin-right:8px;"></i>Book Your Cab</h3>
+
+        <div class="tp-form-group">
+          <label>Destination</label>
+          <input type="text" id="sbDest" readonly />
+        </div>
+        <div class="tp-form-group">
+          <label>Pickup City / Location</label>
+          <input type="text" id="sbPickup" placeholder="e.g. Chennai, Coimbatore…" />
+        </div>
+        <div class="tp-form-group">
+          <label>Travel Date</label>
+          <input type="date" id="sbDate" />
+        </div>
+        <div class="tp-form-group">
+          <label>Passengers</label>
+          <select id="sbPassengers">
+            <option value="1">1 Passenger</option>
+            <option value="2">2 Passengers</option>
+            <option value="3">3 Passengers</option>
+            <option value="4" selected>4 Passengers</option>
+            <option value="5">5 Passengers</option>
+            <option value="6">6 Passengers</option>
+          </select>
+        </div>
+        <div class="tp-form-group">
+          <label>Vehicle Type</label>
+          <select id="sbVehicle">
+            <option value="sedan">Sedan (4 seats)</option>
+            <option value="suv" selected>MUV / SUV (6 seats)</option>
+            <option value="innova">Innova Crysta (7 seats)</option>
+          </select>
+        </div>
+
+        <button class="tp-book-btn" onclick="bookFromPlanner()">
+          <i class="fas fa-arrow-right"></i> Book This Trip
+        </button>
+        <p class="tp-disclaimer">You'll be taken to the booking form with your details pre-filled.</p>
+
+        <!-- Quick contact -->
+        <div style="margin-top:20px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;gap:10px;">
+          <a href="tel:+919597815889" style="display:flex;align-items:center;gap:10px;color:rgba(255,255,255,0.65);font-size:13px;text-decoration:none;">
+            <i class="fas fa-phone" style="color:var(--primary);width:16px;"></i> +91 95978 15889
+          </a>
+          <a href="https://wa.me/919597815889" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:10px;color:rgba(255,255,255,0.65);font-size:13px;text-decoration:none;">
+            <i class="fab fa-whatsapp" style="color:#25D366;width:16px;"></i> Chat on WhatsApp
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Footer strip ───────────────────────────────────────── -->
+<div style="background:rgba(255,255,255,0.03);border-top:1px solid rgba(255,255,255,0.07);padding:20px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+  <span style="color:rgba(255,255,255,0.4);font-size:13px;">© 2025 Galaxy Ride · Safe, Reliable, Affordable</span>
+  <a href="index.html" style="color:rgba(255,255,255,0.5);font-size:13px;text-decoration:none;">← Back to Home</a>
+</div>
+
+<script>
+// ── Destination database ──────────────────────────────────────────────────
+const DEST_DATA = {
+  'kodaikanal': {
+    name: 'Kodaikanal',
+    state: 'Tamil Nadu',
+    img: 'public/tourism/Kodaikanal.webp',
+    tagline: 'The Princess of Hill Stations — mist-wrapped valleys, silver lakes, and pine forests at 2133m.',
+    chips: [
+      { icon: 'fa-mountain', text: 'Altitude: 2133m' },
+      { icon: 'fa-clock', text: 'Best: Apr – Jun, Sep – Oct' },
+      { icon: 'fa-road', text: '~480 km from Chennai' },
+      { icon: 'fa-calendar-check', text: '2–3 days recommended' },
+    ],
+    highlights: [
+      { icon: 'fa-water', text: 'Kodai Lake — star-shaped glacial lake perfect for boating' },
+      { icon: 'fa-person-hiking', text: "Coaker's Walk — scenic 1km cliff-edge promenade" },
+      { icon: 'fa-mountain', text: 'Pillar Rocks — dramatic 122m granite pillars in mist' },
+      { icon: 'fa-droplet', text: 'Bear Shola Falls — peaceful forest waterfall' },
+      { icon: 'fa-eye', text: 'Green Valley View — breathtaking 2000m sheer drop valley' },
+      { icon: 'fa-star', text: 'Silver Cascade — 180ft roadside waterfall en route' },
+    ],
+    itinerary: [
+      { day: 1, title: 'Arrival & Lake Trail', activities: ['Check-in and rest', 'Kodai Lake boating at sunset', 'Bryant Park evening walk', 'Dinner at Hotel Astoria / local cafés'] },
+      { day: 2, title: 'Viewpoints & Waterfalls', activities: ["Coaker's Walk at sunrise for mist views", 'Pillar Rocks — granite formation in clouds', 'Bear Shola Falls & Fairy Falls', 'Dolphin Nose viewpoint', 'Local chocolate & cheese shopping'] },
+      { day: 3, title: 'Temples & Departure', activities: ['Kurinji Andavar Temple (every 12 years bloom)', 'Solar Observatory Museum', 'Silver Cascade Falls on the way down', 'Depart back home'] },
+    ],
+    related: ['ooty', 'munnar', 'coorg'],
+  },
+  'ooty': {
+    name: 'Ooty',
+    state: 'Tamil Nadu',
+    img: 'public/tourism/ooty.jpg',
+    tagline: 'The Queen of Hill Stations — rolling tea gardens, toy train rides, and cool Nilgiri air at 2240m.',
+    chips: [
+      { icon: 'fa-mountain', text: 'Altitude: 2240m' },
+      { icon: 'fa-clock', text: 'Best: Oct – Jun' },
+      { icon: 'fa-road', text: '~540 km from Chennai' },
+      { icon: 'fa-calendar-check', text: '2–3 days recommended' },
+    ],
+    highlights: [
+      { icon: 'fa-train', text: 'Nilgiri Mountain Railway — UNESCO heritage toy train' },
+      { icon: 'fa-water', text: 'Ooty Lake — scenic boating on a 65-acre lake' },
+      { icon: 'fa-leaf', text: 'Botanical Garden — 55 acres of rare flora' },
+      { icon: 'fa-eye', text: 'Doddabetta Peak — highest point in Nilgiris at 2637m' },
+      { icon: 'fa-mug-hot', text: 'Tea Factory Tour — see how Nilgiri tea is processed' },
+      { icon: 'fa-person-hiking', text: 'Avalanche Lake — remote valley for trekking' },
+    ],
+    itinerary: [
+      { day: 1, title: 'Arrival & Lake Stroll', activities: ['Reach Ooty via Mettupalayam or Coimbatore', 'Check-in at hotel', 'Ooty Lake boating', 'Rose Garden evening visit', 'Charring Cross street food'] },
+      { day: 2, title: 'Tea & Peaks', activities: ['Doddabetta Summit at sunrise', 'Nilgiri Tea Factory tour and tasting', 'Botanical Gardens', 'Tribal Research Museum', 'Shopping for homemade chocolates'] },
+      { day: 3, title: 'Toy Train & Departure', activities: ['Nilgiri Mountain Railway morning ride to Coonoor', 'Sims Park visit in Coonoor', 'Lamb\'s Rock viewpoint', 'Return and depart'] },
+    ],
+    related: ['kodaikanal', 'munnar', 'coorg'],
+  },
+  'munnar': {
+    name: 'Munnar',
+    state: 'Kerala',
+    img: 'public/tourism/munnar.jpg',
+    tagline: 'Sea of emerald tea gardens stretching to the horizon — Kerala\'s most serene high-altitude retreat.',
+    chips: [
+      { icon: 'fa-mountain', text: 'Altitude: 1600m' },
+      { icon: 'fa-clock', text: 'Best: Sep – May' },
+      { icon: 'fa-road', text: '~130 km from Kochi' },
+      { icon: 'fa-calendar-check', text: '2–3 days recommended' },
+    ],
+    highlights: [
+      { icon: 'fa-leaf', text: 'Eravikulam National Park — endangered Nilgiri Tahr' },
+      { icon: 'fa-mountain', text: 'Anamudi Peak — highest peak in South India (2695m)' },
+      { icon: 'fa-droplet', text: 'Attukad Waterfalls — cascading 100m waterfall' },
+      { icon: 'fa-mug-hot', text: 'Tea Museum — history of tea in Munnar' },
+      { icon: 'fa-water', text: 'Mattupetty Dam — scenic shola forest reservoir' },
+      { icon: 'fa-star', text: 'Neelakurinji — blooms every 12 years, carpeting hills blue' },
+    ],
+    itinerary: [
+      { day: 1, title: 'Into the Tea Gardens', activities: ['Scenic drive through Nathiakanal tea estates', 'Check-in at tea estate resort', 'Tata Tea Museum', 'Echo Point at sunset', 'Kerala dinner at resort'] },
+      { day: 2, title: 'Wildlife & Waterfalls', activities: ['Eravikulam National Park — Nilgiri Tahr sighting', 'Attukad Waterfalls trek', 'Mattupetty Dam & Kundala Lake', 'Elephant safari (optional)', 'Rajamala viewpoint at dusk'] },
+      { day: 3, title: 'Spice & Departure', activities: ['Morning at Top Station — panoramic view of Western Ghats', 'Spice plantation visit', 'Shop for cardamom, pepper & tea', 'Depart to Kochi or next destination'] },
+    ],
+    related: ['alleppey', 'coorg', 'ooty'],
+  },
+  'alleppey': {
+    name: 'Alleppey',
+    state: 'Kerala',
+    img: 'public/tourism/alleppey.jpg',
+    tagline: 'The Venice of the East — gliding through 1900km of serene backwater canals on a traditional houseboat.',
+    chips: [
+      { icon: 'fa-water', text: 'Backwaters & Canals' },
+      { icon: 'fa-clock', text: 'Best: Nov – Feb' },
+      { icon: 'fa-road', text: '~84 km from Kochi' },
+      { icon: 'fa-calendar-check', text: '1–2 days recommended' },
+    ],
+    highlights: [
+      { icon: 'fa-ship', text: 'Houseboat Cruise — overnight stay on traditional kettuvallam' },
+      { icon: 'fa-water', text: 'Vembanad Lake — largest lake in Kerala' },
+      { icon: 'fa-umbrella-beach', text: 'Alleppey Beach — calm, palm-fringed coastline' },
+      { icon: 'fa-trophy', text: 'Nehru Trophy Boat Race — world-famous snake boat race' },
+      { icon: 'fa-fish', text: 'Kuttanad — the rice bowl of Kerala below sea level' },
+      { icon: 'fa-dove', text: 'Pathiramanal Island — sanctuary for migratory birds' },
+    ],
+    itinerary: [
+      { day: 1, title: 'Arrival & Houseboat Check-in', activities: ['Arrive at Alleppey jetty', 'Board houseboat by 12:00 noon', 'Scenic cruise through backwater canals', 'Sunset on Vembanad Lake deck', 'Kerala seafood dinner aboard'] },
+      { day: 2, title: 'Village Life & Departure', activities: ['Morning cruise through paddy fields', 'Village walk — toddy shops, coir making', 'Alleppey Beach visit', 'Check-out by 9:00 AM and depart', 'Optional: visit nearby Kumarakom'] },
+    ],
+    related: ['munnar', 'gokarna', 'goa'],
+  },
+  'madurai': {
+    name: 'Madurai',
+    state: 'Tamil Nadu',
+    img: 'public/tourism/Madurai_d5167323e4.webp',
+    tagline: 'The Temple City — 2500 years of Dravidian history condensed in one ancient, fragrant metropolis.',
+    chips: [
+      { icon: 'fa-temple', text: 'Dravidian Heritage' },
+      { icon: 'fa-clock', text: 'Best: Oct – Mar' },
+      { icon: 'fa-road', text: '~460 km from Chennai' },
+      { icon: 'fa-calendar-check', text: '1–2 days recommended' },
+    ],
+    highlights: [
+      { icon: 'fa-place-of-worship', text: 'Meenakshi Amman Temple — 14 towering gopurams' },
+      { icon: 'fa-monument', text: 'Thirumalai Nayakkar Mahal — 17th century palace' },
+      { icon: 'fa-water', text: 'Vandiyur Mariamman Teppakulam — huge temple tank' },
+      { icon: 'fa-store', text: 'Madurai Market — vibrant jasmine, silk & spice bazaar' },
+      { icon: 'fa-mug-hot', text: 'Jigarthanda — iconic cold sweet drink unique to Madurai' },
+      { icon: 'fa-dove', text: 'Gandhi Memorial Museum — powerful historical exhibits' },
+    ],
+    itinerary: [
+      { day: 1, title: 'Temples & History', activities: ['Early morning aarti at Meenakshi Temple (5:30 AM)', 'Explore all 4 galleries of the temple complex', 'Thirumalai Nayakkar Palace', 'Lunch at Murugan Idli Shop', 'Evening at Vandiyur Teppakulam'] },
+      { day: 2, title: 'Culture & Cuisine', activities: ['Gandhi Memorial Museum', 'Azhagar Kovil — 21km from city', 'Silk shopping at Handloom shops', 'Kari Dosa at local mess', 'Jigarthanda near Town Hall', 'Depart'] },
+    ],
+    related: ['rameswaram', 'kodaikanal', 'tirupati'],
+  },
+  'rameswaram': {
+    name: 'Rameswaram',
+    state: 'Tamil Nadu',
+    img: 'public/tourism/rameshwaram.webp',
+    tagline: 'The Dwarka of the South — sacred island city where the legendary Ram Setu begins and divinity is everywhere.',
+    chips: [
+      { icon: 'fa-place-of-worship', text: 'Pilgrimage Island' },
+      { icon: 'fa-clock', text: 'Best: Oct – Apr' },
+      { icon: 'fa-road', text: '~560 km from Chennai' },
+      { icon: 'fa-calendar-check', text: '1–2 days recommended' },
+    ],
+    highlights: [
+      { icon: 'fa-place-of-worship', text: 'Ramanathaswamy Temple — longest temple corridor (1212m)' },
+      { icon: 'fa-water', text: '22 sacred theerthams — ritual bathing wells inside temple' },
+      { icon: 'fa-bridge', text: 'Pamban Bridge — iconic sea bridge connecting to mainland' },
+      { icon: 'fa-umbrella-beach', text: 'Dhanushkodi — ghost town & Tip of India meeting point' },
+      { icon: 'fa-fish', text: 'Mandapam Aquarium — sea life from Palk Strait' },
+      { icon: 'fa-landmark', text: 'APJ Abdul Kalam Memorial — birthplace of the Missile Man' },
+    ],
+    itinerary: [
+      { day: 1, title: 'Sacred Sites & Beaches', activities: ['Early morning darshan at Ramanathaswamy Temple', 'Agnitheertham beach ritual bath', 'Dhanushkodi ghost town drive (4WD jeep)', 'Pamban Bridge photography', 'Sunset at Ariyaman Beach'] },
+      { day: 2, title: 'History & Departure', activities: ['APJ Abdul Kalam Memorial & Museum', 'Lakshmana Theertham', 'Local seafood breakfast', 'Kothandaramaswamy Temple — only surviving Dhanushkodi structure', 'Depart for Madurai or Chennai'] },
+    ],
+    related: ['madurai', 'tirupati', 'kodaikanal'],
+  },
+  'coorg': {
+    name: 'Coorg',
+    state: 'Karnataka',
+    img: 'public/tourism/coorg3.jpg',
+    tagline: 'Scotland of India — rolling coffee and spice estates, misty valleys, and a warrior culture unlike any other.',
+    chips: [
+      { icon: 'fa-mug-hot', text: 'Coffee Plantations' },
+      { icon: 'fa-clock', text: 'Best: Oct – May' },
+      { icon: 'fa-road', text: '~265 km from Bangalore' },
+      { icon: 'fa-calendar-check', text: '2–3 days recommended' },
+    ],
+    highlights: [
+      { icon: 'fa-droplet', text: 'Abbey Falls — majestic 70-ft waterfall in coffee estate' },
+      { icon: 'fa-person-hiking', text: 'Brahmagiri Peak — trek through pristine forest to summit' },
+      { icon: 'fa-mug-hot', text: 'Plantation homestay — pick and brew your own coffee' },
+      { icon: 'fa-water', text: 'Dubare Elephant Camp — bathe and feed elephants in river' },
+      { icon: 'fa-gopuram', text: 'Namdroling Monastery — Golden Temple of Tibetan Buddhism' },
+      { icon: 'fa-mountain', text: 'Tadiyandamol — highest peak of Coorg (1748m)' },
+    ],
+    itinerary: [
+      { day: 1, title: 'Plantation Arrival', activities: ['Drive through spice and coffee estates', 'Check-in at coffee plantation homestay', 'Abbey Falls visit', 'Plantation walk — pepper, cardamom, vanilla tour', 'Traditional Kodava dinner with pork curry'] },
+      { day: 2, title: 'Wildlife & Monks', activities: ['Dubare Elephant Camp morning (6–9 AM)', 'Namdroling Monastery Golden Temple', 'Bylakuppe Tibetan settlement', 'Nishagandhi waterfall', 'Omkareshwara Temple, Madikeri'] },
+      { day: 3, title: 'Peak & Departure', activities: ['Brahmagiri Peak sunrise trek (optional)', 'Raja\'s Seat viewpoint at dawn', 'Cauvery Nisargadhama — bamboo forest and deer park', 'Pick up homemade wine, jam and coffee', 'Depart to Bangalore or Mysore'] },
+    ],
+    related: ['abbey-falls', 'ooty', 'gokarna'],
+  },
+  'goa': {
+    name: 'Goa',
+    state: 'Goa',
+    img: 'public/tourism/beaches-of-goa.webp',
+    tagline: 'India\'s sunshine state — where Portuguese cathedrals meet golden beaches, and every sunset is a party.',
+    chips: [
+      { icon: 'fa-umbrella-beach', text: 'Beach Paradise' },
+      { icon: 'fa-clock', text: 'Best: Nov – Mar' },
+      { icon: 'fa-road', text: '~580 km from Bangalore' },
+      { icon: 'fa-calendar-check', text: '3–5 days recommended' },
+    ],
+    highlights: [
+      { icon: 'fa-umbrella-beach', text: 'Calangute & Baga Beach — North Goa party & water sports hub' },
+      { icon: 'fa-umbrella-beach', text: 'Palolem Beach — South Goa\'s crescent-shaped paradise' },
+      { icon: 'fa-church', text: 'Basilica of Bom Jesus — UNESCO World Heritage Church' },
+      { icon: 'fa-ship', text: 'Mandovi River Cruise — sunset cruise with live music' },
+      { icon: 'fa-fish', text: 'Mapusa & Calangute Market — local spices, cashews, feni' },
+      { icon: 'fa-person-swimming', text: 'Water sports — parasailing, jet ski, scuba diving' },
+    ],
+    itinerary: [
+      { day: 1, title: 'North Goa Beaches', activities: ['Arrive and check-in at beach shack or hotel', 'Calangute Beach afternoon', 'Sunset at Baga Beach', 'Tito\'s Lane nightlife experience', 'Seafood at Britto\'s restaurant'] },
+      { day: 2, title: 'Heritage & Shacks', activities: ['Old Goa — Basilica of Bom Jesus & Se Cathedral', 'Panjim colorful Latin Quarter (Fontainhas)', 'Spice plantation tour with lunch', 'Anjuna Flea Market', 'Vagator Cliff sunset'] },
+      { day: 3, title: 'South Goa Serenity', activities: ['Drive to South Goa — Palolem, Agonda Beach', 'Kayaking through mangroves', 'Lunch at Palolem beach shack', 'Dudhsagar Waterfalls trip (monsoon/post-monsoon)'] },
+      { day: 4, title: 'Water Sports & Departure', activities: ['Morning water sports — parasailing, banana boat', 'Dona Paula jetty & viewpoint', 'Casino boat (optional evening)', 'Shopping for cashews and feni', 'Depart'] },
+    ],
+    related: ['gokarna', 'alleppey', 'coorg'],
+  },
+  'gokarna': {
+    name: 'Gokarna',
+    state: 'Karnataka',
+    img: 'public/tourism/Thrilling-Adventures-in-Gokarna1-popular.jpg',
+    tagline: 'Goa before Goa got crowded — untouched beaches, ancient Shiva temples, and a traveller\'s paradise.',
+    chips: [
+      { icon: 'fa-umbrella-beach', text: 'Secluded Beaches' },
+      { icon: 'fa-clock', text: 'Best: Oct – Mar' },
+      { icon: 'fa-road', text: '~485 km from Bangalore' },
+      { icon: 'fa-calendar-check', text: '2–3 days recommended' },
+    ],
+    highlights: [
+      { icon: 'fa-umbrella-beach', text: 'Om Beach — naturally Om-shaped stunning beach' },
+      { icon: 'fa-umbrella-beach', text: 'Half Moon & Paradise Beach — only accessible by trek or boat' },
+      { icon: 'fa-place-of-worship', text: 'Mahabaleshwara Temple — one of India\'s most sacred Shiva temples' },
+      { icon: 'fa-person-hiking', text: 'Beach Trek — trek linking Gokarna–Om–Half Moon–Paradise' },
+      { icon: 'fa-water', text: 'Kudle Beach — quiet, less-visited beauty' },
+      { icon: 'fa-fish', text: 'Namaste Café — iconic clifftop restaurant over Om Beach' },
+    ],
+    itinerary: [
+      { day: 1, title: 'Temple & Town Beach', activities: ['Mahabaleshwara Temple morning puja', 'Explore Gokarna town', 'Gokarna Main Beach', 'Kudle Beach sunset', 'Dinner at beachside shack'] },
+      { day: 2, title: 'Om Beach & Trekking', activities: ['Om Beach morning — watersports & yoga', 'Trek to Half Moon Beach (45 mins)', 'Swim at Hidden Beach', 'Boat to Paradise Beach', 'Bonfire night at Om Beach'] },
+      { day: 3, title: 'Sunrise & Departure', activities: ['Sunrise at Om Beach', 'Cliff meditation session', 'Namaste Café breakfast with views', 'Yana Caves day trip (optional, 30km)', 'Depart to Goa or Bangalore'] },
+    ],
+    related: ['goa', 'coorg', 'alleppey'],
+  },
+  'tirupati': {
+    name: 'Tirupati',
+    state: 'Andhra Pradesh',
+    img: 'public/tourism/tirupati.jpg',
+    tagline: 'The richest temple in the world — millions come seeking blessings from Lord Venkateswara atop the sacred Tirumala Hills.',
+    chips: [
+      { icon: 'fa-place-of-worship', text: 'Sacred Pilgrimage' },
+      { icon: 'fa-clock', text: 'Best: Sep – Feb' },
+      { icon: 'fa-road', text: '~130 km from Chennai' },
+      { icon: 'fa-calendar-check', text: '1–2 days recommended' },
+    ],
+    highlights: [
+      { icon: 'fa-place-of-worship', text: 'Tirumala Venkateswara Temple — world\'s most visited pilgrimage site' },
+      { icon: 'fa-water', text: 'Akasha Ganga — sacred waterfall on the hill path' },
+      { icon: 'fa-gopuram', text: 'Padmavathi Temple — Goddess Padmavathi, Tiruchanur' },
+      { icon: 'fa-star', text: 'Tirupati Laddu — world-famous GI-tagged prasadam' },
+      { icon: 'fa-mountain', text: 'Silathoranam — natural stone arch on Tirumala Hills' },
+      { icon: 'fa-monument', text: 'Sri Venkateswara Museum — rare collection of temple artefacts' },
+    ],
+    itinerary: [
+      { day: 1, title: 'Footpath Trek & Temple', activities: ['Start Alipiri foot trail at 4 AM (18 steps gateway)', '3,550 steps trek to Tirumala (3–4 hrs)', 'Queue darshan or Sudarshana token slot', 'Collect Tirupati Laddu prasadam', 'Prasadam Anna hall lunch', 'Rest in TTD cottages'] },
+      { day: 2, title: 'Temples & Departure', activities: ['Padmavathi Temple at Tiruchanur', 'Kapileswara Swami Temple', 'Sri Venkateswara National Park', 'Chandragiri Fort', 'Depart to Chennai or Bangalore'] },
+    ],
+    related: ['madurai', 'rameswaram', 'gokarna'],
+  },
+  'abbey-falls': {
+    name: 'Abbey Falls',
+    state: 'Karnataka',
+    img: 'public/tourism/abbey-falls-coorg-tourism-header.jpg',
+    tagline: 'A thundering 70-foot curtain of white water plunging into emerald pools — the crown jewel of Coorg.',
+    chips: [
+      { icon: 'fa-droplet', text: 'Waterfall Escape' },
+      { icon: 'fa-clock', text: 'Best: Jul – Dec (post-monsoon)' },
+      { icon: 'fa-road', text: '~8 km from Madikeri, Coorg' },
+      { icon: 'fa-calendar-check', text: 'Day trip or 2 days' },
+    ],
+    highlights: [
+      { icon: 'fa-droplet', text: 'Abbey Falls — 70ft waterfall enclosed in coffee plantations' },
+      { icon: 'fa-tree', text: 'Hanging bridge — suspension walkway over forest stream' },
+      { icon: 'fa-mug-hot', text: 'Coffee Estate Walk — guided trail through working estate' },
+      { icon: 'fa-eye', text: 'Viewpoint — framed view of the full falls and mist' },
+      { icon: 'fa-person-hiking', text: 'Short forest trek — 15-minute walk through spice trees' },
+      { icon: 'fa-mountain', text: 'Madikeri Town — Raja\'s Seat & Omkareshwara Temple nearby' },
+    ],
+    itinerary: [
+      { day: 1, title: 'Falls & Coffee Estate', activities: ['Arrive Madikeri town', 'Drive to Abbey Falls (8km)', 'Walk through coffee plantation to viewpoint', 'Hanging bridge experience', 'Plantation tour — coffee, pepper, cardamom', 'Evening at Raja\'s Seat viewpoint'] },
+      { day: 2, title: 'Coorg Day Trip', activities: ['Dubare Elephant Camp morning', 'Namdroling Golden Temple', 'Buy estate-fresh coffee and spices', 'Depart via Kushalnagar or continue to Coorg circuit'] },
+    ],
+    related: ['coorg', 'ooty', 'gokarna'],
+  },
+};
+
+// Image map for related cards
+const DEST_IMGS = {
+  'kodaikanal': 'public/tourism/Kodaikanal.webp',
+  'ooty':       'public/tourism/ooty.jpg',
+  'munnar':     'public/tourism/munnar.jpg',
+  'alleppey':   'public/tourism/alleppey.jpg',
+  'madurai':    'public/tourism/Madurai_d5167323e4.webp',
+  'rameswaram': 'public/tourism/rameshwaram.webp',
+  'coorg':      'public/tourism/coorg3.jpg',
+  'goa':        'public/tourism/beaches-of-goa.webp',
+  'gokarna':    'public/tourism/Thrilling-Adventures-in-Gokarna1-popular.jpg',
+  'tirupati':   'public/tourism/tirupati.jpg',
+  'abbey-falls':'public/tourism/abbey-falls-coorg-tourism-header.jpg',
+};
+
+// ── Init ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(window.location.search);
+  const key    = params.get('destination') || 'kodaikanal';
+  const dest   = DEST_DATA[key] || DEST_DATA['kodaikanal'];
+
+  // Set page title
+  document.title = `${dest.name} Trip Planner — Galaxy Ride`;
+
+  // Hero
+  document.getElementById('tpHeroImg').src = dest.img;
+  document.getElementById('tpHeroImg').alt = dest.name;
+  document.getElementById('tpStateBadge').textContent = dest.state;
+  document.getElementById('tpDestName').textContent   = dest.name;
+  document.getElementById('tpTagline').textContent    = dest.tagline;
+
+  // Overview
+  document.getElementById('tpOverviewTitle').textContent = `Your ${dest.name} Trip`;
+  document.getElementById('tpOverviewSub').textContent   = dest.tagline;
+
+  // Chips
+  const chipContainer = document.getElementById('tpInfoChips');
+  dest.chips.forEach(c => {
+    chipContainer.innerHTML += `
+      <div class="tp-chip">
+        <i class="fas ${c.icon}"></i>
+        <span>${c.text}</span>
+      </div>`;
+  });
+
+  // Highlights
+  const hlContainer = document.getElementById('tpHighlights');
+  dest.highlights.forEach(h => {
+    hlContainer.innerHTML += `
+      <div class="tp-highlight">
+        <i class="fas ${h.icon}"></i>
+        <span>${h.text}</span>
+      </div>`;
+  });
+
+  // Itinerary
+  document.getElementById('tpItinTitle').textContent = `${dest.itinerary.length}-Day Itinerary for ${dest.name}`;
+  const itinContainer = document.getElementById('tpItinerary');
+  dest.itinerary.forEach(d => {
+    itinContainer.innerHTML += `
+      <div class="tp-day-card">
+        <div class="tp-day-num">D${d.day}</div>
+        <div class="tp-day-body">
+          <h4>${d.title}</h4>
+          <ul>${d.activities.map(a => `<li>${a}</li>`).join('')}</ul>
+        </div>
+      </div>`;
+  });
+
+  // Related
+  document.getElementById('tpRelatedNear').textContent = dest.name;
+  const relContainer = document.getElementById('tpRelated');
+  dest.related.forEach(rKey => {
+    const r = DEST_DATA[rKey];
+    if (!r) return;
+    relContainer.innerHTML += `
+      <a class="tp-related-card" href="trip-planner.html?destination=${rKey}">
+        <img src="${DEST_IMGS[rKey]}" alt="${r.name}" loading="lazy" />
+        <div class="tp-related-card-body">
+          <div class="tp-related-card-name">${r.name}</div>
+          <div class="tp-related-card-state">${r.state}</div>
+        </div>
+      </a>`;
+  });
+
+  // Sidebar
+  document.getElementById('sbDest').value = dest.name;
+  // Set min date to today
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('sbDate').min   = today;
+  document.getElementById('sbDate').value = today;
+});
+
+function scrollToBook() {
+  document.getElementById('bookSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function bookFromPlanner() {
+  const dest      = document.getElementById('sbDest').value;
+  const pickup    = document.getElementById('sbPickup').value.trim() || '';
+  const date      = document.getElementById('sbDate').value;
+  const passengers = document.getElementById('sbPassengers').value;
+  const vehicle   = document.getElementById('sbVehicle').value;
+
+  if (!pickup) {
+    document.getElementById('sbPickup').focus();
+    document.getElementById('sbPickup').style.borderColor = '#E31E24';
+    return;
+  }
+
+  // Build URL to main site with params
+  const params = new URLSearchParams({
+    pickup,
+    drop: dest,
+    date,
+    passengers,
+    vehicle,
+    type: 'oneway',
+  });
+  window.location.href = `index.html?${params.toString()}#home`;
+}
+</script>
+
+<!-- Floating Contact Dock (WhatsApp + Call) -->
+<div class="float-dock" aria-label="Quick contact">
+  <a href="https://wa.me/919597815889" target="_blank" rel="noopener" class="float-fab wa" aria-label="Chat on WhatsApp">
+    <i class="fab fa-whatsapp"></i>
+    <span class="float-fab-label">Chat on WhatsApp</span>
+  </a>
+  <a href="tel:+919597815889" class="float-fab call" aria-label="Call Now">
+    <i class="fas fa-phone"></i>
+    <span class="float-fab-label">Call Now</span>
+  </a>
+</div>
+</body>
+</html>

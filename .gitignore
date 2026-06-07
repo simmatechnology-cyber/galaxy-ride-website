@@ -1,0 +1,22 @@
+# Netlify
+.netlify
+
+# Local environment — NEVER commit secrets
+.env
+.env.local
+.env.production
+
+# Firebase service account key — NEVER commit this file
+serviceAccountKey.json
+serviceAccountkey.json
+*serviceAccount*.json
+*serviceaccount*.json
+firebase-adminsdk*.json
+
+# Node
+node_modules/
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db

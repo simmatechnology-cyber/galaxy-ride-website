@@ -1,0 +1,24 @@
+rules_version = '2';
+
+// ─────────────────────────────────────────────────────────────
+//  Galaxy Ride — Firebase Storage Security Rules
+// ─────────────────────────────────────────────────────────────
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Driver document uploads (license, RC, insurance, photo).
+    // Public registration form: anyone may upload their own documents
+    // (max 10 MB, images or PDF). Reads restricted to admins via console / Admin SDK.
+    match /driver-documents/{appId}/{fileName} {
+      allow write: if request.resource.size < 10 * 1024 * 1024
+                   && (request.resource.contentType.matches('image/.*')
+                       || request.resource.contentType == 'application/pdf');
+      allow read:  if request.auth != null && request.auth.token.admin == true;
+    }
+
+    // Everything else: locked down by default.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

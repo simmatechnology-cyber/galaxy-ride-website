@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Travel Services — Admin Dashboard | Galaxy Ride</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23E31E24'/><text y='.9em' font-size='70' x='14'>📊</text></svg>" />
+  <style>
+    *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --primary:#E31E24; --bg:#0c0f1e; --card:#161a2e; --line:rgba(255,255,255,0.08); --muted:rgba(255,255,255,0.55); }
+    body { background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+    .ta-nav { display:flex; align-items:center; justify-content:space-between; padding:16px 28px; background:rgba(12,15,30,0.92); border-bottom:1px solid var(--line); position:sticky; top:0; z-index:10; }
+    .ta-logo { display:flex; align-items:center; gap:10px; text-decoration:none; color:#fff; font-weight:800; font-size:18px; }
+    .ta-logo .b { width:36px;height:36px;background:var(--primary);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px; }
+    .ta-back { color:var(--muted); text-decoration:none; font-size:14px; display:flex; align-items:center; gap:7px; }
+    .ta-back:hover { color:#fff; }
+    .ta-wrap { max-width:1180px; margin:0 auto; padding:32px 28px 80px; }
+    .ta-title { font-size:26px; font-weight:800; font-family:'Poppins',sans-serif; margin-bottom:4px; }
+    .ta-sub { color:var(--muted); font-size:14px; margin-bottom:28px; }
+    .ta-refresh { background:var(--primary); color:#fff; border:none; border-radius:10px; padding:9px 16px; font-size:13px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:7px; }
+    .ta-refresh:hover { background:#c41a1f; }
+    /* KPI cards */
+    .ta-kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:28px; }
+    .kpi { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:20px; }
+    .kpi-ico { width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;margin-bottom:12px; background:linear-gradient(135deg,var(--primary),#ff6b35); }
+    .kpi-val { font-size:30px; font-weight:800; line-height:1; }
+    .kpi-label { color:var(--muted); font-size:13px; margin-top:6px; }
+    .kpi-meta { font-size:11.5px; color:var(--muted); margin-top:8px; }
+    /* Grid panels */
+    .ta-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+    .panel { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:22px; }
+    .panel h3 { font-size:15px; font-weight:700; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+    .panel h3 i { color:var(--primary); }
+    .bar-row { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+    .bar-label { width:120px; font-size:13px; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .bar-track { flex:1; height:10px; background:rgba(255,255,255,0.07); border-radius:6px; overflow:hidden; }
+    .bar-fill { height:100%; background:linear-gradient(90deg,var(--primary),#ff6b35); border-radius:6px; transition:width 0.6s; }
+    .bar-val { width:42px; text-align:right; font-size:13px; font-weight:700; }
+    .ta-empty { color:var(--muted); font-size:13px; text-align:center; padding:24px 0; }
+    .svc-split { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:6px; }
+    .svc-chip { text-align:center; padding:14px 8px; border-radius:12px; background:rgba(255,255,255,0.04); border:1px solid var(--line); }
+    .svc-chip .n { font-size:22px; font-weight:800; }
+    .svc-chip .l { font-size:11px; color:var(--muted); margin-top:3px; text-transform:uppercase; letter-spacing:0.5px; }
+    .conv-big { font-size:38px; font-weight:800; }
+    .conv-sub { color:var(--muted); font-size:13px; }
+    @media (max-width:880px){ .ta-kpis{grid-template-columns:1fr 1fr;} .ta-grid{grid-template-columns:1fr;} .svc-split{grid-template-columns:1fr 1fr;} }
+  </style>
+</head>
+<body>
+  <nav class="ta-nav">
+    <a class="ta-logo" href="index.html"><span class="b">GR</span> Travel Analytics</a>
+    <a class="ta-back" href="index.html"><i class="fas fa-arrow-left"></i> Back to Site</a>
+  </nav>
+
+  <div class="ta-wrap">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <div>
+        <div class="ta-title">Travel Services Dashboard</div>
+        <div class="ta-sub">Redirect-model analytics — searches & partner redirects (no bookings stored here).</div>
+      </div>
+      <button class="ta-refresh" onclick="loadAnalytics()"><i class="fas fa-rotate"></i> Refresh</button>
+    </div>
+
+    <!-- KPI row -->
+    <div class="ta-kpis" id="kpis">
+      <div class="kpi"><div class="kpi-ico"><i class="fas fa-magnifying-glass"></i></div><div class="kpi-val" id="kpiSearches">—</div><div class="kpi-label">Total Searches</div></div>
+      <div class="kpi"><div class="kpi-ico"><i class="fas fa-external-link-alt"></i></div><div class="kpi-val" id="kpiRedirects">—</div><div class="kpi-label">Partner Redirects</div></div>
+      <div class="kpi"><div class="kpi-ico"><i class="fas fa-percent"></i></div><div class="kpi-val" id="kpiConversion">—</div><div class="kpi-label">Conversion Rate</div></div>
+      <div class="kpi"><div class="kpi-ico"><i class="fas fa-users"></i></div><div class="kpi-val" id="kpiUsers">—</div><div class="kpi-label">Logged-in Searches</div></div>
+    </div>
+
+    <!-- Service split -->
+    <div class="panel" style="margin-bottom:20px;">
+      <h3><i class="fas fa-layer-group"></i> Searches by Service</h3>
+      <div class="svc-split" id="svcSplit"></div>
+    </div>
+
+    <div class="ta-grid">
+      <div class="panel">
+        <h3><i class="fas fa-route"></i> Top Routes / Searches</h3>
+        <div id="topRoutes"><div class="ta-empty">Loading…</div></div>
+      </div>
+      <div class="panel">
+        <h3><i class="fas fa-location-dot"></i> Top Destinations</h3>
+        <div id="topDests"><div class="ta-empty">Loading…</div></div>
+      </div>
+      <div class="panel">
+        <h3><i class="fas fa-handshake"></i> Redirects by Partner</h3>
+        <div id="topPartners"><div class="ta-empty">Loading…</div></div>
+      </div>
+      <div class="panel">
+        <h3><i class="fas fa-chart-line"></i> Conversion by Service</h3>
+        <div id="convByService"><div class="ta-empty">Loading…</div></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+    import { getFirestore, collection, getDocs, query, orderBy, limit }
+      from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBcmBnSMiMJui28q9AlBvoVVHH6wmbgm_c",
+      authDomain: "galaxyride-4f219.firebaseapp.com",
+      projectId: "galaxyride-4f219",
+      storageBucket: "galaxyride-4f219.firebasestorage.app",
+      messagingSenderId: "351465763874",
+      appId: "1:351465763874:web:e2f89a58a686661566467b",
+    };
+    const db = getFirestore(initializeApp(firebaseConfig));
+
+    const esc = (s) => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+    function bars(containerId, entries, emptyMsg) {
+      const el = document.getElementById(containerId);
+      if (!entries.length) { el.innerHTML = `<div class="ta-empty">${emptyMsg}</div>`; return; }
+      const max = Math.max(...entries.map(e => e[1]));
+      el.innerHTML = entries.slice(0, 8).map(([label, n]) => `
+        <div class="bar-row">
+          <div class="bar-label" title="${esc(label)}">${esc(label)}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${Math.round(n/max*100)}%"></div></div>
+          <div class="bar-val">${n}</div>
+        </div>`).join('');
+    }
+
+    function tally(arr, keyFn) {
+      const m = {};
+      arr.forEach(x => { const k = keyFn(x); if (k) m[k] = (m[k]||0)+1; });
+      return Object.entries(m).sort((a,b)=>b[1]-a[1]);
+    }
+
+    window.loadAnalytics = async function () {
+      let docs = [];
+      try {
+        const snap = await getDocs(query(collection(db,'travelRedirectAnalytics'), orderBy('createdAt','desc'), limit(1000)));
+        docs = snap.docs.map(d => d.data());
+      } catch (e) {
+        console.error('Load failed:', e);
+        document.getElementById('topRoutes').innerHTML = `<div class="ta-empty">Failed to load: ${esc(e.message)}</div>`;
+        return;
+      }
+
+      const searches  = docs.filter(d => d.eventType === 'search');
+      const redirects = docs.filter(d => d.eventType === 'redirect');
+
+      // KPIs
+      document.getElementById('kpiSearches').textContent  = searches.length;
+      document.getElementById('kpiRedirects').textContent = redirects.length;
+      const conv = searches.length ? Math.round(redirects.length / searches.length * 100) : 0;
+      document.getElementById('kpiConversion').textContent = conv + '%';
+      document.getElementById('kpiUsers').textContent = searches.filter(s => s.userId).length;
+
+      // Service split (searches per service)
+      const svcCount = { bus:0, train:0, flight:0, hotel:0 };
+      searches.forEach(s => { if (svcCount[s.serviceType] != null) svcCount[s.serviceType]++; });
+      const svcIcons = { bus:'fa-bus', train:'fa-train', flight:'fa-plane', hotel:'fa-hotel' };
+      document.getElementById('svcSplit').innerHTML = Object.keys(svcCount).map(s => `
+        <div class="svc-chip"><div class="n">${svcCount[s]}</div><div class="l"><i class="fas ${svcIcons[s]}"></i> ${s}</div></div>`).join('');
+
+      // Top routes (bus/train/flight) + Top destinations (hotel)
+      const routeEntries = tally(searches.filter(s=>s.serviceType!=='hotel'), s => s.routeKey);
+      bars('topRoutes', routeEntries, 'No route searches yet.');
+
+      const destEntries = tally(searches.filter(s=>s.serviceType==='hotel'), s => s.routeKey || s.searchQuery?.destination);
+      bars('topDests', destEntries, 'No hotel searches yet.');
+
+      // Redirects by partner
+      bars('topPartners', tally(redirects, r => r.redirectPartner), 'No redirects yet.');
+
+      // Conversion by service
+      const convEl = document.getElementById('convByService');
+      const services = ['bus','train','flight','hotel'];
+      const rows = services.map(svc => {
+        const s = searches.filter(x=>x.serviceType===svc).length;
+        const r = redirects.filter(x=>x.serviceType===svc).length;
+        const pct = s ? Math.round(r/s*100) : 0;
+        return `<div class="bar-row">
+          <div class="bar-label" style="text-transform:capitalize">${svc}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+          <div class="bar-val">${pct}%</div></div>`;
+      }).join('');
+      convEl.innerHTML = rows;
+    };
+
+    loadAnalytics();
+  </script>
+</body>
+</html>
