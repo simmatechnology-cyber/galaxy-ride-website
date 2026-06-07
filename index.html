@@ -147,9 +147,6 @@
         <button class="tab-btn" data-tab="hourly" onclick="switchTab('hourly', this)">
           <i class="fas fa-clock"></i> Hourly Ride
         </button>
-        <button class="tab-btn" data-tab="fullday" onclick="switchTab('fullday', this)">
-          <i class="fas fa-sun"></i> Full Day
-        </button>
       </div>
 
       <form class="booking-form" id="bookingForm" onsubmit="handleBookingSubmit(event)">
@@ -721,7 +718,6 @@
       <button class="price-tab active" onclick="showPricingTab('local', this)">Local City</button>
       <button class="price-tab" onclick="showPricingTab('outstation', this)">Outstation</button>
       <button class="price-tab" onclick="showPricingTab('hourly', this)">Hourly</button>
-      <button class="price-tab" onclick="showPricingTab('fullday', this)">Full Day</button>
     </div>
 
     <!-- Local Tariff -->
@@ -885,42 +881,6 @@
       </div>
     </div>
 
-    <!-- Full Day Tariff -->
-    <div class="pricing-table-wrap" id="pricingFullday">
-      <div class="table-responsive">
-        <table class="pricing-table">
-          <thead>
-            <tr>
-              <th>Vehicle</th>
-              <th>Fare</th>
-              <th>KM Limit</th>
-              <th>Extra KM</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr class="highlighted">
-              <td><span class="vehicle-tag sedan">🚙 Sedan</span></td>
-              <td class="price">₹4,500</td>
-              <td>180 KM</td>
-              <td>₹19/KM</td>
-            </tr>
-            <tr>
-              <td><span class="vehicle-tag muv">🛻 MUV</span></td>
-              <td class="price">₹6,000</td>
-              <td>180 KM</td>
-              <td>₹22/KM</td>
-            </tr>
-            <tr>
-              <td><span class="vehicle-tag innova">🚐 Innova</span></td>
-              <td class="price">₹8,000</td>
-              <td>180 KM</td>
-              <td>₹24/KM</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <p class="table-note">* Full day = 12 hours. Toll, parking & driver bata extra.</p>
-    </div>
   </div>
 </section>
 
