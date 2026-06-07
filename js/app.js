@@ -494,17 +494,18 @@ const TARIFF = {
     auto:   { base: 100, included: 5, perKm: 14, peakPerKm: 16, maxKm: 100 },
     mini:   { base: 110, included: 3, perKm: 18, peakPerKm: 20, maxKm: 100 },
     sedan:  { base: 110, included: 3, perKm: 19, peakPerKm: 24, maxKm: 100 },
-    suv:    { base: 120, included: 3, perKm: 22, peakPerKm: 28, maxKm: 100 },
-    innova: { base: 130, included: 3, perKm: 24, peakPerKm: 30, maxKm: 100 },
+    suv:    { base: 150, included: 3, perKm: 22, peakPerKm: 28, maxKm: 100 },
+    innova: { base: 250, included: 3, perKm: 24, peakPerKm: 30, maxKm: 100 },
   },
 
   // ── Outstation rides (> 100 km) ────────────────────────────────────────────
   outstation: {
     //         perKm  driverBata  minKmPerDay
     mini:   { perKm: 13, driverBata: 400, minKmPerDay: 250 },
-    sedan:  { perKm: 14, driverBata: 400, minKmPerDay: 250 },
+    sedan:  { perKm: 13, driverBata: 400, minKmPerDay: 250 },
     suv:    { perKm: 18, driverBata: 400, minKmPerDay: 250 },
     innova: { perKm: 22, driverBata: 400, minKmPerDay: 250 },
+    hillsCharge: 500,
   },
 
   // ── Hourly packages — index 0 = 1 hr, index 9 = 10 hr ────────────────────

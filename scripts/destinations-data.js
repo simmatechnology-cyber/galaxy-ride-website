@@ -676,7 +676,7 @@ const FARE_RULES = {
   },
   outstation: {
     mini:      { perKm: 13, driverBata: 400 },
-    sedan:     { perKm: 14, driverBata: 400 },
+    sedan:     { perKm: 13, driverBata: 400 },
     suv:       { perKm: 18, driverBata: 400 },
     innova:    { perKm: 22, driverBata: 400 },
     traveller: { perKm: 26, driverBata: 600 },
