@@ -1788,50 +1788,25 @@ function setupClickOutside() {
 // ==================== GEOLOCATION ====================
 
 /**
- * Build a short, human-readable pickup label from Geoapify reverse-geocode properties.
+ * Build a human-readable pickup label from Geoapify reverse-geocode properties.
  *
  * Rules:
- *   accuracy < 100m  → "Current Location"   (pin is precise, clean label)
- *   accuracy ≥ 100m  → "Village/Town, District"  (cell-tower fix, show area for confirmation)
- *   no geocode data  → raw "lat, lon"
+ *   API returns data → show props.formatted  (e.g. "Devadanappatti, Theni, Tamil Nadu")
+ *   API returns nothing → "Current Location" (never show raw coordinates to the user)
  *
  * Returns: { short, full }
  *   short — what shows in the input box
- *   full  — stored internally and sent with booking
+ *   full  — stored internally (same as short here; coords kept in state.pickupCoords)
  */
 function buildPickupLabel(props, accuracy, lat, lon) {
-  // ── Fallback: no API data ─────────────────────────────────────────────────
-  if (!props) {
-    const coords = `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
-    return { short: coords, full: coords };
+  // ── No geocode data: clean fallback, no raw lat/lon in UI ────────────────
+  if (!props || !props.formatted) {
+    return { short: 'Current Location', full: 'Current Location' };
   }
 
-  const full = props.formatted || `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
-
-  // ── Accurate GPS fix (< 100 m) → clean "Current Location" label ──────────
-  if (accuracy < 100) {
-    return { short: 'Current Location', full };
-  }
-
-  // ── Approximate fix (≥ 100 m) → show area/district so user can verify ────
-  const primary = props.village
-    || props.hamlet
-    || props.suburb
-    || props.quarter
-    || props.town
-    || props.city
-    || '';
-
-  const district = props.county       // district/taluk in India
-    || props.state_district
-    || '';
-
-  let short = [primary, district].filter(Boolean).join(', ');
-
-  // Final fallback if nothing useful was extracted
-  if (!short) short = props.city || props.state || 'Current Location';
-
-  return { short, full };
+  // ── API succeeded: always show the full human-readable formatted address ──
+  const formatted = props.formatted;
+  return { short: formatted, full: formatted };
 }
 
 function useCurrentLocation() {
@@ -1854,10 +1829,11 @@ function useCurrentLocation() {
 
   function setPickup(short, full) {
     if (!input) return;
-    input.value                  = short;
-    input.dataset.fullAddress    = full;       // booking system reads this
-    input.title                  = full;       // tooltip on hover
-    state.pickupFullAddress      = full;       // also kept in state
+    input.value               = short;
+    input.dataset.fullAddress = full;       // booking system reads this
+    input.title               = full;       // tooltip shows full address on hover
+    state.pickupFullAddress   = full;       // also kept in state
+    setInputValid(input);                   // green border — same as autocomplete selection
   }
 
   setBtnState(true);
@@ -1893,9 +1869,9 @@ function useCurrentLocation() {
 
       } catch (fetchErr) {
         console.warn('[GeoLoc] Reverse geocode failed:', fetchErr.message);
-        const coords = `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
-        setPickup(coords, coords);
-        showToast('info', 'Location found — address lookup unavailable, coordinates used.');
+        // Coordinates stay in state.pickupCoords for route calc; show clean label in UI
+        setPickup('Current Location', 'Current Location');
+        showToast('info', 'Location found. Address lookup unavailable — using current position.');
       } finally {
         setBtnState(false);
       }
