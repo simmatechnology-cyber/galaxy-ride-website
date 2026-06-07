@@ -186,9 +186,13 @@ const CAT_ICONS = {
 };
 
 // ── Category priority for tie-breaking (higher = shown first) ────────────────
+// Priority order: Apartments > Companies > IT Parks > Hospitals > Hotels >
+//                 Malls > Metro > Railway > Bus > Education > Landmark >
+//                 Temple > Restaurant > Market > Street/Road
 const CAT_PRIORITY = {
-  lmk:80, apt:78, itp:75, com:73, mal:72, hop:70, edu:68,
-  met:65, sta:64, bus:62, hot:60, tem:55, rst:50, mkt:48, str:20,
+  apt:90, com:88, itp:85, hop:82, hot:78, mal:75,
+  met:72, sta:68, bus:65, edu:62, lmk:60, tem:55,
+  rst:50, mkt:48, str:20,
 };
 
 // ── Small curated DB (504 entries) — loaded at page start ─────────────────────
@@ -425,29 +429,42 @@ function searchChennaiDB(query) {
   const src = CHENNAI_LARGE_DB ? 'large-db' : 'curated-db';
   console.log(`[Search] 🏙 Chennai "${q}" → ${deduped.length} results [${src}, ${ms}ms, pool=${pool.length}]`);
 
-  return deduped.map(({ p }) => ({
-    type: 'Feature',
-    geometry: { type: 'Point', coordinates: [p.lon, p.lat] },
-    properties: {
-      name:         p.n,
-      suburb:       p.area,
-      city:         'Chennai',
-      state:        'Tamil Nadu',
-      country:      'India',
-      country_code: 'in',
-      formatted:    `${p.n}, ${p.area}, Chennai, Tamil Nadu`,
-      result_type:  p.cat === 'met' ? 'amenity'
-                  : p.cat === 'sta' ? 'amenity'
-                  : p.cat === 'bus' ? 'amenity'
-                  : p.cat === 'str' ? 'street'
-                  : p.cat === 'apt' ? 'locality'
-                  : 'amenity',
-      poi_category: p.cat,
-      poi_icon:     CAT_ICONS[p.cat] || 'fa-map-marker-alt',
-      poi_label:    CAT_LABELS[p.cat] || 'Place',
-      source:       'chennai-db',
-    },
-  }));
+  return deduped.map(({ p }) => {
+    // Address format: "Street, Area" when street is present, else just "Area"
+    const streetArea = p.street
+      ? `${p.street}, ${p.area}`
+      : p.area || 'Chennai';
+    // Full formatted: "Name / Street, Area / Chennai, Tamil Nadu"
+    const formatted = p.street
+      ? `${p.n} / ${p.street}, ${p.area} / Chennai, Tamil Nadu`
+      : `${p.n} / ${p.area} / Chennai, Tamil Nadu`;
+
+    return {
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [p.lon, p.lat] },
+      properties: {
+        name:         p.n,
+        // hamlet carries the street — renderAutocomplete shows it before suburb
+        hamlet:       p.street || null,
+        suburb:       p.area,
+        city:         'Chennai',
+        state:        'Tamil Nadu',
+        country:      'India',
+        country_code: 'in',
+        // pre-built display address used as fallback and for input fill
+        formatted,
+        // address_line2 is the sub-line shown in the dropdown
+        address_line2: streetArea + ', Chennai, Tamil Nadu',
+        result_type:  p.cat === 'str' ? 'street'
+                    : p.cat === 'apt' ? 'locality'
+                    : 'amenity',
+        poi_category: p.cat,
+        poi_icon:     CAT_ICONS[p.cat] || 'fa-map-marker-alt',
+        poi_label:    CAT_LABELS[p.cat] || 'Place',
+        source:       'chennai-db',
+      },
+    };
+  });
 }
 
 // ── Search result cache — prevents redundant API calls for repeated queries ───
@@ -1506,9 +1523,15 @@ function renderAutocomplete(features, dropdownId, onSelect, query = '') {
                 || p.address_line2
                 || p.formatted
                 || '';
-    // Chennai DB: prepend category label for clarity (e.g. "Metro Station · Anna Nagar, Chennai")
-    if (p.source === 'chennai-db' && p.poi_label) {
-      address = address ? `${p.poi_label} · ${address}` : p.poi_label;
+    // Chennai DB: show "Street / Area / Chennai, Tamil Nadu" address format
+    // poi_label (category) is shown via the icon; address line shows location path.
+    if (p.source === 'chennai-db') {
+      // Build clean address: use hamlet (street) + suburb (area) + city/state
+      const streetPart = p.hamlet ? `${p.hamlet}, ` : '';
+      const areaPart   = p.suburb || '';
+      address = areaPart
+        ? `${streetPart}${areaPart}, Chennai, Tamil Nadu`
+        : 'Chennai, Tamil Nadu';
     }
 
     // Icon — Chennai DB has pre-computed category icons; fall through for others
@@ -1558,10 +1581,16 @@ function renderAutocomplete(features, dropdownId, onSelect, query = '') {
       const lat = f.geometry?.coordinates?.[1] ?? p.lat;
       const coords = { lon, lat };
 
-      // Label to fill into the input — use formatted or reconstruct from parts
-      const label = p.formatted
-        || [p.name || p.village || p.hamlet, p.city || p.town, p.state].filter(Boolean).join(', ')
-        || p.name || '';
+      // Label to fill into the input
+      // Chennai DB: fill with just the POI name (clean, no slash format)
+      // Other sources: use formatted address or reconstruct
+      const label = p.source === 'chennai-db'
+        ? (p.name || '')
+        : (p.name && p.city
+            ? `${p.name}, ${p.city}`
+            : p.formatted
+              || [p.name || p.village || p.hamlet, p.city || p.town, p.state].filter(Boolean).join(', ')
+              || p.name || '');
 
       onSelect({ coords, label });
     });
