@@ -844,9 +844,11 @@ function setupAutocomplete() {
     // Clear stored coords + GPS full-address on every manual edit so stale
     // data from a previous GPS fix never contaminates a manually-typed booking.
     pickupInput.addEventListener('input', () => {
-      state.pickupCoords       = null;
-      state.distance           = null;
-      state.pickupFullAddress  = null;
+      state.pickupCoords        = null;
+      state.distance            = null;
+      state.duration            = null;
+      state.durationEstimated   = false;
+      state.pickupFullAddress   = null;
       pickupInput.dataset.fullAddress = '';
       pickupInput.title               = '';
       acDebounce('pickup', pickupInput.value, 'pickupDropdown', acPickupSelect);
@@ -855,8 +857,10 @@ function setupAutocomplete() {
 
   if (dropInput) {
     dropInput.addEventListener('input', () => {
-      state.dropCoords = null;
-      state.distance   = null;
+      state.dropCoords          = null;
+      state.distance            = null;
+      state.duration            = null;
+      state.durationEstimated   = false;
       acDebounce('drop', dropInput.value, 'dropDropdown', acDropSelect);
     });
   }
@@ -1823,20 +1827,56 @@ function useCurrentLocation() {
 
 async function calcDistance() {
   if (!state.pickupCoords || !state.dropCoords) return;
+
+  // Show a loading state in the route info row while API call is in flight
+  const routeRow = $('routeInfoRow');
+  const routeEl  = $('routeInfoDisplay');
+  if (routeRow) routeRow.classList.remove('hidden');
+  if (routeEl)  routeEl.textContent = 'Calculating route…';
+
   try {
     const { lat: fromLat, lon: fromLon } = state.pickupCoords;
     const { lat: toLat,   lon: toLon   } = state.dropCoords;
-    const url = `https://api.geoapify.com/v1/routing?waypoints=${fromLat},${fromLon}|${toLat},${toLon}&mode=drive&apiKey=${GEOAPIFY_API_KEY}`;
-    const res  = await fetch(url);
-    const data = await res.json();
-    const meters = data.features?.[0]?.properties?.distance || 0;
-    state.distance = Math.ceil(meters / 1000);
-    calculateFare();
+
+    // Geoapify Routing API — waypoints in lat,lon order
+    const url = `https://api.geoapify.com/v1/routing` +
+      `?waypoints=${fromLat},${fromLon}|${toLat},${toLon}` +
+      `&mode=drive&apiKey=${GEOAPIFY_API_KEY}`;
+
+    const res = await fetch(url);
+
+    // Non-2xx responses resolve without throwing — must check explicitly
+    if (!res.ok) {
+      throw new Error(`Routing API HTTP ${res.status}`);
+    }
+
+    const data    = await res.json();
+    const props   = data.features?.[0]?.properties;
+    const meters  = props?.distance;
+    const seconds = props?.time;
+
+    // Treat zero or missing distance as a failure — fall through to haversine
+    if (!meters || meters <= 0) {
+      throw new Error('Routing API returned zero or missing distance');
+    }
+
+    state.distance          = Math.ceil(meters / 1000);
+    state.duration          = seconds ? Math.round(seconds / 60) : null; // store as minutes
+    state.durationEstimated = false;
+    console.log(`[Route] API ✓  ${state.distance} km  ${state.duration ? formatDuration(state.duration) : ''}`);
+
   } catch (e) {
-    // Fallback to straight-line distance
-    state.distance = haversineKm(state.pickupCoords, state.dropCoords);
-    calculateFare();
+    // Straight-line haversine × 1.25 road-correction factor (always works, no API needed)
+    console.warn('[Route] API failed — haversine fallback:', e.message);
+    const crow = haversineKm(state.pickupCoords, state.dropCoords);
+    state.distance = Math.round(crow * 1.25);
+    // Estimate drive time at ~55 km/h average inter-city speed
+    state.duration = Math.round((state.distance / 55) * 60);
+    state.durationEstimated = true;
+    console.log(`[Route] Fallback  straight=${crow} km  road≈${state.distance} km`);
   }
+
+  calculateFare();
 }
 
 function haversineKm(a, b) {
@@ -1848,6 +1888,15 @@ function haversineKm(a, b) {
 }
 
 function deg2rad(d) { return d * (Math.PI / 180); }
+
+/** Format minutes into a human-readable duration string, e.g. "~5h 30m" */
+function formatDuration(mins) {
+  if (!mins || mins <= 0) return '';
+  if (mins < 60) return `~${mins}m`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return m > 0 ? `~${h}h ${m}m` : `~${h}h`;
+}
 
 // ==================== SWAP LOCATIONS ====================
 
@@ -1961,7 +2010,9 @@ function calculateFare() {
   const timeVal  = $('time')?.value;
   const isPeak   = dateVal && timeVal && isPeakHour(dateVal, timeVal);
 
-  const km        = state.distance || 0;
+  // Treat NaN / null / undefined as 0 so we never pass garbage to computeFare
+  const rawKm     = state.distance;
+  const km        = (typeof rawKm === 'number' && isFinite(rawKm) && rawKm > 0) ? rawKm : 0;
   const tab       = state.currentTab;
   const hourlyHrs = tab === 'hourly' ? (parseInt($('hourlyPackage')?.value) || 0) : 0;
   // Peak surcharge applies only to city one-way/roundtrip rides ≤ 100 km
@@ -1982,15 +2033,33 @@ function calculateFare() {
   state.fare           = total;
   state.couponDiscount = discount;
 
+  // ── Route info row (Distance + Duration) ─────────────────────────────────
+  const routeInfoRow = $('routeInfoRow');
+  const routeInfoEl  = $('routeInfoDisplay');
+  if (routeInfoRow && routeInfoEl) {
+    if (km > 0) {
+      const dur     = state.duration ? ` · ${formatDuration(state.duration)}` : '';
+      const estMark = state.durationEstimated ? ' (est.)' : '';
+      routeInfoEl.textContent = `${km} km${dur}${estMark}`;
+      routeInfoRow.classList.remove('hidden');
+    } else {
+      routeInfoRow.classList.add('hidden');
+    }
+  }
+
   // ── Fare breakdown UI ─────────────────────────────────────────────────────
   $('baseFareDisplay').textContent     = `₹${baseFare}`;
 
   // Distance fare row: hide for hourly/fullday (those show a package rate)
   const showDistRow = !isHourly && !isFullday;
-  const distKm      = isOutstation ? (100 - (TARIFF.local[vehicle]?.included || 3)) : km;
-  $('distanceDisplay').textContent     = distKm;
+  // For outstation: show the city-rate portion (included km → 100 km)
+  // For local: show the actual trip km beyond the free included distance
+  const cityBillKm  = isOutstation
+    ? (100 - (TARIFF.local[vehicle]?.included || 3))
+    : Math.max(0, km - (TARIFF.local[vehicle]?.included || 3));
+  $('distanceDisplay').textContent     = cityBillKm;
   $('distanceFareDisplay').textContent = `₹${cityFare}`;
-  $('distanceFareRow')?.classList.toggle('hidden', !showDistRow);
+  $('distanceFareRow')?.classList.toggle('hidden', !showDistRow || cityFare === 0);
 
   // Extra km row (hourly over-limit / fullday over-limit)
   const extraKmRow = $('extraKmRow');
