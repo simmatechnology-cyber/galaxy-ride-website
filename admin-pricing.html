@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Galaxy Ride — Admin Tariff Reference</title>
+  <!-- Excluded from search engine indexing -->
+  <meta name="robots" content="noindex, nofollow, noarchive" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #E31E24;
+      --dark: #1a1a2e;
+      --gray-100: #f8f9fa;
+      --gray-200: #e9ecef;
+      --gray-400: #868e96;
+      --gray-500: #6c757d;
+      --green: #16a34a;
+      --amber: #d97706;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--gray-100);
+      color: #333;
+      min-height: 100vh;
+    }
+
+    /* ── Login Gate ────────────────────────────────────── */
+    #loginGate {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .login-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 40px 36px;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.12);
+      text-align: center;
+    }
+    .login-logo {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--primary);
+      margin-bottom: 4px;
+      letter-spacing: -0.5px;
+    }
+    .login-logo span { color: var(--dark); }
+    .login-subtitle {
+      font-size: 13px;
+      color: var(--gray-500);
+      margin-bottom: 28px;
+    }
+    .login-label {
+      display: block;
+      text-align: left;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--dark);
+      margin-bottom: 6px;
+    }
+    .login-input {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1.5px solid var(--gray-200);
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+      margin-bottom: 16px;
+    }
+    .login-input:focus { border-color: var(--primary); }
+    .login-btn {
+      width: 100%;
+      padding: 12px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .login-btn:hover { opacity: 0.88; }
+    .login-error {
+      margin-top: 12px;
+      font-size: 12.5px;
+      color: #dc3545;
+      display: none;
+    }
+    .login-error.show { display: block; }
+    .lock-icon {
+      font-size: 40px;
+      color: var(--gray-400);
+      margin-bottom: 16px;
+    }
+
+    /* ── Admin Content ─────────────────────────────────── */
+    #adminContent { display: none; }
+
+    header.admin-header {
+      background: var(--dark);
+      color: #fff;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .admin-header-left { display: flex; align-items: center; gap: 14px; }
+    .admin-brand { font-size: 18px; font-weight: 800; color: var(--primary); }
+    .admin-brand span { color: #fff; }
+    .admin-badge {
+      background: rgba(227,30,36,0.18);
+      color: var(--primary);
+      border: 1px solid rgba(227,30,36,0.35);
+      border-radius: 20px;
+      padding: 3px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .admin-header-right { display: flex; align-items: center; gap: 12px; }
+    .admin-logout {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.25);
+      color: #ccc;
+      border-radius: 6px;
+      padding: 6px 14px;
+      font-size: 12.5px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .admin-logout:hover { background: rgba(255,255,255,0.08); color: #fff; }
+
+    .admin-main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 30px 20px 60px;
+    }
+    .admin-intro {
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 13px;
+      color: #856404;
+      margin-bottom: 28px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .admin-intro i { font-size: 16px; flex-shrink: 0; }
+
+    .section-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--dark);
+      margin-bottom: 6px;
+    }
+    .section-sub {
+      font-size: 13px;
+      color: var(--gray-500);
+      margin-bottom: 20px;
+    }
+
+    /* ── Tabs ─────────────────────────────────────────── */
+    .tariff-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .tariff-tab {
+      padding: 8px 20px;
+      border: 1.5px solid var(--gray-200);
+      border-radius: 30px;
+      background: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gray-500);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tariff-tab:hover { border-color: var(--primary); color: var(--primary); }
+    .tariff-tab.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+
+    .tariff-panel { display: none; }
+    .tariff-panel.active { display: block; }
+
+    /* ── Info badges ──────────────────────────────────── */
+    .info-badges {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .info-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #fff;
+      border: 1px solid var(--gray-200);
+      border-radius: 8px;
+      padding: 7px 12px;
+      font-size: 12.5px;
+      color: var(--dark);
+    }
+    .info-badge i { color: var(--primary); font-size: 13px; }
+
+    /* ── Tables ───────────────────────────────────────── */
+    .table-wrap {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    .table-wrap h3 {
+      padding: 14px 20px 10px;
+      font-size: 14.5px;
+      font-weight: 700;
+      color: var(--dark);
+      border-bottom: 1px solid var(--gray-100);
+      background: var(--gray-100);
+    }
+    .table-resp { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+    }
+    thead { background: var(--dark); }
+    th {
+      padding: 11px 16px;
+      text-align: left;
+      color: #fff;
+      font-weight: 600;
+      font-size: 12.5px;
+      white-space: nowrap;
+    }
+    td {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--gray-100);
+      white-space: nowrap;
+    }
+    tbody tr:hover { background: rgba(227,30,36,0.03); }
+    tbody tr:last-child td { border-bottom: none; }
+    .highlighted td { background: rgba(227,30,36,0.04); font-weight: 500; }
+    .price { color: var(--primary); font-weight: 700; }
+    .vtag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      background: var(--gray-100);
+    }
+    .table-note {
+      font-size: 12px;
+      color: var(--gray-500);
+      padding: 10px 16px 12px;
+      border-top: 1px solid var(--gray-100);
+      background: var(--gray-100);
+    }
+
+    /* ── Hill stations list ───────────────────────────── */
+    .hill-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .hill-item {
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 13px;
+      color: #92400e;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .hill-item i { color: #f97316; font-size: 12px; }
+
+    /* ── Coupon table ─────────────────────────────────── */
+    .coupon-chip {
+      display: inline-block;
+      background: #f0fdf4;
+      border: 1px solid #86efac;
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #15803d;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Peak hours block ─────────────────────────────── */
+    .peak-grid {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .peak-item {
+      background: #fff5f5;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 13px;
+      color: #991b1b;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .peak-item i { color: var(--primary); }
+
+    footer.admin-footer {
+      text-align: center;
+      font-size: 12px;
+      color: var(--gray-500);
+      padding: 20px;
+      border-top: 1px solid var(--gray-200);
+      background: #fff;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ══════════════ LOGIN GATE ══════════════ -->
+  <div id="loginGate">
+    <div class="login-card">
+      <div class="lock-icon"><i class="fas fa-lock"></i></div>
+      <div class="login-logo">Galaxy<span>Ride</span></div>
+      <p class="login-subtitle">Admin Tariff Reference — Restricted Access</p>
+      <label class="login-label" for="adminPass">Admin Password</label>
+      <input type="password" id="adminPass" class="login-input" placeholder="Enter admin password"
+             onkeydown="if(event.key==='Enter')verifyPassword()" autocomplete="current-password" />
+      <button class="login-btn" onclick="verifyPassword()">
+        <i class="fas fa-sign-in-alt"></i> Access Tariff Panel
+      </button>
+      <p class="login-error" id="loginError">
+        <i class="fas fa-exclamation-circle"></i> Incorrect password. Access denied.
+      </p>
+    </div>
+  </div>
+
+  <!-- ══════════════ ADMIN CONTENT ══════════════ -->
+  <div id="adminContent">
+
+    <header class="admin-header">
+      <div class="admin-header-left">
+        <div class="admin-brand">Galaxy<span>Ride</span></div>
+        <div class="admin-badge">Admin</div>
+        <span style="color:#aaa;font-size:13px;">Tariff Reference Panel</span>
+      </div>
+      <div class="admin-header-right">
+        <span style="color:#aaa;font-size:12px;" id="sessionTime"></span>
+        <button class="admin-logout" onclick="doLogout()">
+          <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
+      </div>
+    </header>
+
+    <main class="admin-main">
+
+      <div class="admin-intro">
+        <i class="fas fa-info-circle"></i>
+        <span>This page is <strong>not linked</strong> from the public website. Tariff tables are for internal reference only. The booking fare engine reads directly from <code>js/app.js → TARIFF</code>.</span>
+      </div>
+
+      <!-- ── Tabs ── -->
+      <div class="tariff-tabs">
+        <button class="tariff-tab active" onclick="showTab('local', this)"><i class="fas fa-city"></i> Local City</button>
+        <button class="tariff-tab" onclick="showTab('outstation', this)"><i class="fas fa-road"></i> Outstation</button>
+        <button class="tariff-tab" onclick="showTab('hourly', this)"><i class="fas fa-clock"></i> Hourly Packages</button>
+        <button class="tariff-tab" onclick="showTab('hill', this)"><i class="fas fa-mountain"></i> Hill Stations</button>
+        <button class="tariff-tab" onclick="showTab('coupons', this)"><i class="fas fa-tag"></i> Coupons</button>
+      </div>
+
+      <!-- ── Local ── -->
+      <div class="tariff-panel active" id="panel-local">
+        <p class="section-sub">Local city fare — base + included km + per-km rate. Peak surcharge applies for trips ≤ 100 km.</p>
+
+        <div class="info-badges">
+          <div class="info-badge"><i class="fas fa-clock"></i> Peak: 4AM–6AM &amp; 5PM–8PM</div>
+          <div class="info-badge"><i class="fas fa-hourglass-half"></i> Waiting: ₹2 / min</div>
+          <div class="info-badge"><i class="fas fa-route"></i> After 100 km → outstation tariff applies</div>
+        </div>
+
+        <div class="table-wrap">
+          <h3>Local City Tariff</h3>
+          <div class="table-resp">
+            <table>
+              <thead>
+                <tr><th>Vehicle</th><th>Base Fare</th><th>Included KM</th><th>Per KM</th><th>Peak Per KM</th><th>Max KM</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><span class="vtag">🛵 Bike</span></td><td class="price">₹50</td><td>5 km</td><td>₹9</td><td>₹10</td><td>30 km</td></tr>
+                <tr><td><span class="vtag">🛺 Auto</span></td><td class="price">₹100</td><td>5 km</td><td>₹14</td><td>₹16</td><td>100 km</td></tr>
+                <tr><td><span class="vtag">🚗 Mini</span></td><td class="price">₹110</td><td>3 km</td><td>₹18</td><td>₹20</td><td>100 km</td></tr>
+                <tr class="highlighted"><td><span class="vtag">🚙 Sedan</span></td><td class="price">₹110</td><td>3 km</td><td>₹19</td><td>₹24</td><td>100 km</td></tr>
+                <tr><td><span class="vtag">🛻 MUV (SUV)</span></td><td class="price">₹150</td><td>3 km</td><td>₹22</td><td>₹28</td><td>100 km</td></tr>
+                <tr><td><span class="vtag">🚐 Innova</span></td><td class="price">₹250</td><td>3 km</td><td>₹24</td><td>₹30</td><td>100 km</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="table-note">* Toll &amp; Parking charges extra. Peak surcharge = (peakPerKm − perKm) × extra km — never double-charged.</p>
+        </div>
+      </div>
+
+      <!-- ── Outstation ── -->
+      <div class="tariff-panel" id="panel-outstation">
+        <p class="section-sub">Outstation trips: city-rate for first 100 km, outstation rate beyond. Driver bata per day.</p>
+
+        <div class="info-badges">
+          <div class="info-badge"><i class="fas fa-user"></i> Driver Bata: ₹400/day</div>
+          <div class="info-badge"><i class="fas fa-map-marker-alt"></i> Min 250 km/day</div>
+          <div class="info-badge"><i class="fas fa-mountain"></i> Hill Charge: ₹400</div>
+          <div class="info-badge"><i class="fas fa-exchange-alt"></i> Round Trip: fare × 2</div>
+        </div>
+
+        <div class="table-wrap">
+          <h3>Outstation Rate Per KM</h3>
+          <div class="table-resp">
+            <table>
+              <thead>
+                <tr><th>Vehicle</th><th>Per KM (Outstation)</th><th>Min KM/Day</th><th>Driver Bata</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><span class="vtag">🚗 Mini</span></td><td class="price">₹13/km</td><td>250 km</td><td>₹400/day</td></tr>
+                <tr class="highlighted"><td><span class="vtag">🚙 Sedan</span></td><td class="price">₹13/km</td><td>250 km</td><td>₹400/day</td></tr>
+                <tr><td><span class="vtag">🛻 MUV (SUV)</span></td><td class="price">₹18/km</td><td>250 km</td><td>₹400/day</td></tr>
+                <tr><td><span class="vtag">🚐 Innova</span></td><td class="price">₹22/km</td><td>250 km</td><td>₹400/day</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="table-note">* Fare = baseFare + cityFare (0–100 km at local rate) + outstationFare (>100 km at outstation rate) + driverBata + hillCharge (if applicable).</p>
+        </div>
+      </div>
+
+      <!-- ── Hourly ── -->
+      <div class="tariff-panel" id="panel-hourly">
+        <p class="section-sub">Fixed hourly packages — includes km limit. Extra km charged at ₹14/km (mini), ₹16/km (sedan), ₹20/km (MUV), ₹24/km (Innova).</p>
+
+        <div class="table-wrap">
+          <h3>Hourly Package Rates</h3>
+          <div class="table-resp">
+            <table>
+              <thead>
+                <tr><th>Package</th><th>KM Limit</th><th>Mini</th><th>Sedan</th><th>MUV</th><th>Innova</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>1 Hour</td><td>15 km</td><td class="price">₹300</td><td class="price">₹400</td><td class="price">₹1,050</td><td class="price">₹2,000</td></tr>
+                <tr><td>2 Hours</td><td>25 km</td><td class="price">₹560</td><td class="price">₹800</td><td class="price">₹1,550</td><td class="price">₹2,600</td></tr>
+                <tr><td>3 Hours</td><td>40 km</td><td class="price">₹820</td><td class="price">₹1,200</td><td class="price">₹2,000</td><td class="price">₹3,200</td></tr>
+                <tr class="highlighted"><td>4 Hours</td><td>50 km</td><td class="price">₹1,100</td><td class="price">₹1,613</td><td class="price">₹2,500</td><td class="price">₹3,800</td></tr>
+                <tr><td>5 Hours</td><td>60 km</td><td class="price">₹1,400</td><td class="price">₹2,000</td><td class="price">₹2,821</td><td class="price">₹4,300</td></tr>
+                <tr><td>6 Hours</td><td>75 km</td><td class="price">₹1,680</td><td class="price">₹2,400</td><td class="price">₹3,450</td><td class="price">₹4,900</td></tr>
+                <tr><td>7 Hours</td><td>85 km</td><td class="price">₹1,950</td><td class="price">₹2,700</td><td class="price">₹3,900</td><td class="price">₹5,400</td></tr>
+                <tr><td>8 Hours</td><td>100 km</td><td class="price">₹2,200</td><td class="price">₹3,000</td><td class="price">₹4,313</td><td class="price">₹6,000</td></tr>
+                <tr><td>9 Hours</td><td>110 km</td><td class="price">₹2,500</td><td class="price">₹3,523</td><td class="price">₹4,853</td><td class="price">₹6,500</td></tr>
+                <tr><td>10 Hours</td><td>120 km</td><td class="price">₹2,800</td><td class="price">₹3,950</td><td class="price">₹5,500</td><td class="price">₹7,500</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="table-note">* Extra km beyond package limit billed per-km at vehicle's local rate.</p>
+        </div>
+      </div>
+
+      <!-- ── Hill Stations ── -->
+      <div class="tariff-panel" id="panel-hill">
+        <p class="section-sub">Hill charge ₹400 is applied automatically when pickup or drop location matches any of these names.</p>
+
+        <div class="info-badges" style="margin-bottom:16px;">
+          <div class="info-badge"><i class="fas fa-mountain"></i> Hill Charge: <strong style="color:var(--primary);margin-left:4px;">₹400 flat</strong></div>
+          <div class="info-badge"><i class="fas fa-info-circle"></i> Detection: substring match (case-insensitive)</div>
+          <div class="info-badge"><i class="fas fa-ban"></i> Not applied for Hourly rides</div>
+        </div>
+
+        <div class="table-wrap" style="padding:16px 20px 20px;">
+          <h3 style="margin-bottom:14px;">Tamil Nadu</h3>
+          <div class="hill-grid">
+            <div class="hill-item"><i class="fas fa-mountain"></i> Kodaikanal</div>
+            <div class="hill-item"><i class="fas fa-mountain"></i> Ooty</div>
+            <div class="hill-item"><i class="fas fa-mountain"></i> Coonoor</div>
+            <div class="hill-item"><i class="fas fa-mountain"></i> Kotagiri</div>
+            <div class="hill-item"><i class="fas fa-mountain"></i> Yercaud</div>
+            <div class="hill-item"><i class="fas fa-mountain"></i> Valparai</div>
+            <div class="hill-item"><i class="fas fa-mountain"></i> Yelagiri</div>
+            <div class="hill-item"><i class="fas fa-mountain"></i> Kolli Hills</div>
+          </div>
+          <h3 style="margin:14px 0;">Kerala</h3>
+          <div class="hill-grid">
+            <div class="hill-item"><i class="fas fa-mountain"></i> Munnar</div>
+            <div class="hill-item"><i class="fas fa-mountain"></i> Thekkady</div>
+            <div class="hill-item"><i class="fas fa-mountain"></i> Wayanad</div>
+            <div class="hill-item"><i class="fas fa-mountain"></i> Vagamon</div>
+            <div class="hill-item"><i class="fas fa-mountain"></i> Idukki</div>
+          </div>
+          <h3 style="margin:14px 0;">Karnataka</h3>
+          <div class="hill-grid">
+            <div class="hill-item"><i class="fas fa-mountain"></i> Coorg</div>
+            <div class="hill-item"><i class="fas fa-mountain"></i> Chikmagalur</div>
+            <div class="hill-item"><i class="fas fa-mountain"></i> Sakleshpur</div>
+          </div>
+          <p class="table-note" style="margin-top:14px;">* To add or remove a hill station, edit the <code>HILL_STATIONS</code> array in <code>js/app.js</code>.</p>
+        </div>
+      </div>
+
+      <!-- ── Coupons ── -->
+      <div class="tariff-panel" id="panel-coupons">
+        <p class="section-sub">Active coupon codes configured in <code>js/app.js → COUPONS</code>.</p>
+
+        <div class="table-wrap">
+          <h3>Active Coupon Codes</h3>
+          <div class="table-resp">
+            <table>
+              <thead>
+                <tr><th>Code</th><th>Type</th><th>Discount</th><th>Min Order</th><th>Cap</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="coupon-chip">GALAXY100</span></td>
+                  <td>Flat</td>
+                  <td class="price">₹100 off</td>
+                  <td>₹200</td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td><span class="coupon-chip">FIRST50</span></td>
+                  <td>Percent</td>
+                  <td class="price">10%</td>
+                  <td>₹150</td>
+                  <td>₹200 max</td>
+                </tr>
+                <tr>
+                  <td><span class="coupon-chip">RIDE20</span></td>
+                  <td>Percent</td>
+                  <td class="price">20%</td>
+                  <td>₹300</td>
+                  <td>₹300 max</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="table-note">* To add or edit coupons, update the <code>COUPONS</code> object in <code>js/app.js</code>.</p>
+        </div>
+
+        <div class="info-badges">
+          <div class="info-badge"><i class="fas fa-info-circle"></i> Coupon applied on subtotal (after hill charge, before total)</div>
+          <div class="info-badge"><i class="fas fa-text-width"></i> Case-insensitive input — stored uppercase</div>
+        </div>
+      </div>
+
+    </main>
+
+    <footer class="admin-footer">
+      Galaxy Ride Admin Panel &mdash; Internal Use Only &mdash; Not linked from public site
+    </footer>
+
+  </div><!-- /adminContent -->
+
+  <script>
+    // SHA-256 hash of the admin password (GalaxyAdmin2025).
+    // To change the password: compute sha256 of the new password and replace the hash below.
+    const ADMIN_HASH = '70be4fc3bd42c534dd2f15481366198bc2218d162b672866c5fd76c51d00d0c4';
+    const SESSION_KEY = 'gr_admin_auth';
+
+    async function sha256(str) {
+      const buf  = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    async function verifyPassword() {
+      const pass = document.getElementById('adminPass').value;
+      if (!pass) return;
+      const hash = await sha256(pass);
+      if (hash === ADMIN_HASH) {
+        sessionStorage.setItem(SESSION_KEY, '1');
+        showAdminContent();
+      } else {
+        const err = document.getElementById('loginError');
+        err.classList.add('show');
+        document.getElementById('adminPass').value = '';
+        setTimeout(() => err.classList.remove('show'), 3000);
+      }
+    }
+
+    function showAdminContent() {
+      document.getElementById('loginGate').style.display    = 'none';
+      document.getElementById('adminContent').style.display = 'block';
+      document.getElementById('sessionTime').textContent    =
+        'Session: ' + new Date().toLocaleTimeString();
+    }
+
+    function doLogout() {
+      sessionStorage.removeItem(SESSION_KEY);
+      location.reload();
+    }
+
+    function showTab(name, el) {
+      document.querySelectorAll('.tariff-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tariff-panel').forEach(p => p.classList.remove('active'));
+      el.classList.add('active');
+      document.getElementById('panel-' + name).classList.add('active');
+    }
+
+    // Auto-login if session is still active
+    if (sessionStorage.getItem(SESSION_KEY) === '1') {
+      showAdminContent();
+    }
+  </script>
+
+</body>
+</html>
