@@ -528,6 +528,38 @@ const TARIFF = {
   ],
 };
 
+// ── Hill station detection ───────────────────────────────────────────────────
+const HILL_CHARGE = 400;          // ₹400 flat for any trip to/from a hill station
+
+const HILL_STATIONS = [
+  // Tamil Nadu
+  'kodaikanal', 'ooty', 'coonoor', 'kotagiri', 'yercaud',
+  'valparai', 'yelagiri', 'kolli hills',
+  // Kerala
+  'munnar', 'thekkady', 'wayanad', 'vagamon', 'idukki',
+  // Karnataka
+  'coorg', 'chikmagalur', 'sakleshpur',
+];
+
+/** Returns true if the given location label belongs to a hill station. */
+function isHillStation(label) {
+  if (!label) return false;
+  const lower = label.toLowerCase();
+  return HILL_STATIONS.some(h => lower.includes(h));
+}
+
+/**
+ * Checks current pickup + drop inputs for hill station names.
+ * Returns HILL_CHARGE (₹400) when detected, 0 otherwise.
+ * Does NOT apply for hourly rides (no fixed destination).
+ */
+function detectHillCharge() {
+  if (state.currentTab === 'hourly') return 0;
+  const pickup = $('pickup')?.value || '';
+  const drop   = $('drop')?.value   || '';
+  return (isHillStation(pickup) || isHillStation(drop)) ? HILL_CHARGE : 0;
+}
+
 const COUPONS = {
   GALAXY100: { type: 'flat',    value: 100,  minOrder: 200 },
   FIRST50:   { type: 'percent', value: 10,   minOrder: 150, max: 200 },
@@ -595,19 +627,8 @@ function setInputValid(inputEl) {
   group?.querySelector('.field-error-msg')?.remove();
 }
 
-// ── Booking step tracker ──────────────────────────────────────────────────
-/**
- * Highlights steps 1-5 in the booking-steps strip.
- * Step 1 = Pickup  2 = Drop  3 = Route  4 = Vehicle  5 = Confirm
- */
-function updateBookingStep(activeStep) {
-  for (let i = 1; i <= 5; i++) {
-    const el = $(`step${i}`);
-    if (!el) continue;
-    el.classList.toggle('active',    i === activeStep);
-    el.classList.toggle('completed', i < activeStep);
-  }
-}
+// ── Booking step tracker (no-op — step strip replaced with card header) ───
+function updateBookingStep(activeStep) { /* step strip removed */ }
 
 // ==================== INIT ====================
 
@@ -2108,8 +2129,11 @@ function calculateFare() {
     subtotal, isOutstation, isHourly,
   } = fare;
 
-  const discount = calculateCouponDiscount(state.appliedCoupon, subtotal);
-  const total    = Math.max(0, subtotal - discount);
+  // Hill charge: ₹400 when pickup or drop is a known hill station
+  const hillCharge = detectHillCharge();
+
+  const discount = calculateCouponDiscount(state.appliedCoupon, subtotal + hillCharge);
+  const total    = Math.max(0, subtotal + hillCharge - discount);
 
   state.fare           = total;
   state.couponDiscount = discount;
@@ -2158,6 +2182,11 @@ function calculateFare() {
   $('driverBataRow').classList.toggle('hidden', !isOutstation);
   $('driverBataDisplay').textContent     = `₹${driverBata}`;
 
+  // Hill charge row + badge
+  $('hillChargeRow')?.classList.toggle('hidden', hillCharge === 0);
+  if ($('hillChargeDisplay')) $('hillChargeDisplay').textContent = `₹${hillCharge}`;
+  $('hillBadge')?.classList.toggle('hidden', hillCharge === 0);
+
   // Peak surcharge row (shows extra amount only — not the full peak rate)
   $('peakRow').classList.toggle('hidden', peakSurcharge === 0);
   $('peakFareDisplay').textContent       = `₹${peakSurcharge}`;
@@ -2183,7 +2212,7 @@ function calculateFare() {
       ? computeFare(v, km, tab, applyPeak, hourlyHrs)
       : null;
     el.textContent = f
-      ? `₹${f.subtotal}`
+      ? `₹${f.subtotal + hillCharge}`
       : `₹${TARIFF.local[v]?.base || '—'}`;
   });
 

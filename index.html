@@ -147,17 +147,10 @@
     <!-- Booking Form Card -->
     <div class="booking-card" id="bookingCard">
 
-      <!-- Step Guide -->
-      <div class="booking-steps" id="bookingSteps">
-        <div class="booking-step active" id="step1"><span class="step-dot">1</span> Pickup</div>
-        <div class="step-arrow">›</div>
-        <div class="booking-step" id="step2"><span class="step-dot">2</span> Drop</div>
-        <div class="step-arrow">›</div>
-        <div class="booking-step" id="step3"><span class="step-dot">3</span> Route</div>
-        <div class="step-arrow">›</div>
-        <div class="booking-step" id="step4"><span class="step-dot">4</span> Vehicle</div>
-        <div class="step-arrow">›</div>
-        <div class="booking-step" id="step5"><span class="step-dot">5</span> Confirm</div>
+      <!-- Booking Card Header -->
+      <div class="booking-card-header">
+        <h2 class="booking-card-title">Book Your Ride</h2>
+        <p class="booking-card-subtitle">One Way &bull; Round Trip &bull; Hourly</p>
       </div>
 
       <div class="booking-tabs">
@@ -305,6 +298,13 @@
 
         <!-- Fare Preview -->
         <div class="fare-preview hidden" id="farePreview">
+
+          <!-- Hill Route Badge -->
+          <div class="hill-badge hidden" id="hillBadge">
+            <i class="fas fa-mountain"></i>
+            <span><strong>Hill Route Detected</strong> — Additional Hill Charge &#8377;400 Applied</span>
+          </div>
+
           <div class="fare-breakdown">
             <div class="fare-row hidden" id="routeInfoRow">
               <span><i class="fas fa-route"></i> Route Distance</span>
@@ -325,6 +325,10 @@
             <div class="fare-row hidden" id="driverBataRow">
               <span><i class="fas fa-user"></i> Driver Bata</span>
               <span id="driverBataDisplay">₹400</span>
+            </div>
+            <div class="fare-row hidden" id="hillChargeRow">
+              <span><i class="fas fa-mountain"></i> Hill Charge</span>
+              <span id="hillChargeDisplay">₹400</span>
             </div>
             <div class="fare-row hidden" id="extraKmRow">
               <span><i class="fas fa-tachometer-alt"></i> Extra KM Charge</span>
