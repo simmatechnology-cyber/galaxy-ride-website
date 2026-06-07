@@ -146,6 +146,20 @@
 
     <!-- Booking Form Card -->
     <div class="booking-card" id="bookingCard">
+
+      <!-- Step Guide -->
+      <div class="booking-steps" id="bookingSteps">
+        <div class="booking-step active" id="step1"><span class="step-dot">1</span> Pickup</div>
+        <div class="step-arrow">›</div>
+        <div class="booking-step" id="step2"><span class="step-dot">2</span> Drop</div>
+        <div class="step-arrow">›</div>
+        <div class="booking-step" id="step3"><span class="step-dot">3</span> Route</div>
+        <div class="step-arrow">›</div>
+        <div class="booking-step" id="step4"><span class="step-dot">4</span> Vehicle</div>
+        <div class="step-arrow">›</div>
+        <div class="booking-step" id="step5"><span class="step-dot">5</span> Confirm</div>
+      </div>
+
       <div class="booking-tabs">
         <button class="tab-btn active" data-tab="oneway" onclick="switchTab('oneway', this)">
           <i class="fas fa-arrow-right"></i> One Way
@@ -163,7 +177,7 @@
         <div class="form-group autocomplete-group">
           <label for="pickup"><i class="fas fa-map-marker-alt pickup-icon"></i> Pickup Location</label>
           <div class="input-with-action">
-            <input type="text" id="pickup" name="pickup" placeholder="Enter pickup location" autocomplete="off" required />
+            <input type="text" id="pickup" name="pickup" placeholder="Enter pickup location" autocomplete="off" required data-field="pickup" />
             <button type="button" class="location-btn" onclick="useCurrentLocation()" title="Use current location">
               <i class="fas fa-crosshairs"></i>
             </button>
@@ -181,7 +195,7 @@
         <!-- Drop Location -->
         <div class="form-group autocomplete-group">
           <label for="drop"><i class="fas fa-map-marker drop-icon"></i> Drop Location</label>
-          <input type="text" id="drop" name="drop" placeholder="Enter drop location" autocomplete="off" required />
+          <input type="text" id="drop" name="drop" placeholder="Enter drop location" autocomplete="off" required data-field="drop" />
           <div class="autocomplete-dropdown hidden" id="dropDropdown"></div>
         </div>
 

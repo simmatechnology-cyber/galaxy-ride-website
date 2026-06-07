@@ -561,6 +561,54 @@ function show(id)  { $(id)?.classList.remove('hidden'); }
 function hide(id)  { $(id)?.classList.add('hidden'); }
 function toggle(id){ $(id)?.classList.toggle('hidden'); }
 
+// ── Input validation error helpers ───────────────────────────────────────
+function setInputError(inputEl, msg) {
+  if (!inputEl) return;
+  inputEl.classList.add('field-error');
+  inputEl.classList.remove('field-valid');
+  // Show or update inline error message beneath the input
+  let errEl = inputEl.parentElement?.querySelector('.field-error-msg');
+  if (!errEl) {
+    // Walk up to form-group to insert after the input-with-action wrapper or the input itself
+    const group = inputEl.closest('.form-group') || inputEl.parentElement;
+    errEl = document.createElement('p');
+    errEl.className = 'field-error-msg';
+    // Insert after the input wrapper (or input itself if not wrapped)
+    const wrapper = inputEl.closest('.input-with-action') || inputEl;
+    wrapper.insertAdjacentElement('afterend', errEl);
+  }
+  errEl.textContent = msg;
+}
+
+function clearInputError(inputEl) {
+  if (!inputEl) return;
+  inputEl.classList.remove('field-error');
+  const group = inputEl.closest('.form-group') || inputEl.parentElement;
+  group?.querySelector('.field-error-msg')?.remove();
+}
+
+function setInputValid(inputEl) {
+  if (!inputEl) return;
+  inputEl.classList.remove('field-error');
+  inputEl.classList.add('field-valid');
+  const group = inputEl.closest('.form-group') || inputEl.parentElement;
+  group?.querySelector('.field-error-msg')?.remove();
+}
+
+// ── Booking step tracker ──────────────────────────────────────────────────
+/**
+ * Highlights steps 1-5 in the booking-steps strip.
+ * Step 1 = Pickup  2 = Drop  3 = Route  4 = Vehicle  5 = Confirm
+ */
+function updateBookingStep(activeStep) {
+  for (let i = 1; i <= 5; i++) {
+    const el = $(`step${i}`);
+    if (!el) continue;
+    el.classList.toggle('active',    i === activeStep);
+    el.classList.toggle('completed', i < activeStep);
+  }
+}
+
 // ==================== INIT ====================
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -580,6 +628,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // Large Chennai DB (~30k entries, ~2.5MB) starts loading after a short delay
   // to avoid competing with critical page resources on first load.
   setTimeout(loadChennaiLargeDB, 3000);
+
+  // Pre-select Sedan so fare preview is ready the moment a route is entered
+  const sedanRadio = document.querySelector('input[name="vehicle"][value="sedan"]');
+  if (sedanRadio) sedanRadio.checked = true;
+  calculateFare();
+  updateBookingStep(1);
 });
 
 // ==================== ONE-CLICK BOOKING PREFILL (from destination pages) ====================
@@ -755,19 +809,8 @@ function isPeakHour(date, timeStr) {
 function changePassengers(delta) {
   state.passengers = Math.max(1, Math.min(6, state.passengers + delta));
   $('passengerCount').textContent = state.passengers;
-
-  // Disable SUV/Innova if <= 4 passengers, enable all otherwise
-  const suvOpts = $$('.vehicle-option[data-vehicle="suv"], .vehicle-option[data-vehicle="innova"]');
-  suvOpts.forEach(o => {
-    const radio = o.querySelector('input');
-    const dimmed = state.passengers <= 4;
-    // Don't actually disable — just let them choose; note capacity visually
-    if (dimmed) {
-      o.style.opacity = '0.7';
-    } else {
-      o.style.opacity = '1';
-    }
-  });
+  // All vehicles are always selectable regardless of passenger count.
+  // The seat-count label on each card is the user's guide.
   calculateFare();
 }
 
@@ -817,16 +860,30 @@ function acPickupSelect(result) {
   const pickupInput   = $('pickup');
   state.pickupCoords  = result.coords;
   pickupInput.value   = result.label;
+  setInputValid(pickupInput);
   closeDropdown('pickupDropdown', pickupInput);
-  if (state.dropCoords) calcDistance(); else calculateFare();
+  // Advance step indicator
+  if (state.dropCoords) {
+    updateBookingStep(3);   // Route calculating
+    calcDistance();
+  } else {
+    updateBookingStep(2);   // Move to Drop step
+    calculateFare();
+  }
 }
 
 function acDropSelect(result) {
   const dropInput   = $('drop');
   state.dropCoords  = result.coords;
   dropInput.value   = result.label;
+  setInputValid(dropInput);
   closeDropdown('dropDropdown', dropInput);
-  if (state.pickupCoords) calcDistance(); else calculateFare();
+  if (state.pickupCoords) {
+    updateBookingStep(3);   // Route calculating
+    calcDistance();
+  } else {
+    calculateFare();
+  }
 }
 
 function setupAutocomplete() {
@@ -844,7 +901,20 @@ function setupAutocomplete() {
       state.pickupFullAddress   = null;
       pickupInput.dataset.fullAddress = '';
       pickupInput.title               = '';
+      clearInputError(pickupInput);
+      pickupInput.classList.remove('field-valid');
       acDebounce('pickup', pickupInput.value, 'pickupDropdown', acPickupSelect);
+    });
+
+    // Blur: warn if the user typed something but never selected from dropdown
+    pickupInput.addEventListener('blur', () => {
+      setTimeout(() => {
+        if (pickupInput.value.trim() && !state.pickupCoords) {
+          setInputError(pickupInput, 'Please select pickup location from the suggestions list.');
+        } else if (!pickupInput.value.trim()) {
+          clearInputError(pickupInput);
+        }
+      }, 220);   // delay so mousedown on a suggestion item fires first
     });
   }
 
@@ -854,7 +924,20 @@ function setupAutocomplete() {
       state.distance            = null;
       state.duration            = null;
       state.durationEstimated   = false;
+      clearInputError(dropInput);
+      dropInput.classList.remove('field-valid');
       acDebounce('drop', dropInput.value, 'dropDropdown', acDropSelect);
+    });
+
+    // Blur: warn if the user typed something but never selected from dropdown
+    dropInput.addEventListener('blur', () => {
+      setTimeout(() => {
+        if (dropInput.value.trim() && !state.dropCoords) {
+          setInputError(dropInput, 'Please select drop location from the suggestions list.');
+        } else if (!dropInput.value.trim()) {
+          clearInputError(dropInput);
+        }
+      }, 220);
     });
   }
 
@@ -1869,6 +1952,8 @@ async function calcDistance() {
     console.log(`[Route] Fallback  straight=${crow} km  road≈${state.distance} km`);
   }
 
+  // Advance step to Vehicle selection now that route is known
+  updateBookingStep(4);
   calculateFare();
 }
 
@@ -1897,7 +1982,22 @@ function swapLocations() {
   const pu = $('pickup'), dr = $('drop');
   [pu.value, dr.value] = [dr.value, pu.value];
   [state.pickupCoords, state.dropCoords] = [state.dropCoords, state.pickupCoords];
-  calculateFare();
+  // Swap the valid/error visual states too
+  const puValid = pu.classList.contains('field-valid');
+  const drValid = dr.classList.contains('field-valid');
+  pu.classList.toggle('field-valid', drValid);
+  dr.classList.toggle('field-valid', puValid);
+  pu.classList.remove('field-error');
+  dr.classList.remove('field-error');
+  $('pickup')?.closest('.form-group')?.querySelector('.field-error-msg')?.remove();
+  $('drop')?.closest('.form-group')?.querySelector('.field-error-msg')?.remove();
+  // Both coords now known — recalculate route
+  if (state.pickupCoords && state.dropCoords) {
+    updateBookingStep(3);
+    calcDistance();
+  } else {
+    calculateFare();
+  }
 }
 
 // ==================== FARE CALCULATION ====================
@@ -2088,6 +2188,9 @@ function calculateFare() {
   });
 
   show('farePreview');
+
+  // Advance step indicator: step 5 once route + vehicle are both set
+  if (km > 0 || isHourly) updateBookingStep(5);
 }
 
 function calculateCouponDiscount(code, subtotal) {
@@ -2159,12 +2262,23 @@ function handleBookingSubmit(e) {
     showToast('error', 'Please select a vehicle type.');
     return;
   }
-  if (!$('pickup').value.trim()) {
-    showToast('error', 'Please enter pickup location.');
+
+  // Require a location to be selected from dropdown (coords must be set)
+  const pickupEl = $('pickup');
+  const dropEl   = $('drop');
+
+  if (!state.pickupCoords || !pickupEl.value.trim()) {
+    setInputError(pickupEl, 'Please select pickup location from suggestions.');
+    pickupEl.focus();
+    showToast('error', 'Please select pickup location from the suggestions list.');
+    updateBookingStep(1);
     return;
   }
-  if (state.currentTab !== 'hourly' && !$('drop').value.trim()) {
-    showToast('error', 'Please enter drop location.');
+  if (state.currentTab !== 'hourly' && (!state.dropCoords || !dropEl.value.trim())) {
+    setInputError(dropEl, 'Please select drop location from suggestions.');
+    dropEl.focus();
+    showToast('error', 'Please select drop location from the suggestions list.');
+    updateBookingStep(2);
     return;
   }
 
