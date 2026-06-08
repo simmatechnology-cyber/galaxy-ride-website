@@ -49,18 +49,37 @@ exports.handler = async (event) => {
   try {
     const { amount, currency = 'INR', notes = {} } = JSON.parse(event.body || '{}');
 
-    if (!amount || amount < 100) {
+    const amountPaise = Math.round(Number(amount));
+    if (!amountPaise || amountPaise < 100) {
       return {
         statusCode: 400,
         headers: CORS_HEADERS,
         body: JSON.stringify({ error: 'Invalid amount. Minimum ₹1.' }),
       };
     }
+    // Safety cap: max ₹50,000 per booking (5,000,000 paise)
+    if (amountPaise > 5_000_000) {
+      return {
+        statusCode: 400,
+        headers: CORS_HEADERS,
+        body: JSON.stringify({ error: 'Amount exceeds maximum allowed.' }),
+      };
+    }
+
+    // Sanitize notes — only allow string values, truncate long fields
+    const sanitizedNotes = {};
+    if (notes && typeof notes === 'object') {
+      for (const [k, v] of Object.entries(notes)) {
+        if (typeof v === 'string' || typeof v === 'number') {
+          sanitizedNotes[String(k).slice(0, 50)] = String(v).slice(0, 256);
+        }
+      }
+    }
 
     const order = await razorpay.orders.create({
-      amount:   Math.round(amount), // in paise
+      amount:   amountPaise,
       currency,
-      notes,
+      notes:    sanitizedNotes,
       receipt:  `GR_${Date.now()}`,
     });
 

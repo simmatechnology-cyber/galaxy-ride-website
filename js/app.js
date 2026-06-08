@@ -2709,6 +2709,7 @@ function buildBookingData() {
     customerPhone: cust.phone   || window._currentUserPhone || '',
     createdAt:     new Date().toISOString(),
   };
+  resetPaymentState(); // Reset payment UI to active state for each fresh booking
   renderBookingSummary();
 }
 
@@ -2729,12 +2730,6 @@ function renderBookingSummary() {
   const payBtn = $('payBtnText');
   const method = document.querySelector('input[name="paymentMethod"]:checked')?.value;
   if (payBtn) payBtn.textContent = method === 'cash' ? 'Confirm Booking' : `Pay ₹${d.fare}`;
-
-  // If online payment was already found unavailable this session, re-apply state
-  if (window._paymentNotConfigured) {
-    // Defer to next tick so modal DOM is fully rendered
-    setTimeout(markOnlinePaymentUnavailable, 50);
-  }
 }
 
 // Update pay button when method changes
@@ -2749,9 +2744,11 @@ document.addEventListener('change', (e) => {
 
 // ==================== PAYMENT ====================
 
-// Set to true when the server confirms Razorpay is not yet configured.
-// Persists for the session so subsequent modal opens stay in cash-only mode.
+// Set to true within a payment attempt when the server confirms Razorpay is not configured.
+// Cleared by resetPaymentState() on each fresh booking — does NOT persist across modal opens.
 window._paymentNotConfigured = false;
+// Active Razorpay checkout instance for the current payment attempt (prevents double-open).
+window._rzpInst = null;
 
 /** Disable online payment, auto-select cash, show Coming Soon badge + alt actions. */
 function markOnlinePaymentUnavailable() {
@@ -2786,6 +2783,30 @@ function markOnlinePaymentUnavailable() {
   if (altActions) altActions.classList.add('visible');
 }
 
+/** Reset payment UI to its default active state for a fresh booking attempt. */
+function resetPaymentState() {
+  window._paymentNotConfigured = false;
+  window._rzpInst = null;
+
+  const onlineOpt = $('onlinePaymentOption');
+  if (onlineOpt) {
+    onlineOpt.classList.remove('disabled-option');
+    const radio = onlineOpt.querySelector('input[type="radio"]');
+    if (radio) { radio.disabled = false; radio.checked = true; }
+  }
+  const badge = $('onlineComingSoonBadge');
+  if (badge) badge.classList.add('hidden');
+  const altActions = $('altBookingActions');
+  if (altActions) altActions.classList.remove('visible');
+
+  // Reset pay button to default state
+  const btn = $('payBtn');
+  if (btn && state.bookingData) {
+    btn.disabled = false;
+    btn.innerHTML = `<i class="fas fa-lock"></i> <span id="payBtnText">Pay ₹${state.bookingData.fare}</span>`;
+  }
+}
+
 /** Build a WhatsApp booking message and open WA, with booking details pre-filled. */
 function sendWhatsAppBooking(e) {
   const d = state.bookingData;
@@ -2818,15 +2839,32 @@ async function processPayment() {
     return;
   }
 
+  // Guard: Razorpay checkout SDK must be loaded
+  if (typeof Razorpay === 'undefined') {
+    console.error('[GR] Razorpay SDK not loaded');
+    showToast('error', 'Payment service not loaded. Please refresh the page and try again.');
+    btn.disabled = false;
+    btn.innerHTML = `<i class="fas fa-lock"></i> <span id="payBtnText">Pay ₹${state.bookingData.fare}</span>`;
+    return;
+  }
+
   // Create Razorpay order via Netlify function
   try {
+    const bd = state.bookingData;
     const response = await fetch('/api/create-order', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({
-        amount:    state.bookingData.fare * 100, // paise
-        currency:  'INR',
-        notes:     { booking: JSON.stringify(state.bookingData) },
+        amount:   bd.fare * 100, // paise
+        currency: 'INR',
+        // Keep notes concise — Razorpay has a 1 KB per-value limit
+        notes: {
+          userId:  bd.userId   || '',
+          vehicle: bd.vehicle  || '',
+          type:    bd.type     || '',
+          pickup:  (bd.pickup  || '').slice(0, 100),
+          fare:    String(bd.fare),
+        },
       }),
     });
     const order = await response.json();
@@ -2869,6 +2907,7 @@ async function processPayment() {
       },
       modal: {
         ondismiss: () => {
+          window._rzpInst = null; // Allow fresh attempt after dismiss
           btn.disabled = false;
           btn.innerHTML = `<i class="fas fa-lock"></i> <span id="payBtnText">Pay ₹${state.bookingData.fare}</span>`;
         },
@@ -2876,15 +2915,20 @@ async function processPayment() {
     };
 
     const rzp = new Razorpay(options);
+    window._rzpInst = rzp; // Store instance to prevent double-open
+
     rzp.on('payment.failed', (r) => {
-      showToast('error', `Payment failed: ${r.error.description}`);
+      console.error('[GR] payment.failed:', r.error);
+      window._rzpInst = null;
+      showToast('error', `Payment failed: ${r.error.description || 'Unknown error'}`);
       btn.disabled = false;
       btn.innerHTML = `<i class="fas fa-lock"></i> <span id="payBtnText">Pay ₹${state.bookingData.fare}</span>`;
     });
     rzp.open();
 
   } catch (err) {
-    console.error('Payment error:', err);
+    console.error('[GR] processPayment error:', err);
+    window._rzpInst = null;
     showToast('error', 'Something went wrong. Please try again.');
     btn.disabled = false;
     btn.innerHTML = `<i class="fas fa-lock"></i> <span id="payBtnText">Pay ₹${state.bookingData.fare}</span>`;
