@@ -1901,9 +1901,55 @@ async function nominatimReverseGeocode(lat, lon) {
   return buildNominatimLabel(data.address || {}, data.display_name);
 }
 
+// ── Overlay management for GPS permission prompt ─────────────────────────────
+//
+// Chrome's geolocation permission UI is blocked when fixed/floating elements
+// are on screen (z-index overlap).  We temporarily hide them all immediately
+// before calling getCurrentPosition, then restore after success or failure.
+//
+// Elements managed (by ID or selector):
+//   #floatDock   — floating WhatsApp + Call buttons (bottom-right)
+//   #waPopup     — WhatsApp auto-popup bubble
+//   #backToTop   — back-to-top button (bottom-left)
+//   #toast       — active toast notification
+//
+const GEO_OVERLAY_IDS = ['floatDock', 'waPopup', 'backToTop', 'toast'];
+
+function hideOverlaysForGPS() {
+  console.log('[GeoLoc] ▼ Hiding floating overlays before permission prompt…');
+  GEO_OVERLAY_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    // Stash current inline values so we can restore them exactly
+    el.dataset.gpsVis = el.style.visibility  || '';
+    el.dataset.gpsOpa = el.style.opacity     || '';
+    el.dataset.gpsPtr = el.style.pointerEvents || '';
+    // Hide without removing from DOM (no layout shift)
+    el.style.visibility   = 'hidden';
+    el.style.opacity      = '0';
+    el.style.pointerEvents = 'none';
+    console.log(`[GeoLoc]   hidden: #${id}`);
+  });
+}
+
+function restoreOverlaysAfterGPS() {
+  console.log('[GeoLoc] ▲ Restoring floating overlays…');
+  GEO_OVERLAY_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el || el.dataset.gpsVis === undefined) return;
+    el.style.visibility    = el.dataset.gpsVis;
+    el.style.opacity       = el.dataset.gpsOpa;
+    el.style.pointerEvents = el.dataset.gpsPtr;
+    delete el.dataset.gpsVis;
+    delete el.dataset.gpsOpa;
+    delete el.dataset.gpsPtr;
+    console.log(`[GeoLoc]   restored: #${id}`);
+  });
+}
+
 // ── Location permission error modal ─────────────────────────────────────────
 //
-// reason: 'denied' | 'unavailable' | 'timeout' | 'unsupported' | 'insecure'
+// reason: 'denied' | 'blocked' | 'unavailable' | 'timeout' | 'unsupported' | 'insecure'
 //
 function showLocationErrorModal(reason) {
   const modal  = $('locationErrorModal');
@@ -1924,6 +1970,17 @@ function showLocationErrorModal(reason) {
               </ol>
               <p class="geo-fix-label">Fix on <strong>Samsung Internet / Edge Mobile</strong>:</p>
               <p>Settings → Sites and downloads → Site permissions → Location → Allow</p>`,
+    },
+    blocked: {
+      title: 'Permission Prompt Blocked',
+      icon:  'fa-window-close',
+      html:  `<p>Chrome couldn't show the location prompt — another overlay may still be blocking it.</p>
+              <p class="geo-fix-label">To fix:</p>
+              <ol class="geo-steps">
+                <li>Close any open menus, chat bubbles or popups</li>
+                <li>Tap <strong>📍</strong> again — the overlay has been cleared</li>
+                <li>If it still fails: tap the 🔒 lock icon → Site settings → Location → Allow</li>
+              </ol>`,
     },
     unavailable: {
       title: 'GPS Signal Unavailable',
@@ -1978,9 +2035,11 @@ function showLocationErrorModal(reason) {
 // Flow:
 //   1. isSecureContext + API availability guards
 //   2. Permissions.query() pre-check  → skip prompt if already 'denied'
-//   3. Try GPS with standard accuracy (avoids Android Chrome overlay error)
-//   4. If that fails (not DENIED), retry with high accuracy
-//   5. On any permission error → showLocationErrorModal()  (never a raw toast)
+//   3. hideOverlaysForGPS() — clears Chrome's "overlays" detection
+//   4. Two-pass GPS: Pass-A (standard) → Pass-B (high accuracy)
+//      PERMISSION_DENIED (code 1) never retries
+//      Overlay-block detection: 'prompt' state → code 1 → reason 'blocked'
+//   5. restoreOverlaysAfterGPS() on every exit path
 //   6. Reverse geocode with Geoapify → Nominatim fallback
 //   7. Booking flow never blocked — manual entry always available
 //
@@ -2028,38 +2087,54 @@ async function useCurrentLocation() {
 
   // ── 4. Permissions.query() pre-check ────────────────────────────────────
   //    Supported: Chrome 43+, Samsung Internet 4+, Edge 79+
-  //    If already 'denied', show modal immediately — no browser prompt fires.
+  //    Stash the pre-check state — used later to detect overlay-block vs
+  //    genuine denial (both surface as code 1 in the error callback).
+  let preCheckState = 'unknown';
   if (navigator.permissions && navigator.permissions.query) {
     try {
       const perm = await navigator.permissions.query({ name: 'geolocation' });
-      console.log('[GeoLoc] Permissions API state:', perm.state);
+      preCheckState = perm.state;
+      console.log('[GeoLoc] Permissions.query state:', preCheckState);
 
       if (perm.state === 'denied') {
-        console.warn('[GeoLoc] Pre-check: permission denied — skipping getCurrentPosition.');
+        console.warn('[GeoLoc] Pre-check: denied — skipping getCurrentPosition.');
         showLocationErrorModal('denied');
         return;
       }
 
-      // Listen for changes while the browser prompt is open
-      perm.onchange = () => console.log('[GeoLoc] Permission changed →', perm.state);
+      // Track live permission changes (useful for debugging in DevTools)
+      perm.onchange = () => console.log('[GeoLoc] Permission state changed →', perm.state);
 
     } catch (permErr) {
-      // Samsung Internet <12 throws on 'geolocation' query — safe to ignore
-      console.warn('[GeoLoc] Permissions.query not available:', permErr.message);
+      // Samsung Internet <12 / older WebViews throw — safe to continue
+      console.warn('[GeoLoc] Permissions.query unavailable:', permErr.message);
     }
   }
 
-  setBtnState(true);
-  console.log('[GeoLoc] Requesting position…');
+  // ── 5. Hide all fixed/floating overlays ─────────────────────────────────
+  //    Must happen BEFORE setBtnState(true) and BEFORE getCurrentPosition.
+  //    Chrome checks for overlapping fixed elements when deciding whether
+  //    to show the permission prompt — hiding them clears that check.
+  hideOverlaysForGPS();
 
-  // ── 5. Two-pass GPS request ─────────────────────────────────────────────
+  setBtnState(true);
+  console.log('[GeoLoc] Requesting position (overlays hidden)…');
+
+  // ── 6. Two-pass GPS request ─────────────────────────────────────────────
+  //
   //    Pass A: enableHighAccuracy:false, timeout:8s, maximumAge:30s
-  //      → Works reliably on Android Chrome even when location is cold.
-  //      → Avoids the "Close any bubbles or overlays" error that some
-  //        Android Chrome versions throw with high-accuracy cold starts.
+  //      Network-assisted (WiFi + Cell), fast, works cold.
+  //      Avoids the "Close any bubbles or overlays" error seen with
+  //      high-accuracy on devices where location is not warmed up yet.
+  //
   //    Pass B: enableHighAccuracy:true, timeout:12s, maximumAge:0
-  //      → Only attempted if Pass A fails with TIMEOUT or UNAVAILABLE.
-  //      → PERMISSION_DENIED (code 1) never retries — straight to modal.
+  //      GPS-grade. Only tried if Pass-A fails with TIMEOUT or UNAVAILABLE.
+  //      Never retried after PERMISSION_DENIED (code 1).
+  //
+  //    Overlay-block detection:
+  //      If Permissions.query() returned 'prompt' (user hasn't decided yet)
+  //      but we still receive code 1, it was an overlay block not a genuine
+  //      denial → reason:'blocked' gives a different, actionable message.
 
   function requestPosition(opts) {
     return new Promise((resolve, reject) =>
@@ -2074,18 +2149,32 @@ async function useCurrentLocation() {
   try {
     try {
       pos = await requestPosition(OPTS_FAST);
-      console.log('[GeoLoc] ✓ Pass-A (standard) fix — accuracy:', Math.round(pos.coords.accuracy), 'm');
+      console.log('[GeoLoc] ✓ Pass-A fix — accuracy:', Math.round(pos.coords.accuracy), 'm');
     } catch (passAErr) {
-      if (passAErr.code === 1) throw passAErr;   // PERMISSION_DENIED — no retry
-      console.warn('[GeoLoc] Pass-A failed (code', passAErr.code, ') — retrying high-accuracy…');
+      if (passAErr.code === 1) throw passAErr;   // PERMISSION_DENIED — never retry
+      console.warn('[GeoLoc] Pass-A failed (code', passAErr.code, ') — trying Pass-B…');
       pos = await requestPosition(OPTS_HIGH);
-      console.log('[GeoLoc] ✓ Pass-B (high accuracy) fix — accuracy:', Math.round(pos.coords.accuracy), 'm');
+      console.log('[GeoLoc] ✓ Pass-B fix — accuracy:', Math.round(pos.coords.accuracy), 'm');
     }
   } catch (err) {
     setBtnState(false);
-    const codeMap = { 1: 'denied', 2: 'unavailable', 3: 'timeout' };
+    restoreOverlaysAfterGPS();                   // ← always restore on failure
+
     console.error(`[GeoLoc] GPS error — code:${err.code} msg:"${err.message}"`);
-    showLocationErrorModal(codeMap[err.code] || 'unavailable');
+
+    // Overlay-block detection:
+    // code 1 + preCheckState was 'prompt' → Chrome blocked the prompt UI.
+    // code 1 + preCheckState was 'granted' → revoked mid-session.
+    // code 1 + preCheckState 'denied'/'unknown' → standard denial.
+    let reason;
+    if (err.code === 1 && preCheckState === 'prompt') {
+      reason = 'blocked';
+      console.warn('[GeoLoc] Overlay-block detected (pre-check was "prompt", got code 1).');
+    } else {
+      reason = { 1: 'denied', 2: 'unavailable', 3: 'timeout' }[err.code] || 'unavailable';
+    }
+
+    showLocationErrorModal(reason);
     return;                                      // booking flow unblocked
   }
 
@@ -2142,7 +2231,8 @@ async function useCurrentLocation() {
     label = 'Current Location';
   }
 
-  // ── 7. Apply to UI ──────────────────────────────────────────────────────
+  // ── 8. Restore overlays + apply to UI ──────────────────────────────────
+  restoreOverlaysAfterGPS();                     // ← always restore on success too
   setPickup(label);
   if (state.dropCoords) calcDistance();
   showToast('success', 'Current location set as pickup!');
