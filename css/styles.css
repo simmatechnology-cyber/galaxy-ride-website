@@ -1684,14 +1684,18 @@ h1,h2,h3,h4,h5,h6 { font-family: var(--font-heading); font-weight: 700; line-hei
   .auth-btns .btn-outline { display: none; }
 
   /* ── Mobile header: compact logo + hide user name + hide lang selector ── */
+  .navbar { overflow-x: hidden; }               /* prevent horizontal bleed   */
+  .nav-container { gap: 12px; }                 /* was 24px — too wide at 320  */
+  .logo { flex-shrink: 0; }                     /* logo never wraps or shrinks */
   .logo-icon { width: 40px; height: 40px; font-size: 14px; }
   .logo-name  { font-size: 18px; }
   #userDisplayName { display: none !important; }
-  .user-avatar-btn { padding: 4px 8px 4px 4px; gap: 4px; }
+  .user-avatar-btn .fa-chevron-down { display: none; } /* avatar-only on mobile */
+  .user-avatar-btn { padding: 4px; gap: 0; }
   .lang-selector { display: none; }
   .dropdown-lang-item { display: flex !important; }
 
-  .hamburger { display: flex; }
+  .hamburger { display: flex; flex-shrink: 0; } /* never squeeze the hamburger */
 
   .hero { padding: 60px 0 40px; min-height: auto; }
   .hero-title { font-size: 28px; }
@@ -1742,7 +1746,7 @@ h1,h2,h3,h4,h5,h6 { font-family: var(--font-heading); font-weight: 700; line-hei
   .payment-methods { grid-template-columns: 1fr; }
   .driver-cta { flex-direction: column; align-items: center; }
   .app-btns { flex-direction: column; }
-  .nav-container { padding: 12px 16px; }
+  .nav-container { padding: 12px 16px; gap: 8px; } /* 320px — tightest gap */
   .logo-name { font-size: 16px; }
   .logo-tagline { display: none; }
 }
