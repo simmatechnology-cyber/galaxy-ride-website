@@ -1384,6 +1384,7 @@ h1,h2,h3,h4,h5,h6 { font-family: var(--font-heading); font-weight: 700; line-hei
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: var(--transition-fast);
+  position: relative;
 }
 .payment-method-card:hover { border-color: var(--primary); }
 .payment-method-option input:checked + .payment-method-card {
@@ -1394,6 +1395,29 @@ h1,h2,h3,h4,h5,h6 { font-family: var(--font-heading); font-weight: 700; line-hei
 .payment-method-card span { font-size: 14px; font-weight: 600; }
 .payment-method-card small { font-size: 11px; color: var(--gray-500); }
 .btn-pay { padding: 16px; font-size: 16px; }
+
+/* ── Coming Soon badge on payment option ─────────────────────────────────── */
+.coming-soon-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  background: #fef9c3; color: #92400e;
+  border: 1px solid #fde68a;
+  border-radius: 99px; font-size: 9px; font-weight: 700;
+  padding: 2px 7px; letter-spacing: 0.3px;
+  white-space: nowrap; margin-top: 2px;
+}
+.coming-soon-badge.hidden { display: none !important; }
+.payment-method-option.disabled-option { opacity: 0.55; pointer-events: none; }
+.payment-method-option.disabled-option .payment-method-card {
+  border-color: var(--gray-200) !important;
+  background: var(--gray-100) !important;
+  cursor: not-allowed;
+}
+
+/* ── Alt booking actions (WhatsApp / Call) in payment modal ──────────────── */
+.alt-booking-actions {
+  display: none; gap: 10px; margin-top: 10px;
+}
+.alt-booking-actions.visible { display: flex; }
 
 /* ===================== TOAST ===================== */
 .toast {
@@ -1658,6 +1682,14 @@ h1,h2,h3,h4,h5,h6 { font-family: var(--font-heading); font-weight: 700; line-hei
 
   .nav-actions { gap: 8px; }
   .auth-btns .btn-outline { display: none; }
+
+  /* ── Mobile header: compact logo + hide user name + hide lang selector ── */
+  .logo-icon { width: 40px; height: 40px; font-size: 14px; }
+  .logo-name  { font-size: 18px; }
+  #userDisplayName { display: none !important; }
+  .user-avatar-btn { padding: 4px 8px 4px 4px; gap: 4px; }
+  .lang-selector { display: none; }
+  .dropdown-lang-item { display: flex !important; }
 
   .hamburger { display: flex; }
 

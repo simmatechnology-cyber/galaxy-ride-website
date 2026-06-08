@@ -101,6 +101,17 @@
             <a href="#" onclick="showProfile()"><i class="fas fa-user"></i> My Profile</a>
             <a href="#" onclick="showMyBookings()"><i class="fas fa-car"></i> My Bookings</a>
             <a href="#" onclick="showWallet()"><i class="fas fa-wallet"></i> Wallet</a>
+            <!-- Language selector — only visible on mobile (desktop uses nav lang-selector) -->
+            <hr class="dropdown-lang-item" style="display:none;" />
+            <div class="dropdown-lang-item" style="display:none; align-items:center; gap:10px; padding:10px 16px; font-size:14px; color:var(--gray-600);">
+              <i class="fas fa-globe" style="color:var(--primary);"></i>
+              <span style="flex:1;">Language</span>
+              <select style="border:1px solid var(--gray-200);border-radius:6px;padding:3px 6px;font-size:13px;background:#fff;cursor:pointer;" onchange="document.getElementById('languageSelect').value=this.value;document.getElementById('languageSelect').dispatchEvent(new Event('change'))">
+                <option value="en">EN</option>
+                <option value="hi">HI</option>
+                <option value="ta">TA</option>
+              </select>
+            </div>
             <hr />
             <a href="#" onclick="signOutUser()" class="danger"><i class="fas fa-sign-out-alt"></i> Sign Out</a>
           </div>
@@ -1402,15 +1413,16 @@
     <div class="payment-section">
       <h3>Select Payment Method</h3>
       <div class="payment-methods">
-        <label class="payment-method-option">
+        <label class="payment-method-option" id="onlinePaymentOption">
           <input type="radio" name="paymentMethod" value="online" checked />
           <div class="payment-method-card">
             <i class="fas fa-credit-card"></i>
             <span>Pay Online</span>
             <small>Card / UPI / Wallet</small>
+            <span class="coming-soon-badge hidden" id="onlineComingSoonBadge">⏳ Coming Soon</span>
           </div>
         </label>
-        <label class="payment-method-option">
+        <label class="payment-method-option" id="cashPaymentOption">
           <input type="radio" name="paymentMethod" value="cash" />
           <div class="payment-method-card">
             <i class="fas fa-money-bill-wave"></i>
@@ -1422,6 +1434,16 @@
       <button class="btn btn-primary btn-full btn-pay" onclick="processPayment()" id="payBtn">
         <i class="fas fa-lock"></i> <span id="payBtnText">Proceed to Pay</span>
       </button>
+      <!-- Alt booking actions — shown when online payment is unavailable -->
+      <div class="alt-booking-actions" id="altBookingActions">
+        <a href="https://wa.me/919597815889" target="_blank" rel="noopener"
+           class="btn-whatsapp" onclick="sendWhatsAppBooking(event)">
+          <i class="fab fa-whatsapp"></i> Book via WhatsApp
+        </a>
+        <a href="tel:+919597815889" class="btn-call">
+          <i class="fas fa-phone"></i> Call to Book
+        </a>
+      </div>
     </div>
   </div>
 </div>

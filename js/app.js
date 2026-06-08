@@ -2519,6 +2519,12 @@ function renderBookingSummary() {
   const payBtn = $('payBtnText');
   const method = document.querySelector('input[name="paymentMethod"]:checked')?.value;
   if (payBtn) payBtn.textContent = method === 'cash' ? 'Confirm Booking' : `Pay ₹${d.fare}`;
+
+  // If online payment was already found unavailable this session, re-apply state
+  if (window._paymentNotConfigured) {
+    // Defer to next tick so modal DOM is fully rendered
+    setTimeout(markOnlinePaymentUnavailable, 50);
+  }
 }
 
 // Update pay button when method changes
@@ -2532,6 +2538,64 @@ document.addEventListener('change', (e) => {
 });
 
 // ==================== PAYMENT ====================
+
+// Set to true when the server confirms Razorpay is not yet configured.
+// Persists for the session so subsequent modal opens stay in cash-only mode.
+window._paymentNotConfigured = false;
+
+/** Disable online payment, auto-select cash, show Coming Soon badge + alt actions. */
+function markOnlinePaymentUnavailable() {
+  window._paymentNotConfigured = true;
+
+  const onlineOpt = $('onlinePaymentOption');
+  if (onlineOpt) {
+    onlineOpt.classList.add('disabled-option');
+    const radio = onlineOpt.querySelector('input[type="radio"]');
+    if (radio) radio.disabled = true;
+  }
+
+  const badge = $('onlineComingSoonBadge');
+  if (badge) badge.classList.remove('hidden');
+
+  // Auto-select cash
+  const cashRadio = document.querySelector('input[name="paymentMethod"][value="cash"]');
+  if (cashRadio) {
+    cashRadio.checked = true;
+    cashRadio.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  // Update pay button
+  const btn = $('payBtn');
+  if (btn) {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-money-bill-wave"></i> <span id="payBtnText">Confirm Booking</span>';
+  }
+
+  // Show WhatsApp / Call alternatives
+  const altActions = $('altBookingActions');
+  if (altActions) altActions.classList.add('visible');
+}
+
+/** Build a WhatsApp booking message and open WA, with booking details pre-filled. */
+function sendWhatsAppBooking(e) {
+  const d = state.bookingData;
+  if (!d) return;
+  const lines = [
+    `Hi! I'd like to book a ride with Galaxy Ride.`,
+    `From: ${d.pickup}`,
+    d.drop ? `To: ${d.drop}` : null,
+    `Date: ${formatDate ? formatDate(d.date) : d.date} at ${d.time}`,
+    `Vehicle: ${capitalize(d.vehicle)}`,
+    `Trip: ${capitalize(d.type)}`,
+    `Fare: ₹${d.fare}`,
+    d.customerName ? `Name: ${d.customerName}` : null,
+    d.customerPhone ? `Phone: ${d.customerPhone}` : null,
+  ].filter(Boolean).join('\n');
+  // Override the href on the anchor itself so it carries booking details
+  if (e && e.currentTarget) {
+    e.currentTarget.href = `https://wa.me/919597815889?text=${encodeURIComponent(lines)}`;
+  }
+}
 
 async function processPayment() {
   const method = document.querySelector('input[name="paymentMethod"]:checked')?.value;
@@ -2560,7 +2624,18 @@ async function processPayment() {
     // Server must return a valid order + publishable key (from env vars).
     if (!response.ok || !order.id || !order.key) {
       console.error('[GR] create-order failed:', order);
-      showToast('error', order.error || 'Could not start payment. Please try again.');
+      // Detect configuration-absent scenario — never show raw server message to user
+      const isConfigMissing = order.error && (
+        order.error.toLowerCase().includes('not configured') ||
+        order.error.toLowerCase().includes('payment is not') ||
+        order.error.toLowerCase().includes('please contact support')
+      );
+      if (isConfigMissing) {
+        markOnlinePaymentUnavailable();
+        showToast('info', 'Online payment is coming soon. Book via Cash, WhatsApp or Call.');
+      } else {
+        showToast('error', 'Something went wrong. Please try again.');
+      }
       btn.disabled = false;
       btn.innerHTML = `<i class="fas fa-lock"></i> <span id="payBtnText">Pay ₹${state.bookingData.fare}</span>`;
       return;
@@ -2600,7 +2675,7 @@ async function processPayment() {
 
   } catch (err) {
     console.error('Payment error:', err);
-    showToast('error', 'Payment initialization failed. Please try again.');
+    showToast('error', 'Something went wrong. Please try again.');
     btn.disabled = false;
     btn.innerHTML = `<i class="fas fa-lock"></i> <span id="payBtnText">Pay ₹${state.bookingData.fare}</span>`;
   }
@@ -2628,11 +2703,11 @@ async function verifyAndConfirm(rzpResponse, orderId) {
       await confirmBooking('online', rzpResponse.razorpay_payment_id);
     } else {
       console.error('[GR] Payment verification FAILED — signature mismatch');
-      showToast('error', 'Payment verification failed. Contact support.');
+      showToast('error', 'Something went wrong. Please try again.');
     }
   } catch (e) {
     console.error('[GR] verifyAndConfirm error:', e);
-    showToast('error', 'Could not verify payment. Contact support.');
+    showToast('error', 'Something went wrong. Please try again.');
   }
 }
 
