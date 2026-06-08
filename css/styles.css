@@ -1508,11 +1508,12 @@ h1,h2,h3,h4,h5,h6 { font-family: var(--font-heading); font-weight: 700; line-hei
 @media (prefers-reduced-motion: reduce) { .float-fab.wa::after { animation: none; } }
 
 @media (max-width: 600px) {
-  .float-dock { right: 16px; bottom: 16px; gap: 10px; }
-  /* Touch-friendly: keep circular, labels reveal via tap-target size */
-  .float-fab { height: 56px; width: 56px; }
-  .float-fab i { min-width: 56px; height: 56px; font-size: 24px; }
-  .float-fab:hover { width: 56px; }            /* no width-expand on mobile */
+  /* Float dock: pushed to bottom edge so it does not overlap hero content */
+  .float-dock { right: 14px; bottom: 8px; gap: 8px; }
+  /* Slightly smaller on mobile — still tap-friendly at 48px */
+  .float-fab { height: 48px; width: 48px; }
+  .float-fab i { min-width: 48px; height: 48px; font-size: 21px; }
+  .float-fab:hover { width: 48px; }            /* no width-expand on mobile */
   .float-fab:hover .float-fab-label { opacity: 0; }
 }
 
@@ -1666,8 +1667,9 @@ h1,h2,h3,h4,h5,h6 { font-family: var(--font-heading); font-weight: 700; line-hei
 @media (max-width: 768px) {
   .header-top { display: none; }
 
+  /* ── Mobile nav-links drawer (anchored below 56px header) ── */
   .nav-links {
-    position: fixed; top: 70px; left: 0; right: 0;
+    position: fixed; top: 56px; left: 0; right: 0;
     background: var(--white);
     flex-direction: column;
     padding: 20px;
@@ -1680,22 +1682,50 @@ h1,h2,h3,h4,h5,h6 { font-family: var(--font-heading); font-weight: 700; line-hei
   .nav-links.open { transform: translateY(0); }
   .nav-link { padding: 12px 16px; }
 
-  .nav-actions { gap: 8px; }
-  .auth-btns .btn-outline { display: none; }
+  /* ═══════════════════════════════════════════════════════════════
+     MOBILE HEADER  —  final layout
+     [Logo 32px] [Galaxy Ride 18px] [flex:1 spacer] [Login/Avatar] [☰]
+     Max height: 56px — no horizontal overflow on 320–425px
+  ═══════════════════════════════════════════════════════════════ */
+  .navbar { overflow-x: hidden; }
 
-  /* ── Mobile header: compact logo + hide user name + hide lang selector ── */
-  .navbar { overflow-x: hidden; }               /* prevent horizontal bleed   */
-  .nav-container { gap: 12px; }                 /* was 24px — too wide at 320  */
-  .logo { flex-shrink: 0; }                     /* logo never wraps or shrinks */
-  .logo-icon { width: 40px; height: 40px; font-size: 14px; }
+  .nav-container {
+    padding: 0 14px;
+    height: 56px;
+    gap: 0;                         /* individual elements control own spacing */
+    justify-content: space-between;
+  }
+
+  /* Logo block: 32×32 icon + 18px brand text, never shrinks */
+  .logo { flex-shrink: 0; gap: 8px; }
+  .logo-icon  { width: 32px; height: 32px; font-size: 12px; }
   .logo-name  { font-size: 18px; }
-  #userDisplayName { display: none !important; }
-  .user-avatar-btn .fa-chevron-down { display: none; } /* avatar-only on mobile */
-  .user-avatar-btn { padding: 4px; gap: 0; }
+  .logo-tagline { display: none; }
+
+  /* Nav-actions: grows to push auth/avatar to right; own gap 6px */
+  .nav-actions { flex: 1; justify-content: flex-end; gap: 6px; padding-right: 6px; }
   .lang-selector { display: none; }
   .dropdown-lang-item { display: flex !important; }
 
-  .hamburger { display: flex; flex-shrink: 0; } /* never squeeze the hamburger */
+  /* Logged-out: show compact Login (≤80px), hide Sign Up entirely */
+  .auth-btns .btn-outline {
+    display: inline-flex !important;
+    font-size: 12px; padding: 6px 12px;
+    max-width: 80px; white-space: nowrap;
+  }
+  .auth-btns .btn-primary { display: none !important; }
+
+  /* Logged-in: bare avatar circle, no name, no chevron */
+  #userDisplayName { display: none !important; }
+  .user-avatar-btn .fa-chevron-down { display: none !important; }
+  .user-avatar-btn {
+    padding: 3px; gap: 0;
+    background: transparent; border: none;
+    box-shadow: none;
+  }
+
+  /* Hamburger: 24px icon bars (already 24px in base), fixed to right */
+  .hamburger { display: flex; flex-shrink: 0; margin-left: 6px; padding: 6px; }
 
   .hero { padding: 60px 0 40px; min-height: auto; }
   .hero-title { font-size: 28px; }
@@ -1746,7 +1776,7 @@ h1,h2,h3,h4,h5,h6 { font-family: var(--font-heading); font-weight: 700; line-hei
   .payment-methods { grid-template-columns: 1fr; }
   .driver-cta { flex-direction: column; align-items: center; }
   .app-btns { flex-direction: column; }
-  .nav-container { padding: 12px 16px; gap: 8px; } /* 320px — tightest gap */
+  .nav-container { padding: 0 10px; height: 56px; } /* 320px — keep 56px height */
   .logo-name { font-size: 16px; }
   .logo-tagline { display: none; }
 }
