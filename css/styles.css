@@ -1419,6 +1419,34 @@ h1,h2,h3,h4,h5,h6 { font-family: var(--font-heading); font-weight: 700; line-hei
 }
 .alt-booking-actions.visible { display: flex; }
 
+/* ── Location permission error modal ────────────────────────────────────── */
+.geo-error-modal {
+  max-width: 400px; width: calc(100% - 32px);
+  padding: 28px 24px 24px; border-radius: 16px;
+}
+.geo-err-header {
+  display: flex; align-items: center; gap: 14px; margin-bottom: 16px;
+}
+.geo-err-icon {
+  flex-shrink: 0;
+  width: 46px; height: 46px; border-radius: 50%;
+  background: rgba(227,30,36,0.1);
+  display: flex; align-items: center; justify-content: center;
+}
+.geo-err-icon i { font-size: 20px; color: var(--primary); }
+.geo-err-title  { font-size: 17px; font-weight: 700; color: var(--dark); margin: 0; }
+.geo-err-body   {
+  font-size: 14px; color: var(--gray-700); line-height: 1.65;
+  margin-bottom: 20px;
+}
+.geo-err-body p         { margin: 0 0 10px; }
+.geo-err-body p:last-child { margin-bottom: 0; }
+.geo-fix-label          { font-size: 13px; font-weight: 700; color: var(--dark); margin-top: 14px !important; }
+.geo-steps              { padding-left: 18px; margin: 6px 0 10px; }
+.geo-steps li           { margin-bottom: 7px; line-height: 1.5; }
+.geo-err-actions        { display: flex; flex-direction: column; gap: 10px; }
+.geo-err-actions .btn   { justify-content: center; }
+
 /* ===================== TOAST ===================== */
 .toast {
   position: fixed; bottom: 24px; right: 24px; z-index: 99999;

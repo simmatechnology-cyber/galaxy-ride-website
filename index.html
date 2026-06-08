@@ -37,8 +37,8 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
   <!-- Styles -->
-  <link rel="stylesheet" href="css/styles.css?v=4" />
-  <link rel="stylesheet" href="css/neo-contact.css?v=4" />
+  <link rel="stylesheet" href="css/styles.css?v=5" />
+  <link rel="stylesheet" href="css/neo-contact.css?v=5" />
 
   <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23E31E24'/><text y='.9em' font-size='80' x='10'>🚗</text></svg>" />
@@ -1444,6 +1444,30 @@
           <i class="fas fa-phone"></i> Call to Book
         </a>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Location Permission Error Modal -->
+<div class="modal-overlay hidden" id="locationErrorModal" onclick="closeModalOnOverlay(event,'locationErrorModal')">
+  <div class="modal geo-error-modal">
+    <button class="modal-close" onclick="closeModal('locationErrorModal')" aria-label="Close">
+      <i class="fas fa-times"></i>
+    </button>
+    <div class="geo-err-header">
+      <div class="geo-err-icon"><i class="fas fa-map-marker-slash"></i></div>
+      <h3 class="geo-err-title">Unable to Access Location</h3>
+    </div>
+    <div class="geo-err-body" id="locationErrorDetail">
+      <p>Please enter your pickup address manually.</p>
+    </div>
+    <div class="geo-err-actions">
+      <button class="btn btn-primary btn-full" onclick="closeModal('locationErrorModal'); document.getElementById('pickup').focus();">
+        <i class="fas fa-keyboard"></i> Enter Pickup Manually
+      </button>
+      <button class="btn btn-outline btn-full" onclick="closeModal('locationErrorModal'); useCurrentLocation();">
+        <i class="fas fa-redo"></i> Try Again
+      </button>
     </div>
   </div>
 </div>

@@ -1901,11 +1901,108 @@ async function nominatimReverseGeocode(lat, lon) {
   return buildNominatimLabel(data.address || {}, data.display_name);
 }
 
-function useCurrentLocation() {
-  // ── Guard: browser support ────────────────────────────────────────────────
+// ── Location permission error modal ─────────────────────────────────────────
+//
+// reason: 'denied' | 'unavailable' | 'timeout' | 'unsupported' | 'insecure'
+//
+function showLocationErrorModal(reason) {
+  const modal  = $('locationErrorModal');
+  const msgEl  = $('locationErrorDetail');
+  if (!modal) return;
+
+  const cfg = {
+    denied: {
+      title: 'Location Permission Blocked',
+      icon:  'fa-lock',
+      html:  `<p>Chrome is blocking location access for this site.</p>
+              <p class="geo-fix-label">Fix on <strong>Android Chrome</strong>:</p>
+              <ol class="geo-steps">
+                <li>Tap the <strong>🔒 lock icon</strong> in the address bar</li>
+                <li>Tap <strong>Site settings</strong></li>
+                <li>Set <strong>Location</strong> → <em>Allow</em></li>
+                <li>Reload the page and tap 📍 again</li>
+              </ol>
+              <p class="geo-fix-label">Fix on <strong>Samsung Internet / Edge Mobile</strong>:</p>
+              <p>Settings → Sites and downloads → Site permissions → Location → Allow</p>`,
+    },
+    unavailable: {
+      title: 'GPS Signal Unavailable',
+      icon:  'fa-satellite-dish',
+      html:  `<p>Your device could not get a GPS fix.</p>
+              <ul class="geo-steps">
+                <li>Make sure <strong>Location Services</strong> are on in Android Settings</li>
+                <li>Move to an open area or near a window</li>
+                <li>Check Android Settings → Apps → Chrome → Permissions → Location</li>
+              </ul>`,
+    },
+    timeout: {
+      title: 'Location Timed Out',
+      icon:  'fa-clock',
+      html:  `<p>GPS took too long — likely poor signal indoors.</p>
+              <ul class="geo-steps">
+                <li>Move closer to a window or step outside</li>
+                <li>Make sure Wi-Fi is on (Android uses it for faster location)</li>
+                <li>Try again in a few seconds</li>
+              </ul>`,
+    },
+    unsupported: {
+      title: 'Browser Not Supported',
+      icon:  'fa-exclamation-triangle',
+      html:  `<p>Your browser does not support location services.</p>
+              <p>Try opening this page in <strong>Chrome</strong> or <strong>Samsung Internet</strong>.</p>`,
+    },
+    insecure: {
+      title: 'Secure Connection Required',
+      icon:  'fa-shield-alt',
+      html:  `<p>Location access requires a secure (HTTPS) connection.</p>
+              <p>Make sure you are visiting <strong>https://galaxyride.in</strong></p>`,
+    },
+  }[reason] || {
+    title: 'Unable to Access Location',
+    icon:  'fa-map-marker-slash',
+    html:  `<p>Something went wrong while fetching your location.</p>
+            <p>Please enter your pickup address manually in the field below.</p>`,
+  };
+
+  const iconEl  = modal.querySelector('.geo-err-icon i');
+  const titleEl = modal.querySelector('.geo-err-title');
+  if (iconEl)  iconEl.className = `fas ${cfg.icon}`;
+  if (titleEl) titleEl.textContent = cfg.title;
+  if (msgEl)   msgEl.innerHTML = cfg.html;
+
+  openModal('locationErrorModal');
+}
+
+// ── Main geolocation entry point ─────────────────────────────────────────────
+//
+// Flow:
+//   1. isSecureContext + API availability guards
+//   2. Permissions.query() pre-check  → skip prompt if already 'denied'
+//   3. Try GPS with standard accuracy (avoids Android Chrome overlay error)
+//   4. If that fails (not DENIED), retry with high accuracy
+//   5. On any permission error → showLocationErrorModal()  (never a raw toast)
+//   6. Reverse geocode with Geoapify → Nominatim fallback
+//   7. Booking flow never blocked — manual entry always available
+//
+async function useCurrentLocation() {
+
+  // ── 1. Secure context ───────────────────────────────────────────────────
+  if (!window.isSecureContext) {
+    console.warn('[GeoLoc] Not a secure context — geolocation blocked by browser.');
+    showLocationErrorModal('insecure');
+    return;
+  }
+
+  // ── 2. API availability ─────────────────────────────────────────────────
   if (!navigator.geolocation) {
     console.error('[GeoLoc] navigator.geolocation not supported.');
-    showToast('error', 'Location not supported by this browser.');
+    showLocationErrorModal('unsupported');
+    return;
+  }
+
+  // ── 3. Prevent double-trigger ───────────────────────────────────────────
+  if (window._geolocPending) {
+    console.log('[GeoLoc] Request already in flight — ignoring duplicate tap.');
     return;
   }
 
@@ -1915,6 +2012,7 @@ function useCurrentLocation() {
   const ICON_SPIN = '<i class="fas fa-spinner fa-spin"></i>';
 
   function setBtnState(loading) {
+    window._geolocPending = loading;
     if (btn)   { btn.innerHTML = loading ? ICON_SPIN : ICON_IDLE; btn.disabled = loading; }
     if (input) { input.disabled = loading; }
   }
@@ -1925,108 +2023,130 @@ function useCurrentLocation() {
     input.dataset.fullAddress = label;
     input.title               = label;
     state.pickupFullAddress   = label;
-    setInputValid(input);                 // green border — same as autocomplete selection
+    setInputValid(input);
+  }
+
+  // ── 4. Permissions.query() pre-check ────────────────────────────────────
+  //    Supported: Chrome 43+, Samsung Internet 4+, Edge 79+
+  //    If already 'denied', show modal immediately — no browser prompt fires.
+  if (navigator.permissions && navigator.permissions.query) {
+    try {
+      const perm = await navigator.permissions.query({ name: 'geolocation' });
+      console.log('[GeoLoc] Permissions API state:', perm.state);
+
+      if (perm.state === 'denied') {
+        console.warn('[GeoLoc] Pre-check: permission denied — skipping getCurrentPosition.');
+        showLocationErrorModal('denied');
+        return;
+      }
+
+      // Listen for changes while the browser prompt is open
+      perm.onchange = () => console.log('[GeoLoc] Permission changed →', perm.state);
+
+    } catch (permErr) {
+      // Samsung Internet <12 throws on 'geolocation' query — safe to ignore
+      console.warn('[GeoLoc] Permissions.query not available:', permErr.message);
+    }
   }
 
   setBtnState(true);
-  console.log('[GeoLoc] Requesting browser location…');
-  console.log('[GeoLoc] Geoapify key loaded:', GEOAPIFY_API_KEY
-    ? `${GEOAPIFY_API_KEY.slice(0, 4)}…${GEOAPIFY_API_KEY.slice(-4)} (${GEOAPIFY_API_KEY.length} chars)`
-    : '(MISSING)');
+  console.log('[GeoLoc] Requesting position…');
 
-  navigator.geolocation.getCurrentPosition(
+  // ── 5. Two-pass GPS request ─────────────────────────────────────────────
+  //    Pass A: enableHighAccuracy:false, timeout:8s, maximumAge:30s
+  //      → Works reliably on Android Chrome even when location is cold.
+  //      → Avoids the "Close any bubbles or overlays" error that some
+  //        Android Chrome versions throw with high-accuracy cold starts.
+  //    Pass B: enableHighAccuracy:true, timeout:12s, maximumAge:0
+  //      → Only attempted if Pass A fails with TIMEOUT or UNAVAILABLE.
+  //      → PERMISSION_DENIED (code 1) never retries — straight to modal.
 
-    // ── SUCCESS ──────────────────────────────────────────────────────────────
-    async (pos) => {
-      const { latitude: lat, longitude: lon, accuracy } = pos.coords;
-      console.log(`[GeoLoc] ✓ GPS fix — lat:${lat}, lon:${lon}, accuracy:±${Math.round(accuracy)}m`);
+  function requestPosition(opts) {
+    return new Promise((resolve, reject) =>
+      navigator.geolocation.getCurrentPosition(resolve, reject, opts)
+    );
+  }
 
-      // Coords stored before any API call — route calc always has them
-      state.pickupCoords = { lat, lon };
+  const OPTS_FAST = { enableHighAccuracy: false, timeout: 8000,  maximumAge: 30000 };
+  const OPTS_HIGH = { enableHighAccuracy: true,  timeout: 12000, maximumAge: 0     };
 
-      let label = null;
+  let pos;
+  try {
+    try {
+      pos = await requestPosition(OPTS_FAST);
+      console.log('[GeoLoc] ✓ Pass-A (standard) fix — accuracy:', Math.round(pos.coords.accuracy), 'm');
+    } catch (passAErr) {
+      if (passAErr.code === 1) throw passAErr;   // PERMISSION_DENIED — no retry
+      console.warn('[GeoLoc] Pass-A failed (code', passAErr.code, ') — retrying high-accuracy…');
+      pos = await requestPosition(OPTS_HIGH);
+      console.log('[GeoLoc] ✓ Pass-B (high accuracy) fix — accuracy:', Math.round(pos.coords.accuracy), 'm');
+    }
+  } catch (err) {
+    setBtnState(false);
+    const codeMap = { 1: 'denied', 2: 'unavailable', 3: 'timeout' };
+    console.error(`[GeoLoc] GPS error — code:${err.code} msg:"${err.message}"`);
+    showLocationErrorModal(codeMap[err.code] || 'unavailable');
+    return;                                      // booking flow unblocked
+  }
 
+  // ── 6. Reverse geocoding ────────────────────────────────────────────────
+  const { latitude: lat, longitude: lon, accuracy } = pos.coords;
+  console.log(`[GeoLoc] coords — lat:${lat}, lon:${lon}, accuracy:±${Math.round(accuracy)}m`);
+
+  state.pickupCoords = { lat, lon };            // store before any network call
+
+  let label = null;
+
+  try {
+    // Geoapify (primary)
+    const url = `https://api.geoapify.com/v1/geocode/reverse` +
+                `?lat=${lat}&lon=${lon}&lang=en&apiKey=${GEOAPIFY_API_KEY}`;
+    console.log('[GeoLoc] Geoapify →', url.replace(GEOAPIFY_API_KEY, '…KEY'));
+
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const data  = await res.json();
+    const props = data.features?.[0]?.properties;
+    if (!props) throw new Error('no features');
+
+    label = buildGeoapifyLabel(props);
+    console.log('[GeoLoc] Geoapify label:', label);
+
+    // Sparse result (<3 parts) → also try Nominatim and pick the richer one
+    if (!label || label.split(',').length < 3) {
+      console.log('[GeoLoc] Geoapify sparse — also querying Nominatim…');
       try {
-        // ── Attempt 1: Geoapify reverse geocode ──────────────────────────
-        const url = `https://api.geoapify.com/v1/geocode/reverse` +
-                    `?lat=${lat}&lon=${lon}&lang=en&apiKey=${GEOAPIFY_API_KEY}`;
-        console.log('[GeoLoc] Geoapify URL:',
-          url.replace(GEOAPIFY_API_KEY, `${GEOAPIFY_API_KEY.slice(0, 4)}…KEY`));
-
-        const res = await fetch(url);
-        console.log('[GeoLoc] Geoapify status:', res.status, res.statusText);
-
-        if (!res.ok) throw new Error(`Geoapify HTTP ${res.status} ${res.statusText}`);
-
-        const data  = await res.json();
-        console.log('[GeoLoc] Geoapify full response:', data);
-
-        const props = data.features?.[0]?.properties;
-        console.log('[GeoLoc] Geoapify properties:', props);
-
-        if (!props) throw new Error('Geoapify returned no features');
-
-        label = buildGeoapifyLabel(props);
-        console.log('[GeoLoc] Geoapify label:', label);
-
-        // If Geoapify gave a sparse result (just city+state), also try Nominatim
-        // and prefer whichever has more detail (more comma-separated parts)
-        if (!label || label.split(',').length < 3) {
-          console.log('[GeoLoc] Geoapify result sparse — also trying Nominatim for more detail…');
-          try {
-            const nomLabel = await nominatimReverseGeocode(lat, lon);
-            if (nomLabel && nomLabel.split(',').length > (label || '').split(',').length) {
-              console.log('[GeoLoc] Nominatim more detailed — using:', nomLabel);
-              label = nomLabel;
-            }
-          } catch (nomErr) {
-            console.warn('[GeoLoc] Nominatim detail-boost failed:', nomErr.message);
-          }
+        const nomLabel = await nominatimReverseGeocode(lat, lon);
+        if (nomLabel && nomLabel.split(',').length > (label || '').split(',').length) {
+          console.log('[GeoLoc] Using Nominatim (more detail):', nomLabel);
+          label = nomLabel;
         }
-
-      } catch (geoErr) {
-        // ── Geoapify failed: log exact reason, try Nominatim ─────────────
-        console.error('[GeoLoc] Geoapify failed:', geoErr.message);
-        console.log('[GeoLoc] Falling back to Nominatim (OpenStreetMap)…');
-        try {
-          label = await nominatimReverseGeocode(lat, lon);
-          if (label) {
-            console.log('[GeoLoc] Nominatim label:', label);
-          } else {
-            console.warn('[GeoLoc] Nominatim returned no usable data');
-          }
-        } catch (nomErr) {
-          console.error('[GeoLoc] Nominatim also failed:', nomErr.message);
-        }
+      } catch (nomErr) {
+        console.warn('[GeoLoc] Nominatim boost failed:', nomErr.message);
       }
+    }
 
-      // Last resort — both geocoders failed
-      if (!label) {
-        console.warn('[GeoLoc] Both geocoders failed — using "Current Location"');
-        label = 'Current Location';
-      }
+  } catch (geoErr) {
+    console.error('[GeoLoc] Geoapify failed:', geoErr.message, '— falling back to Nominatim…');
+    try {
+      label = await nominatimReverseGeocode(lat, lon);
+      console.log('[GeoLoc] Nominatim label:', label);
+    } catch (nomErr) {
+      console.error('[GeoLoc] Nominatim also failed:', nomErr.message);
+    }
+  }
 
-      setPickup(label);
-      if (state.dropCoords) calcDistance();
-      showToast('success', 'Current location set as pickup!');
-      setBtnState(false);
-    },
+  if (!label) {
+    console.warn('[GeoLoc] Both geocoders failed — using "Current Location" fallback');
+    label = 'Current Location';
+  }
 
-    // ── GPS ERROR ────────────────────────────────────────────────────────────
-    (err) => {
-      setBtnState(false);
-      const messages = {
-        1: 'Location permission denied. Enable it in browser settings and try again.',
-        2: 'GPS signal unavailable. Check your device location settings.',
-        3: 'Location request timed out. Move to an open area and try again.',
-      };
-      const msg = messages[err.code] || `Location error (code ${err.code}): ${err.message}`;
-      console.error(`[GeoLoc] GPS error — code:${err.code} "${err.message}"`);
-      showToast('error', msg);
-    },
-
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-  );
+  // ── 7. Apply to UI ──────────────────────────────────────────────────────
+  setPickup(label);
+  if (state.dropCoords) calcDistance();
+  showToast('success', 'Current location set as pickup!');
+  setBtnState(false);
 }
 
 // ==================== DISTANCE CALCULATION ====================
