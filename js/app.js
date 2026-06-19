@@ -2240,6 +2240,44 @@ async function useCurrentLocation() {
 }
 
 // ==================== DISTANCE CALCULATION ====================
+//
+// Routing provider chain — always fetches FRESH, REAL routed road distance.
+// No hardcoded distances, no caching of route values between bookings.
+//   Tier 1: Geoapify Routing API   (primary — fast, India-tuned)
+//   Tier 2: OSRM public routing    (secondary — real road distance, no key needed)
+//   Tier 3: Haversine × correction (last resort only, clearly marked as estimated)
+//
+// state.distance / state.duration are recomputed on every call — nothing is
+// read from a prior booking or persisted storage.
+
+/** Tier 1 — Geoapify Routing API. Returns {km, mins} or throws. */
+async function routeViaGeoapify(from, to) {
+  const url = `https://api.geoapify.com/v1/routing` +
+    `?waypoints=${from.lat},${from.lon}|${to.lat},${to.lon}` +
+    `&mode=drive&apiKey=${GEOAPIFY_API_KEY}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Geoapify routing HTTP ${res.status}`);
+  const data    = await res.json();
+  const props   = data.features?.[0]?.properties;
+  const meters  = props?.distance;
+  const seconds = props?.time;
+  if (!meters || meters <= 0) throw new Error('Geoapify routing returned zero/missing distance');
+  return { km: Math.ceil(meters / 1000), mins: seconds ? Math.round(seconds / 60) : null };
+}
+
+/** Tier 2 — OSRM public routing API. Real road distance, no API key required. */
+async function routeViaOSRM(from, to) {
+  const url = `https://router.project-osrm.org/route/v1/driving/` +
+    `${from.lon},${from.lat};${to.lon},${to.lat}?overview=false`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`OSRM routing HTTP ${res.status}`);
+  const data  = await res.json();
+  const route = data.routes?.[0];
+  const meters  = route?.distance;
+  const seconds = route?.duration;
+  if (!meters || meters <= 0) throw new Error('OSRM routing returned zero/missing distance');
+  return { km: Math.ceil(meters / 1000), mins: seconds ? Math.round(seconds / 60) : null };
+}
 
 async function calcDistance() {
   if (!state.pickupCoords || !state.dropCoords) return;
@@ -2250,46 +2288,44 @@ async function calcDistance() {
   if (routeRow) routeRow.classList.remove('hidden');
   if (routeEl)  routeEl.textContent = 'Calculating route…';
 
+  // Always start from a clean slate — never reuse a previous booking's route values
+  state.distance = null;
+  state.duration = null;
+  state.durationEstimated = false;
+
+  const from = state.pickupCoords;
+  const to   = state.dropCoords;
+  let routed = null;
+  let source = null;
+
   try {
-    const { lat: fromLat, lon: fromLon } = state.pickupCoords;
-    const { lat: toLat,   lon: toLon   } = state.dropCoords;
-
-    // Geoapify Routing API — waypoints in lat,lon order
-    const url = `https://api.geoapify.com/v1/routing` +
-      `?waypoints=${fromLat},${fromLon}|${toLat},${toLon}` +
-      `&mode=drive&apiKey=${GEOAPIFY_API_KEY}`;
-
-    const res = await fetch(url);
-
-    // Non-2xx responses resolve without throwing — must check explicitly
-    if (!res.ok) {
-      throw new Error(`Routing API HTTP ${res.status}`);
+    routed = await routeViaGeoapify(from, to);
+    source = 'Geoapify';
+  } catch (e1) {
+    console.warn('[Route] Geoapify failed — trying OSRM:', e1.message);
+    try {
+      routed = await routeViaOSRM(from, to);
+      source = 'OSRM';
+    } catch (e2) {
+      console.warn('[Route] OSRM failed — using haversine estimate:', e2.message);
     }
+  }
 
-    const data    = await res.json();
-    const props   = data.features?.[0]?.properties;
-    const meters  = props?.distance;
-    const seconds = props?.time;
-
-    // Treat zero or missing distance as a failure — fall through to haversine
-    if (!meters || meters <= 0) {
-      throw new Error('Routing API returned zero or missing distance');
-    }
-
-    state.distance          = Math.ceil(meters / 1000);
-    state.duration          = seconds ? Math.round(seconds / 60) : null; // store as minutes
+  if (routed) {
+    state.distance          = routed.km;
+    state.duration          = routed.mins;
     state.durationEstimated = false;
-    console.log(`[Route] API ✓  ${state.distance} km  ${state.duration ? formatDuration(state.duration) : ''}`);
-
-  } catch (e) {
-    // Straight-line haversine × 1.25 road-correction factor (always works, no API needed)
-    console.warn('[Route] API failed — haversine fallback:', e.message);
-    const crow = haversineKm(state.pickupCoords, state.dropCoords);
-    state.distance = Math.round(crow * 1.25);
-    // Estimate drive time at ~55 km/h average inter-city speed
-    state.duration = Math.round((state.distance / 55) * 60);
+    console.log(`[Route] ${source} ✓  ${state.distance} km  ${state.duration ? formatDuration(state.duration) : ''}`);
+  } else {
+    // Last resort only — both live routing providers failed (e.g. offline).
+    // Straight-line haversine × 1.4 road-correction factor (hill/ghat routes
+    // deviate far more from straight-line than flat highway routes, so this
+    // is a conservative estimate, not authoritative — always marked "(est.)").
+    const crow = haversineKm(from, to);
+    state.distance = Math.round(crow * 1.4);
+    state.duration = Math.round((state.distance / 45) * 60); // ~45 km/h conservative avg
     state.durationEstimated = true;
-    console.log(`[Route] Fallback  straight=${crow} km  road≈${state.distance} km`);
+    console.log(`[Route] Fallback (no live routing available)  straight=${crow} km  road≈${state.distance} km`);
   }
 
   // Advance step to Vehicle selection now that route is known
