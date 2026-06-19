@@ -1431,6 +1431,16 @@
           </div>
         </label>
       </div>
+      <!-- Supported payment methods — shown before Razorpay checkout opens -->
+      <div class="supported-methods" id="supportedMethods">
+        <small class="supported-methods-label">Supported payment methods</small>
+        <div class="supported-methods-icons">
+          <span><i class="fas fa-mobile-screen-button"></i> UPI</span>
+          <span><i class="fas fa-building-columns"></i> Net Banking</span>
+          <span><i class="far fa-credit-card"></i> Cards</span>
+          <span><i class="fas fa-wallet"></i> Wallets</span>
+        </div>
+      </div>
       <button class="btn btn-primary btn-full btn-pay" onclick="processPayment()" id="payBtn">
         <i class="fas fa-lock"></i> <span id="payBtnText">Proceed to Pay</span>
       </button>
@@ -1443,6 +1453,25 @@
         <a href="tel:+919597815889" class="btn-call">
           <i class="fas fa-phone"></i> Call to Book
         </a>
+      </div>
+      <!-- Payment failure panel — shown when Razorpay payment.failed fires -->
+      <div class="payment-failure-panel hidden" id="paymentFailurePanel">
+        <div class="payment-failure-icon"><i class="fas fa-circle-exclamation"></i></div>
+        <p class="payment-failure-message" id="paymentFailureMessage">
+          Your payment could not be completed. Please try again, or use Cash, WhatsApp or Call to book instead.
+        </p>
+        <div class="payment-failure-actions">
+          <button class="btn btn-primary btn-full" onclick="retryPayment()" id="retryPaymentBtn">
+            <i class="fas fa-rotate-right"></i> Retry Payment
+          </button>
+          <a href="https://wa.me/919597815889" target="_blank" rel="noopener"
+             class="btn-whatsapp" onclick="sendWhatsAppBooking(event)">
+            <i class="fab fa-whatsapp"></i> WhatsApp Support
+          </a>
+          <a href="tel:+919597815889" class="btn-call">
+            <i class="fas fa-phone"></i> Call Support
+          </a>
+        </div>
       </div>
     </div>
   </div>

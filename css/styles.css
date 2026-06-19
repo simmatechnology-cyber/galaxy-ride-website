@@ -1419,6 +1419,39 @@ h1,h2,h3,h4,h5,h6 { font-family: var(--font-heading); font-weight: 700; line-hei
 }
 .alt-booking-actions.visible { display: flex; }
 
+/* ── Supported payment methods strip (shown before Razorpay checkout) ────── */
+.supported-methods { margin-bottom: 16px; }
+.supported-methods-label {
+  display: block; font-size: 11px; font-weight: 600;
+  color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.4px;
+  margin-bottom: 8px;
+}
+.supported-methods-icons {
+  display: flex; flex-wrap: wrap; gap: 8px;
+}
+.supported-methods-icons span {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12.5px; font-weight: 600; color: var(--gray-700, #374151);
+  background: var(--gray-100); border: 1px solid var(--gray-200);
+  border-radius: 99px; padding: 6px 12px;
+}
+.supported-methods-icons i { color: var(--primary); font-size: 13px; }
+.supported-methods.hidden { display: none; }
+
+/* ── Payment failure panel — shown on Razorpay payment.failed ─────────────── */
+.payment-failure-panel {
+  margin-top: 14px; padding: 18px;
+  border: 1px solid #fecaca; background: #fef2f2;
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+.payment-failure-panel.hidden { display: none; }
+.payment-failure-icon { font-size: 26px; color: #dc2626; margin-bottom: 8px; }
+.payment-failure-message {
+  font-size: 13.5px; color: #7f1d1d; line-height: 1.5; margin-bottom: 14px;
+}
+.payment-failure-actions { display: flex; flex-direction: column; gap: 10px; }
+
 /* ── Location permission error modal ────────────────────────────────────── */
 .geo-error-modal {
   max-width: 400px; width: calc(100% - 32px);

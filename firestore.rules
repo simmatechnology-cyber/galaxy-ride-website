@@ -143,5 +143,14 @@ service cloud.firestore {
     // Override the trip_requests rule to allow driver-level access.
     // (Firestore uses the most specific matching rule.)
 
+    // ── payment_failures/{id} ──────────────────────────────────
+    // Written exclusively by the /api/payment-failure Netlify Function via
+    // the Firebase Admin SDK, which bypasses these rules entirely. No client
+    // (signed-in or not) may read or write this collection directly —
+    // it is an internal failure log for support/ops, not customer data.
+    match /payment_failures/{id} {
+      allow read, write: if false;
+    }
+
   }
 }

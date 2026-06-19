@@ -2768,12 +2768,18 @@ function renderBookingSummary() {
   if (payBtn) payBtn.textContent = method === 'cash' ? 'Confirm Booking' : `Pay ₹${d.fare}`;
 }
 
-// Update pay button when method changes
+// Update pay button + supported-methods strip when payment method changes
 document.addEventListener('change', (e) => {
   if (e.target.name === 'paymentMethod') {
     const txt = $('payBtnText');
     if (txt && state.bookingData) {
       txt.textContent = e.target.value === 'cash' ? 'Confirm Booking' : `Pay ₹${state.bookingData.fare}`;
+    }
+    // Only show "Supported payment methods" when Online is selected and active
+    if (e.target.value === 'online' && !window._paymentNotConfigured) {
+      show('supportedMethods');
+    } else {
+      hide('supportedMethods');
     }
   }
 });
@@ -2817,6 +2823,9 @@ function markOnlinePaymentUnavailable() {
   // Show WhatsApp / Call alternatives
   const altActions = $('altBookingActions');
   if (altActions) altActions.classList.add('visible');
+
+  // No online methods available — hide the supported-methods strip too
+  hide('supportedMethods');
 }
 
 /** Reset payment UI to its default active state for a fresh booking attempt. */
@@ -2841,6 +2850,35 @@ function resetPaymentState() {
     btn.disabled = false;
     btn.innerHTML = `<i class="fas fa-lock"></i> <span id="payBtnText">Pay ₹${state.bookingData.fare}</span>`;
   }
+
+  // Show supported-methods strip again, hide any leftover failure panel
+  show('supportedMethods');
+  hidePaymentFailure();
+}
+
+/**
+ * Show the payment-failure panel (Retry / WhatsApp / Call) with a
+ * customer-friendly message, and hide the normal pay controls while it's up.
+ */
+function showPaymentFailure(message) {
+  const msgEl = $('paymentFailureMessage');
+  if (msgEl) msgEl.textContent = message || 'Your payment could not be completed. Please try again, or use Cash, WhatsApp or Call to book instead.';
+  show('paymentFailurePanel');
+  hide('payBtn');
+  hide('supportedMethods');
+}
+
+/** Hide the payment-failure panel and restore the normal pay button + methods strip. */
+function hidePaymentFailure() {
+  hide('paymentFailurePanel');
+  show('payBtn');
+}
+
+/** Called by the "Retry Payment" button on the failure panel. */
+function retryPayment() {
+  hidePaymentFailure();
+  show('supportedMethods');
+  processPayment();
 }
 
 /** Build a WhatsApp booking message and open WA, with booking details pre-filled. */
@@ -2867,6 +2905,11 @@ function sendWhatsAppBooking(e) {
 async function processPayment() {
   const method = document.querySelector('input[name="paymentMethod"]:checked')?.value;
   const btn    = $('payBtn');
+
+  // Clear any failure panel left over from a previous failed attempt
+  hidePaymentFailure();
+  if (method !== 'cash') show('supportedMethods');
+
   btn.disabled = true;
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
 
@@ -2954,11 +2997,7 @@ async function processPayment() {
     window._rzpInst = rzp; // Store instance to prevent double-open
 
     rzp.on('payment.failed', (r) => {
-      console.error('[GR] payment.failed:', r.error);
-      window._rzpInst = null;
-      showToast('error', `Payment failed: ${r.error.description || 'Unknown error'}`);
-      btn.disabled = false;
-      btn.innerHTML = `<i class="fas fa-lock"></i> <span id="payBtnText">Pay ₹${state.bookingData.fare}</span>`;
+      handlePaymentFailed(r, order.id);
     });
     rzp.open();
 
@@ -2969,6 +3008,67 @@ async function processPayment() {
     btn.disabled = false;
     btn.innerHTML = `<i class="fas fa-lock"></i> <span id="payBtnText">Pay ₹${state.bookingData.fare}</span>`;
   }
+}
+
+/**
+ * Razorpay `payment.failed` handler — logs full failure details to the
+ * console AND the database (Payment ID, Order ID, Failure Code, Failure
+ * Reason), then shows a customer-friendly failure panel with Retry /
+ * WhatsApp / Call actions. Wallet-specific failures get a message steering
+ * the customer toward UPI or Net Banking instead.
+ */
+async function handlePaymentFailed(r, orderId) {
+  const err = r?.error || {};
+  window._rzpInst = null;
+
+  // 1. Always log full details to the console first — independent of network
+  console.error('[GR] payment.failed', {
+    orderId,
+    paymentId:   err.metadata?.payment_id || null,
+    code:        err.code || null,
+    description: err.description || null,
+    reason:      err.reason || null,
+    source:      err.source || null,
+    step:        err.step || null,
+  });
+
+  let customerMessage = `Your payment could not be completed. Please try again, or use Cash, WhatsApp or Call to book instead.`;
+
+  // 2. Persist the failure to the database via the server (Payment ID, Order
+  //    ID, Failure Code, Failure Reason) and get back an accurate,
+  //    method-aware customer message (e.g. wallet → suggest UPI/Net Banking).
+  try {
+    const bd  = state.bookingData || {};
+    const res = await fetch('/api/payment-failure', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        orderId,
+        paymentId:   err.metadata?.payment_id || null,
+        code:        err.code || null,
+        description: err.description || null,
+        reason:      err.reason || null,
+        source:      err.source || null,
+        step:        err.step || null,
+        userId:      bd.userId  || '',
+        vehicle:     bd.vehicle || '',
+        pickup:      bd.pickup  || '',
+        drop:        bd.drop    || '',
+        fare:        bd.fare    || null,
+      }),
+    });
+    const data = await res.json();
+    if (res.ok && data.customerMessage) {
+      customerMessage = data.customerMessage;
+    }
+    console.log('[GR] payment-failure logged:', data);
+  } catch (logErr) {
+    // DB logging must never block the customer-facing failure UI
+    console.error('[GR] Failed to log payment failure to server:', logErr.message);
+  }
+
+  // 3. Show the customer-facing failure panel (Retry / WhatsApp / Call)
+  showPaymentFailure(customerMessage);
 }
 
 async function verifyAndConfirm(rzpResponse, orderId) {
