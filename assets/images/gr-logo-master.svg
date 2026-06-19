@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- Galaxy Ride GR Square Logo — matches header/footer .logo-icon brand styling
+       (Red #E31E24 square, rounded corners, white bold "GR", Poppins/heading font) -->
+  <defs>
+    <linearGradient id="grBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E31E24"/>
+      <stop offset="100%" stop-color="#B91219"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#grBg)"/>
+  <text x="256" y="328"
+        font-family="'Poppins', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif"
+        font-weight="900"
+        font-size="240"
+        fill="#FFFFFF"
+        text-anchor="middle">GR</text>
+</svg>
