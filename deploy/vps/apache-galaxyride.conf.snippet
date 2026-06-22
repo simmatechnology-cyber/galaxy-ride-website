@@ -1,0 +1,26 @@
+# ─────────────────────────────────────────────────────────────────
+# Galaxy Ride — Apache reverse proxy for the Node/Express API
+# ─────────────────────────────────────────────────────────────────
+# Insert this block INSIDE the existing <VirtualHost *:443> stanza
+# for galaxyride.in (the one created by Webuzo's SSL/domain setup —
+# do not create a new VirtualHost, or you'll conflict with the
+# existing cert config). Typical Webuzo location:
+#   /usr/local/apache/conf/userdata/ssl/2/galaxyride/galaxyride.in/*.conf
+# or edit via Webuzo panel → Domains → galaxyride.in → Apache Config.
+#
+# Requires mod_proxy and mod_proxy_http enabled:
+#   - cPanel/Webuzo (EasyApache/built-in httpd): usually already compiled in.
+#   - Debian/Ubuntu Apache: a2enmod proxy proxy_http && systemctl restart apache2
+# ─────────────────────────────────────────────────────────────────
+
+  ProxyPreserveHost On
+  ProxyRequests Off
+
+  # Forward /api/* to the PM2-managed Express process. The Express
+  # functions already set their own CORS/JSON headers, so nothing
+  # extra is needed here.
+  ProxyPass        /api/  http://127.0.0.1:5000/api/  retry=0
+  ProxyPassReverse /api/  http://127.0.0.1:5000/api/
+
+  # Everything else continues to be served as static files from
+  # DocumentRoot /home/galaxyride/public_html (left untouched).
