@@ -44,9 +44,13 @@ import {
 
 // ── Config ───────────────────────────────────────────────────────────────────
 // authDomain is set to galaxyride.in so the Google Sign-In popup handler
-// runs under /__/auth/handler on our own domain (proxied to Firebase via
-// Netlify redirect) rather than on firebaseapp.com.
-// Required console steps — see SETUP.md § Firebase Auth Custom Domain.
+// runs under /__/auth/handler on our own domain rather than on
+// firebaseapp.com. That path must be reverse-proxied to
+// https://galaxyride-4f219.firebaseapp.com/__/auth/* at the web-server
+// level — see the "/__/auth/*" redirect in netlify.toml (Netlify) and
+// the ProxyPass block in deploy/vps/apache-galaxyride.conf.snippet
+// (VPS/Apache). Also requires galaxyride.in to be listed under Firebase
+// Console → Authentication → Settings → Authorized domains.
 const firebaseConfig = {
   apiKey:            window.FIREBASE_API_KEY            || "AIzaSyBcmBnSMiMJui28q9AlBvoVVHH6wmbgm_c",
   authDomain:        window.FIREBASE_AUTH_DOMAIN        || "galaxyride.in",

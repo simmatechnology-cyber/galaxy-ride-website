@@ -1,5 +1,6 @@
 # ─────────────────────────────────────────────────────────────────
 # Galaxy Ride — Apache reverse proxy for the Node/Express API
+# and the Firebase Auth handler
 # ─────────────────────────────────────────────────────────────────
 # Insert this block INSIDE the existing <VirtualHost *:443> stanza
 # for galaxyride.in (the one created by Webuzo's SSL/domain setup —
@@ -8,19 +9,34 @@
 #   /usr/local/apache/conf/userdata/ssl/2/galaxyride/galaxyride.in/*.conf
 # or edit via Webuzo panel → Domains → galaxyride.in → Apache Config.
 #
-# Requires mod_proxy and mod_proxy_http enabled:
+# Requires mod_proxy, mod_proxy_http and mod_ssl enabled:
 #   - cPanel/Webuzo (EasyApache/built-in httpd): usually already compiled in.
-#   - Debian/Ubuntu Apache: a2enmod proxy proxy_http && systemctl restart apache2
+#   - Debian/Ubuntu Apache: a2enmod proxy proxy_http ssl && systemctl restart apache2
 # ─────────────────────────────────────────────────────────────────
 
   ProxyPreserveHost On
   ProxyRequests Off
+
+  # Required for ProxyPass to an https:// upstream (the Firebase
+  # Auth handler block below proxies to firebaseapp.com over TLS).
+  SSLProxyEngine On
 
   # Forward /api/* to the PM2-managed Express process. The Express
   # functions already set their own CORS/JSON headers, so nothing
   # extra is needed here.
   ProxyPass        /api/  http://127.0.0.1:5000/api/  retry=0
   ProxyPassReverse /api/  http://127.0.0.1:5000/api/
+
+  # Firebase Auth custom-domain handler. firebaseConfig.authDomain is
+  # set to "galaxyride.in" (see js/firebase.js) so Google Sign-In opens
+  # https://galaxyride.in/__/auth/handler instead of *.firebaseapp.com.
+  # That path doesn't exist as a static file — it must be proxied to
+  # the real Firebase Auth handler on the project's firebaseapp.com
+  # domain, or every login attempt 404s. This block was only ever
+  # implemented as a Netlify redirect (netlify.toml) prior to the VPS
+  # migration, which is why auth broke when DNS moved to this server.
+  ProxyPass        /__/auth/  https://galaxyride-4f219.firebaseapp.com/__/auth/
+  ProxyPassReverse /__/auth/  https://galaxyride-4f219.firebaseapp.com/__/auth/
 
   # Everything else continues to be served as static files from
   # DocumentRoot /home/galaxyride/public_html (left untouched).
