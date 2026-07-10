@@ -1,0 +1,14 @@
+# Prevent browsers from caching the HTML shell so every visit revalidates
+# and always picks up the current app.js?v=N reference. Without this, a
+# visitor's browser can serve a stale index.html (e.g. from before Tempo
+# Traveller was added to the vehicle selector) even though the server has
+# the latest file — the visitor never even requests the new app.js version.
+# Static assets (css/js/images) already use cache-busting query strings
+# (?v=N) and are unaffected by this rule.
+<IfModule mod_headers.c>
+  <FilesMatch "\.(html|htm)$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires 0
+  </FilesMatch>
+</IfModule>

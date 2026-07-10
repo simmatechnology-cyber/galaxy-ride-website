@@ -42,7 +42,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
   <!-- Styles -->
-  <link rel="stylesheet" href="css/styles.css?v=6" />
+  <link rel="stylesheet" href="css/styles.css?v=7" />
   <link rel="stylesheet" href="css/neo-contact.css?v=6" />
 
   <!-- Favicon — GR Square Logo -->
@@ -85,6 +85,7 @@
         <li><a href="#vehicles" class="nav-link">Vehicles</a></li>
         <li><a href="#safety" class="nav-link">Safety</a></li>
         <li><a href="#contact" class="nav-link">Contact</a></li>
+        <li><a href="driver-register.html" class="nav-link nav-link-driver">Drive with Us</a></li>
       </ul>
 
       <!-- Nav Actions -->
@@ -110,9 +111,9 @@
             <i class="fas fa-chevron-down"></i>
           </button>
           <div class="user-dropdown hidden" id="userDropdown">
-            <a href="#" onclick="showProfile()"><i class="fas fa-user"></i> My Profile</a>
-            <a href="#" onclick="showMyBookings()"><i class="fas fa-car"></i> My Bookings</a>
-            <a href="#" onclick="showWallet()"><i class="fas fa-wallet"></i> Wallet</a>
+            <a href="profile.html"><i class="fas fa-user"></i> My Profile</a>
+            <a href="my-bookings.html"><i class="fas fa-car"></i> My Bookings</a>
+            <a href="wallet.html"><i class="fas fa-wallet"></i> Wallet</a>
             <!-- Language selector — only visible on mobile (desktop uses nav lang-selector) -->
             <hr class="dropdown-lang-item" style="display:none;" />
             <div class="dropdown-lang-item" style="display:none; align-items:center; gap:10px; padding:10px 16px; font-size:14px; color:var(--gray-600);">
@@ -315,6 +316,20 @@
                 <span class="vehicle-price" id="innovaPrice">₹250</span>
               </div>
             </label>
+            <!-- Tempo Traveller — visible on One Way (redirects to Round Trip on tap)
+                 and Round Trip; hidden only on Hourly. Page loads on One Way by
+                 default, so this must NOT have the .hidden class in markup. -->
+            <label class="vehicle-option" data-vehicle="tempo">
+              <input type="radio" name="vehicle" value="tempo" onchange="calculateFare()" />
+              <div class="vehicle-card">
+                <img src="./images/teampo.png" class="vehicle-image" alt="Tempo Traveller">
+                <div class="vehicle-info">
+                  <span class="vehicle-name">Tempo Traveller</span>
+                  <span class="vehicle-seats">12 seats • AC</span>
+                </div>
+                <span class="vehicle-price" id="tempoPrice">₹30/km</span>
+              </div>
+            </label>
           </div>
         </div>
 
@@ -332,13 +347,18 @@
               <span><i class="fas fa-route"></i> Route Distance</span>
               <span id="routeInfoDisplay">—</span>
             </div>
-            <div class="fare-row">
+            <div class="fare-row" id="baseFareRow">
               <span>Base Fare</span>
               <span id="baseFareDisplay">₹0</span>
             </div>
             <div class="fare-row" id="distanceFareRow">
               <span>City Fare (<span id="distanceDisplay">0</span> km)</span>
               <span id="distanceFareDisplay">₹0</span>
+            </div>
+            <!-- Tempo Traveller fare row — shown only when Tempo is selected -->
+            <div class="fare-row hidden" id="tempoFareRow">
+              <span>Tempo Fare (<span id="tempoKmDisplay">0</span> km &times; &#8377;30)</span>
+              <span id="tempoFareDisplay">₹0</span>
             </div>
             <div class="fare-row hidden" id="outstationFareRow">
               <span>Outstation Fare (<span id="outstationKmDisplay">0</span> km)</span>
@@ -898,9 +918,9 @@
       </div>
     </div>
     <div class="driver-cta">
-      <button class="btn btn-primary btn-lg" onclick="openDriverSignup()">
+      <a href="driver-register.html" class="btn btn-primary btn-lg">
         <i class="fas fa-car"></i> Register as Driver
-      </button>
+      </a>
       <button class="btn btn-outline btn-lg" onclick="openDriverInfo()">
         Learn More <i class="fas fa-arrow-right"></i>
       </button>
@@ -1601,8 +1621,9 @@
 </div>
 
 <!-- Trip Status Modal -->
-<div class="modal-overlay hidden" id="tripStatusModal">
+<div class="modal-overlay hidden" id="tripStatusModal" onclick="closeModalOnOverlay(event,'tripStatusModal')">
   <div class="modal trip-status-modal">
+    <button class="modal-close" onclick="closeTripStatusModal()" aria-label="Close"><i class="fas fa-times"></i></button>
     <div class="trip-status-header">
       <div class="trip-id-badge">Trip ID: <span id="statusTripId">—</span></div>
       <h2>Booking Confirmed! 🎉</h2>
@@ -1654,6 +1675,9 @@
       <a href="tel:+919597815889" class="btn-call">
         <i class="fas fa-phone"></i> Call Support
       </a>
+      <button type="button" class="btn-close-status" onclick="closeTripStatusModal()">
+        <i class="fas fa-times"></i> Close
+      </button>
     </div>
   </div>
 </div>
@@ -1754,7 +1778,7 @@
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
 <!-- App Scripts -->
-<script src="js/app.js?v=8"></script>
+<script src="js/app.js?v=18"></script>
 
 </body>
 </html>

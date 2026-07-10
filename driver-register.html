@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Join as Driver | Galaxy Ride</title>
+  <meta name="description" content="Register as a Galaxy Ride driver. Earn ₹40,000–₹80,000/month. Verified onboarding, instant activation across South India." />
+  <meta name="robots" content="index, follow" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="theme-color" content="#E31E24" />
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --primary:#E31E24;--primary-dark:#B91219;
+      --bg:#0c0f1e;--card:#161a2e;--card2:#1e2340;
+      --line:rgba(255,255,255,0.08);--muted:rgba(255,255,255,0.5);
+      --success:#22c55e;--warn:#f59e0b;--danger:#ef4444;--info:#3b82f6;
+    }
+    body{background:var(--bg);color:#fff;font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh;padding-bottom:60px}
+
+    /* ── Nav ── */
+    .nav{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:rgba(12,15,30,0.96);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50;backdrop-filter:blur(12px)}
+    .logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:#fff;font-weight:800;font-size:17px}
+    .logo .b{width:34px;height:34px;background:var(--primary);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;flex-shrink:0}
+    .back{color:var(--muted);text-decoration:none;font-size:13px}
+    .back:hover{color:#fff}
+
+    /* ── Hero ── */
+    .hero{background:linear-gradient(135deg,#1a1f36 0%,#0f1229 100%);padding:36px 20px 28px;text-align:center;border-bottom:1px solid var(--line)}
+    .hero h1{font-family:'Poppins',sans-serif;font-size:clamp(22px,5vw,32px);font-weight:800;margin-bottom:10px}
+    .hero h1 span{color:var(--primary)}
+    .hero p{color:var(--muted);font-size:14px;max-width:480px;margin:0 auto 20px}
+    .perks{display:flex;justify-content:center;gap:20px;flex-wrap:wrap}
+    .perk{display:flex;align-items:center;gap:7px;font-size:13px;color:rgba(255,255,255,.75)}
+    .perk i{color:var(--success);font-size:12px}
+
+    /* ── Step indicator ── */
+    .steps-wrap{max-width:560px;margin:28px auto 0;padding:0 20px}
+    .step-bar{display:flex;align-items:center;gap:0}
+    .step-node{display:flex;flex-direction:column;align-items:center;gap:5px;flex:1}
+    .step-dot{width:30px;height:30px;border-radius:50%;background:var(--card2);border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--muted);transition:all .3s}
+    .step-dot.done{background:var(--success);border-color:var(--success);color:#fff}
+    .step-dot.active{background:var(--primary);border-color:var(--primary);color:#fff}
+    .step-label{font-size:10px;color:var(--muted);text-align:center;white-space:nowrap}
+    .step-label.active{color:#fff}
+    .step-line{flex:1;height:2px;background:var(--line);margin-bottom:20px;transition:background .3s}
+    .step-line.done{background:var(--success)}
+
+    /* ── Form card ── */
+    .form-wrap{max-width:560px;margin:24px auto;padding:0 20px}
+    .form-card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:28px 24px}
+    .step-title{font-family:'Poppins',sans-serif;font-size:18px;font-weight:800;margin-bottom:4px}
+    .step-sub{color:var(--muted);font-size:13px;margin-bottom:22px}
+
+    /* ── Form fields ── */
+    .field{margin-bottom:18px}
+    .field label{display:block;font-size:13px;font-weight:600;margin-bottom:7px;color:rgba(255,255,255,.85)}
+    .field label .req{color:var(--primary)}
+    .field input,.field select{
+      width:100%;background:var(--card2);border:1.5px solid var(--line);border-radius:12px;
+      padding:12px 14px;font-size:14px;color:#fff;outline:none;transition:border-color .2s;
+    }
+    .field input:focus,.field select:focus{border-color:rgba(227,30,36,.6)}
+    .field input::placeholder{color:var(--muted)}
+    .field select option{background:#1e2340}
+    .field-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+    /* ── Phone row ── */
+    .phone-row{display:flex;gap:10px;align-items:flex-end}
+    .phone-row .field{flex:1;margin-bottom:0}
+    .send-otp-btn{background:var(--primary);border:none;border-radius:12px;padding:12px 18px;font-size:13px;font-weight:700;color:#fff;cursor:pointer;white-space:nowrap;transition:background .2s;flex-shrink:0}
+    .send-otp-btn:hover{background:var(--primary-dark)}
+    .send-otp-btn:disabled{background:var(--card2);color:var(--muted);cursor:not-allowed}
+    .otp-timer{font-size:12px;color:var(--muted);margin-top:6px}
+    .otp-timer a{color:var(--primary);text-decoration:none;cursor:pointer}
+
+    /* ── File upload ── */
+    .file-upload{border:2px dashed var(--line);border-radius:14px;padding:20px;text-align:center;cursor:pointer;transition:border-color .2s;position:relative}
+    .file-upload:hover,.file-upload.dragover{border-color:rgba(227,30,36,.5);background:rgba(227,30,36,.04)}
+    .file-upload input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+    .file-upload i{font-size:24px;color:var(--muted);margin-bottom:8px;display:block}
+    .file-upload .fu-label{font-size:13px;font-weight:600;margin-bottom:4px}
+    .file-upload .fu-hint{font-size:11.5px;color:var(--muted)}
+    .file-upload.has-file{border-color:rgba(34,197,94,.5);background:rgba(34,197,94,.04)}
+    .file-upload.has-file i{color:var(--success)}
+    .file-name{font-size:12px;color:var(--success);margin-top:6px;font-weight:600;word-break:break-all}
+    .doc-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+    /* ── Upload progress (legacy, kept for compat) ── */
+    .upload-progress{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--muted);margin-top:8px}
+    .upload-bar{flex:1;height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+    .upload-bar-fill{height:100%;background:var(--primary);border-radius:2px;transition:width .3s}
+
+    /* ── KYC Required progress ── */
+    .req-progress-wrap{margin-bottom:18px}
+    .req-progress-label{font-size:12px;color:var(--muted);margin-bottom:7px;display:flex;justify-content:space-between}
+    .req-progress-label span{color:#fff;font-weight:700}
+    .req-progress-bar{height:5px;background:var(--line);border-radius:3px;overflow:hidden}
+    .req-progress-fill{height:100%;background:var(--success);border-radius:3px;transition:width .4s}
+
+    /* ── KYC Doc section header ── */
+    .doc-section-title{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin:18px 0 10px;display:flex;align-items:center;gap:8px}
+    .doc-section-title i{color:var(--primary)}
+    .doc-section-title::after{content:'';flex:1;height:1px;background:var(--line)}
+
+    /* ── KYC Doc cards ── */
+    .kyc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(228px,1fr));gap:10px}
+    .doc-card{background:var(--card2);border:1.5px solid var(--line);border-radius:14px;padding:12px;display:flex;gap:10px;align-items:flex-start;transition:border-color .2s}
+    .doc-card.has-file{border-color:rgba(34,197,94,.4)}
+    .doc-card.uploading{border-color:rgba(59,130,246,.4)}
+    .dc-thumb{width:46px;height:46px;border-radius:10px;background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;border:1px solid var(--line)}
+    .dc-thumb img{width:100%;height:100%;object-fit:cover;border-radius:9px}
+    .dc-thumb i{font-size:18px;color:var(--muted)}
+    .doc-card.has-file .dc-thumb i{color:var(--success)}
+    .dc-body{flex:1;min-width:0}
+    .dc-header{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:3px}
+    .dc-name{font-size:12px;font-weight:700;line-height:1.3}
+    .dc-badge{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;padding:2px 7px;border-radius:999px;white-space:nowrap;flex-shrink:0}
+    .dc-badge.req{background:rgba(239,68,68,.15);color:#ff8080}
+    .dc-badge.opt{background:rgba(255,255,255,.06);color:var(--muted)}
+    .doc-card.has-file .dc-badge.req,.doc-card.has-file .dc-badge.opt{background:rgba(34,197,94,.15);color:var(--success)}
+    .dc-fname{font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px;min-height:15px}
+    .doc-card.has-file .dc-fname{color:rgba(34,197,94,.85)}
+    .dc-actions{display:flex;gap:5px;flex-wrap:wrap}
+    .doc-card.uploading .dc-actions{display:none}
+    .dc-upload-btn{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;background:rgba(227,30,36,.12);color:#ff9090;border:1px solid rgba(227,30,36,.2);border-radius:7px;padding:5px 9px;cursor:pointer;transition:background .2s;line-height:1}
+    .dc-upload-btn:hover{background:rgba(227,30,36,.22)}
+    .dc-replace-btn{display:none;align-items:center;gap:5px;font-size:11px;font-weight:700;background:rgba(255,255,255,.06);color:rgba(255,255,255,.6);border:1px solid var(--line);border-radius:7px;padding:5px 9px;cursor:pointer;transition:background .2s}
+    .dc-replace-btn:hover{background:rgba(255,255,255,.1)}
+    .doc-card.has-file .dc-replace-btn{display:inline-flex}
+    .dc-remove-btn{display:none;align-items:center;justify-content:center;width:26px;height:26px;background:rgba(239,68,68,.1);color:var(--danger);border:1px solid rgba(239,68,68,.15);border-radius:7px;cursor:pointer;font-size:11px;transition:background .2s}
+    .dc-remove-btn:hover{background:rgba(239,68,68,.2)}
+    .doc-card.has-file .dc-remove-btn{display:inline-flex}
+    .dc-progress{display:none;align-items:center;gap:6px;margin-top:5px}
+    .dc-prog-bar{flex:1;height:3px;background:var(--line);border-radius:2px;overflow:hidden}
+    .dc-prog-fill{height:100%;background:var(--info);border-radius:2px;transition:width .2s;width:0%}
+    .dc-prog-pct{font-size:10px;color:var(--muted);min-width:28px;text-align:right}
+    .doc-card.uploading .dc-progress{display:flex}
+
+    /* ── Review section ── */
+    .review-section{margin-bottom:18px}
+    .review-section h3{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
+    .review-row{display:flex;justify-content:space-between;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--line);gap:12px}
+    .review-row:last-child{border-bottom:none}
+    .rv-label{font-size:13px;color:var(--muted);flex-shrink:0}
+    .rv-val{font-size:13px;font-weight:600;text-align:right;word-break:break-all}
+    .rv-doc{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--success)}
+    .rv-doc i{font-size:11px}
+
+    /* ── Buttons ── */
+    .btn-row{display:flex;gap:10px;margin-top:24px}
+    .btn{border:none;border-radius:12px;padding:13px 22px;font-size:14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:all .2s}
+    .btn-primary{background:var(--primary);color:#fff;flex:1;justify-content:center}
+    .btn-primary:hover{background:var(--primary-dark)}
+    .btn-primary:disabled{background:var(--card2);color:var(--muted);cursor:not-allowed}
+    .btn-back{background:rgba(255,255,255,.07);color:rgba(255,255,255,.7);border:1px solid var(--line)}
+    .btn-back:hover{background:rgba(255,255,255,.12)}
+
+    /* ── Success state ── */
+    .success-wrap{text-align:center;padding:20px 0}
+    .success-icon{width:72px;height:72px;border-radius:50%;background:rgba(34,197,94,.15);border:2px solid var(--success);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:28px;color:var(--success)}
+    .success-wrap h2{font-family:'Poppins',sans-serif;font-size:22px;font-weight:800;margin-bottom:8px}
+    .success-wrap p{color:var(--muted);font-size:14px;max-width:360px;margin:0 auto 20px}
+    .app-id-box{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:14px 18px;font-family:monospace;font-size:13px;color:var(--primary);font-weight:700;letter-spacing:.5px;margin-bottom:20px;word-break:break-all}
+    .next-steps{text-align:left;background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);border-radius:14px;padding:16px 18px;margin-bottom:20px}
+    .next-steps h3{font-size:13px;font-weight:700;color:var(--info);margin-bottom:10px}
+    .next-steps li{font-size:13px;color:rgba(255,255,255,.75);margin-bottom:7px;padding-left:4px;list-style:none;display:flex;gap:8px;align-items:flex-start}
+    .next-steps li i{color:var(--info);flex-shrink:0;margin-top:2px}
+
+    /* ── Alert ── */
+    .alert{border-radius:10px;padding:12px 14px;font-size:13px;margin-bottom:16px;display:flex;gap:10px;align-items:flex-start}
+    .alert i{flex-shrink:0;margin-top:1px}
+    .alert.err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#fca5a5}
+    .alert.info{background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.25);color:#93c5fd}
+    .alert.ok{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);color:#86efac}
+
+    /* ── Spinner ── */
+    .spinner{display:inline-block;width:16px;height:16px;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* ── Steps visibility ── */
+    .step-screen{display:none}
+    .step-screen.active{display:block}
+
+    /* ── reCAPTCHA ── */
+    #recaptcha-container{margin-top:10px}
+    .rc-note{font-size:11.5px;color:var(--muted);margin-top:8px}
+
+    @media(max-width:480px){
+      .form-card{padding:20px 16px}
+      .doc-grid{grid-template-columns:1fr}
+      .field-row{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Nav -->
+  <nav class="nav">
+    <a class="logo" href="index.html"><span class="b">GR</span> Galaxy Ride</a>
+    <a class="back" href="index.html"><i class="fas fa-arrow-left"></i> Back to Site</a>
+  </nav>
+
+  <!-- Hero -->
+  <div class="hero">
+    <h1>Drive with <span>Galaxy Ride</span></h1>
+    <p>Join South India's trusted cab network. Verified onboarding, consistent rides, transparent payouts.</p>
+    <div class="perks">
+      <div class="perk"><i class="fas fa-circle-check"></i> Earn ₹40K–₹80K/month</div>
+      <div class="perk"><i class="fas fa-circle-check"></i> Flexible hours</div>
+      <div class="perk"><i class="fas fa-circle-check"></i> 24/7 driver support</div>
+      <div class="perk"><i class="fas fa-circle-check"></i> Fast KYC verification</div>
+    </div>
+  </div>
+
+  <!-- Step indicator -->
+  <div class="steps-wrap">
+    <div class="step-bar" id="stepBar">
+      <div class="step-node">
+        <div class="step-dot active" id="dot1">1</div>
+        <div class="step-label active" id="lbl1">Google</div>
+      </div>
+      <div class="step-line" id="line12"></div>
+      <div class="step-node">
+        <div class="step-dot" id="dot2">2</div>
+        <div class="step-label" id="lbl2">Details</div>
+      </div>
+      <div class="step-line" id="line23"></div>
+      <div class="step-node">
+        <div class="step-dot" id="dot3">3</div>
+        <div class="step-label" id="lbl3">Vehicle</div>
+      </div>
+      <div class="step-line" id="line34"></div>
+      <div class="step-node">
+        <div class="step-dot" id="dot4">4</div>
+        <div class="step-label" id="lbl4">Docs</div>
+      </div>
+      <div class="step-line" id="line45"></div>
+      <div class="step-node">
+        <div class="step-dot" id="dot5">5</div>
+        <div class="step-label" id="lbl5">Submit</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form area -->
+  <div class="form-wrap">
+
+    <!-- ── Step 1: Google Sign-In ── -->
+    <div class="step-screen active" id="screen1">
+      <div class="form-card">
+        <div class="step-title">Your Google account</div>
+        <div class="step-sub">Sign in with the same Google account you'll use in the Galaxy Ride Driver App.</div>
+        <div id="alertPhone"></div>
+
+        <div class="field">
+          <label>Full Name <span class="req">*</span></label>
+          <input type="text" id="inFullName" placeholder="As per Aadhaar / License" autocomplete="name" />
+        </div>
+
+        <!-- Before sign-in -->
+        <div id="googleSignInSection" style="margin-top:4px">
+          <div class="alert info" style="margin-bottom:14px">
+            <i class="fas fa-circle-info"></i>
+            <span>Use the <strong>same Google account</strong> you will log into the Driver App with. This is how your approved KYC profile gets linked to your Driver App login.</span>
+          </div>
+          <button class="btn btn-primary" id="btnGoogleSignIn" onclick="googleSignIn()" style="flex:none;width:100%;justify-content:center;gap:10px">
+            <i class="fab fa-google"></i> Continue with Google
+          </button>
+        </div>
+
+        <!-- After sign-in -->
+        <div id="googleSignedInSection" style="display:none;margin-top:14px">
+          <div style="display:flex;align-items:center;gap:12px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:14px;padding:14px">
+            <img id="googleAvatar" src="" alt="" style="width:42px;height:42px;border-radius:50%;flex-shrink:0;display:block" onerror="this.style.display='none'" />
+            <div style="flex:1;min-width:0">
+              <div id="googleDisplayName" style="font-weight:700;font-size:14px;margin-bottom:3px"></div>
+              <div id="googleEmailDisplay" style="font-size:12.5px;color:rgba(34,197,94,.9);word-break:break-all"></div>
+            </div>
+            <button onclick="googleSignOut()" type="button" style="background:none;border:1px solid var(--line);border-radius:8px;color:var(--muted);font-size:12px;padding:6px 10px;cursor:pointer;white-space:nowrap;flex-shrink:0">Change</button>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btnContinueGoogle" onclick="continueAfterGoogle()" style="display:none">
+            Continue <i class="fas fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Step 2: Personal Details ── -->
+    <div class="step-screen" id="screen2">
+      <div class="form-card">
+        <div class="step-title">Personal details</div>
+        <div class="step-sub">Tell us a bit more about yourself.</div>
+        <div id="alertPersonal"></div>
+
+        <div class="field">
+          <label>Mobile Number <span class="req">*</span></label>
+          <div style="position:relative">
+            <div style="position:absolute;left:13px;top:50%;transform:translateY(-50%);font-weight:700;color:var(--muted);pointer-events:none;font-size:14px">+91</div>
+            <input type="tel" id="inPhone" placeholder="9XXXXXXXXX" maxlength="10" autocomplete="tel-national" style="padding-left:46px" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label>City you'll drive in <span class="req">*</span></label>
+          <select id="inCity">
+            <option value="">— Select city —</option>
+            <option>Chennai</option>
+            <option>Madurai</option>
+            <option>Coimbatore</option>
+            <option>Trichy</option>
+            <option>Salem</option>
+            <option>Tirunelveli</option>
+            <option>Thoothukudi</option>
+            <option>Dindigul</option>
+            <option>Nagercoil</option>
+            <option>Theni</option>
+            <option>Erode</option>
+            <option>Bangalore</option>
+            <option>Mysore</option>
+            <option>Mangalore</option>
+            <option>Hyderabad</option>
+            <option>Vijayawada</option>
+            <option>Visakhapatnam</option>
+            <option>Kochi</option>
+            <option>Trivandrum</option>
+            <option>Kozhikode</option>
+            <option>Pondicherry</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Years of driving experience <span class="req">*</span></label>
+          <select id="inExperience">
+            <option value="">— Select —</option>
+            <option value="less_than_1">Less than 1 year</option>
+            <option value="1_to_3">1–3 years</option>
+            <option value="3_to_5">3–5 years</option>
+            <option value="5_plus">5+ years</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Languages spoken <span class="req">*</span></label>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
+            <label style="display:flex;align-items:center;gap:7px;font-weight:400;cursor:pointer"><input type="checkbox" class="lang-cb" value="Tamil" style="accent-color:var(--primary)" /> Tamil</label>
+            <label style="display:flex;align-items:center;gap:7px;font-weight:400;cursor:pointer"><input type="checkbox" class="lang-cb" value="Telugu" style="accent-color:var(--primary)" /> Telugu</label>
+            <label style="display:flex;align-items:center;gap:7px;font-weight:400;cursor:pointer"><input type="checkbox" class="lang-cb" value="Kannada" style="accent-color:var(--primary)" /> Kannada</label>
+            <label style="display:flex;align-items:center;gap:7px;font-weight:400;cursor:pointer"><input type="checkbox" class="lang-cb" value="Malayalam" style="accent-color:var(--primary)" /> Malayalam</label>
+            <label style="display:flex;align-items:center;gap:7px;font-weight:400;cursor:pointer"><input type="checkbox" class="lang-cb" value="Hindi" style="accent-color:var(--primary)" /> Hindi</label>
+            <label style="display:flex;align-items:center;gap:7px;font-weight:400;cursor:pointer"><input type="checkbox" class="lang-cb" value="English" style="accent-color:var(--primary)" /> English</label>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-back" onclick="goStep(1)"><i class="fas fa-arrow-left"></i></button>
+          <button class="btn btn-primary" onclick="submitPersonal()">Next <i class="fas fa-arrow-right"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Step 3: Vehicle Info ── -->
+    <div class="step-screen" id="screen3">
+      <div class="form-card">
+        <div class="step-title">Vehicle details</div>
+        <div class="step-sub">Enter the vehicle you will use for Galaxy Ride trips.</div>
+        <div id="alertVehicle"></div>
+
+        <div class="field">
+          <label>Vehicle type <span class="req">*</span></label>
+          <select id="inVehicleType">
+            <option value="">— Select type —</option>
+            <option value="Sedan">Sedan (Swift Dzire, Amaze, Aspire…)</option>
+            <option value="SUV">SUV (Ertiga, Innova, Crysta…)</option>
+            <option value="Innova">Innova / Innova Crysta</option>
+            <option value="Tempo Traveller">Tempo Traveller (12–17 seater)</option>
+            <option value="Mini">Mini / Hatchback (Indica, WagonR…)</option>
+            <option value="Premium">Premium (Camry, Accord, XUV700…)</option>
+          </select>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label>Vehicle number <span class="req">*</span></label>
+            <input type="text" id="inVehicleNumber" placeholder="TN 01 AB 1234" style="text-transform:uppercase" />
+          </div>
+          <div class="field">
+            <label>Year of manufacture <span class="req">*</span></label>
+            <input type="number" id="inVehicleYear" placeholder="2019" min="2005" max="2026" />
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label>Vehicle make <span class="req">*</span></label>
+            <input type="text" id="inVehicleMake" placeholder="Toyota / Maruti…" />
+          </div>
+          <div class="field">
+            <label>Vehicle model <span class="req">*</span></label>
+            <input type="text" id="inVehicleModel" placeholder="Innova / Dzire…" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Colour</label>
+          <input type="text" id="inVehicleColor" placeholder="White / Silver…" />
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-back" onclick="goStep(2)"><i class="fas fa-arrow-left"></i></button>
+          <button class="btn btn-primary" onclick="submitVehicle()">Next <i class="fas fa-arrow-right"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Step 4: KYC Documents ── -->
+    <div class="step-screen" id="screen4">
+      <div class="form-card">
+        <div class="step-title">KYC Documents</div>
+        <div class="step-sub">Upload personal &amp; vehicle documents · JPG, JPEG, PNG or PDF · Max 10 MB each</div>
+        <div id="alertDocs"></div>
+
+        <div class="req-progress-wrap">
+          <div class="req-progress-label">Required documents <span><span id="reqDone">0</span> / 7 uploaded</span></div>
+          <div class="req-progress-bar"><div class="req-progress-fill" id="reqProgFill" style="width:0%"></div></div>
+        </div>
+
+        <div class="doc-section-title"><i class="fas fa-user"></i> Personal Documents</div>
+        <div class="kyc-grid" id="personalDocsGrid"></div>
+
+        <div class="doc-section-title"><i class="fas fa-car"></i> Vehicle Documents</div>
+        <div class="kyc-grid" id="vehicleDocsGrid"></div>
+
+        <div class="btn-row" style="margin-top:24px">
+          <button class="btn btn-back" onclick="goStep(3)"><i class="fas fa-arrow-left"></i></button>
+          <button class="btn btn-primary" onclick="submitDocs()">Review Application <i class="fas fa-arrow-right"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Step 5: Review & Submit ── -->
+    <div class="step-screen" id="screen5">
+      <div class="form-card">
+        <div class="step-title">Review &amp; submit</div>
+        <div class="step-sub">Check your details before we send your application.</div>
+        <div id="alertSubmit"></div>
+
+        <div class="review-section">
+          <h3>Personal</h3>
+          <div class="review-row"><span class="rv-label">Name</span><span class="rv-val" id="rv-name">—</span></div>
+          <div class="review-row"><span class="rv-label">Google account</span><span class="rv-val" id="rv-email" style="color:rgba(34,197,94,.9);font-size:12.5px">—</span></div>
+          <div class="review-row"><span class="rv-label">Mobile</span><span class="rv-val" id="rv-phone">—</span></div>
+          <div class="review-row"><span class="rv-label">City</span><span class="rv-val" id="rv-city">—</span></div>
+          <div class="review-row"><span class="rv-label">Experience</span><span class="rv-val" id="rv-exp">—</span></div>
+          <div class="review-row"><span class="rv-label">Languages</span><span class="rv-val" id="rv-langs">—</span></div>
+        </div>
+
+        <div class="review-section">
+          <h3>Vehicle</h3>
+          <div class="review-row"><span class="rv-label">Type</span><span class="rv-val" id="rv-vtype">—</span></div>
+          <div class="review-row"><span class="rv-label">Number</span><span class="rv-val" id="rv-vnum">—</span></div>
+          <div class="review-row"><span class="rv-label">Make / Model</span><span class="rv-val" id="rv-vmake">—</span></div>
+          <div class="review-row"><span class="rv-label">Year</span><span class="rv-val" id="rv-vyear">—</span></div>
+        </div>
+
+        <div class="review-section">
+          <h3>Documents</h3>
+          <div class="review-row"><span class="rv-label">Required</span><span class="rv-val" id="rv-docs-req">—</span></div>
+          <div class="review-row"><span class="rv-label">Optional</span><span class="rv-val" id="rv-docs-opt">—</span></div>
+          <div id="rv-docs-list" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px"></div>
+        </div>
+
+        <div class="alert info" style="margin-bottom:0;margin-top:4px">
+          <i class="fas fa-circle-info"></i>
+          <span>By submitting you confirm these documents are genuine. False documents will result in permanent account ban and may attract legal action under applicable law.</span>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-back" onclick="goStep(4)"><i class="fas fa-arrow-left"></i></button>
+          <button class="btn btn-primary" id="btnSubmit" onclick="submitApplication()">
+            <span id="submitLabel">Submit Application</span>
+            <i class="fas fa-paper-plane" id="submitIcon"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Success ── -->
+    <div class="step-screen" id="screenSuccess">
+      <div class="form-card">
+        <div class="success-wrap">
+          <div class="success-icon"><i class="fas fa-check"></i></div>
+          <h2>Application submitted!</h2>
+          <p>Your KYC is under review. We typically verify within <strong>24–48 hours</strong> on working days.</p>
+          <div class="app-id-box" id="successAppId"></div>
+          <div class="next-steps">
+            <h3><i class="fas fa-list-check"></i> What happens next</h3>
+            <ul>
+              <li><i class="fas fa-circle-check"></i> Our team verifies your documents (1–2 working days)</li>
+              <li><i class="fas fa-circle-check"></i> You'll get a call on <span id="successPhone"></span> with your activation details</li>
+              <li><i class="fas fa-circle-check"></i> Download the Galaxy Ride Driver App and log in with this number</li>
+              <li><i class="fas fa-circle-check"></i> Start accepting rides and earning</li>
+            </ul>
+          </div>
+          <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+            <a href="https://wa.me/919597815889?text=Hi%2C+I+just+applied+to+drive+with+Galaxy+Ride.+Application+ID%3A+" id="waLink" target="_blank" rel="noopener" class="btn btn-primary" style="text-decoration:none;background:#25D366">
+              <i class="fab fa-whatsapp"></i> Message on WhatsApp
+            </a>
+            <a href="index.html" class="btn btn-back" style="text-decoration:none">Back to site</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /form-wrap -->
+
+  <script type="module">
+    import { initializeApp }     from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut }
+                                  from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+    import { getFirestore, doc, setDoc, serverTimestamp }
+                                  from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+    import { getStorage, ref, uploadBytesResumable, getDownloadURL }
+                                  from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
+
+    // ── Firebase init ──────────────────────────────────────────────────────────
+    const app  = initializeApp({
+      apiKey:            'AIzaSyBcmBnSMiMJui28q9AlBvoVVHH6wmbgm_c',
+      authDomain:        'galaxyride.in',
+      projectId:         'galaxyride-4f219',
+      storageBucket:     'galaxyride-4f219.firebasestorage.app',
+      messagingSenderId: '351465763874',
+      appId:             '1:351465763874:web:e2f89a58a686661566467b',
+    });
+    const auth    = getAuth(app);
+    const db      = getFirestore(app);
+    const storage = getStorage(app);
+
+    // ── KYC Document definitions (matches Driver App KYC keys exactly) ─────────
+    const DOC_DEFS = [
+      // Personal
+      { key:'profilePhoto',        label:'Profile Photo / Selfie', section:'personal', required:true,  icon:'fa-user',             accept:'image/*' },
+      { key:'aadhaarFront',        label:'Aadhaar Front',          section:'personal', required:true,  icon:'fa-id-card',          accept:'image/*,application/pdf' },
+      { key:'aadhaarBack',         label:'Aadhaar Back',           section:'personal', required:true,  icon:'fa-id-card',          accept:'image/*,application/pdf' },
+      { key:'licenseFront',        label:'Driving Licence Front',  section:'personal', required:true,  icon:'fa-id-badge',         accept:'image/*,application/pdf' },
+      { key:'licenseBack',         label:'Driving Licence Back',   section:'personal', required:true,  icon:'fa-id-badge',         accept:'image/*,application/pdf' },
+      { key:'panCard',             label:'PAN Card',               section:'personal', required:false, icon:'fa-credit-card',      accept:'image/*,application/pdf' },
+      { key:'policeVerification',  label:'Police Verification',    section:'personal', required:false, icon:'fa-shield-halved',    accept:'image/*,application/pdf' },
+      { key:'bankProof',           label:'Bank Proof',             section:'personal', required:false, icon:'fa-building-columns', accept:'image/*,application/pdf' },
+      // Vehicle
+      { key:'rcBook',              label:'RC Book',                section:'vehicle',  required:true,  icon:'fa-file-lines',       accept:'image/*,application/pdf' },
+      { key:'insurance',           label:'Insurance',              section:'vehicle',  required:true,  icon:'fa-shield-halved',    accept:'image/*,application/pdf' },
+      { key:'fitnessCertificate',  label:'Fitness Certificate',    section:'vehicle',  required:false, icon:'fa-clipboard-check',  accept:'image/*,application/pdf' },
+      { key:'permit',              label:'Permit',                 section:'vehicle',  required:false, icon:'fa-file-signature',   accept:'image/*,application/pdf' },
+      { key:'puc',                 label:'PUC',                    section:'vehicle',  required:false, icon:'fa-smog',             accept:'image/*,application/pdf' },
+      { key:'vehicleFront',        label:'Vehicle Front Photo',    section:'vehicle',  required:false, icon:'fa-car',              accept:'image/*' },
+      { key:'vehicleBack',         label:'Vehicle Back Photo',     section:'vehicle',  required:false, icon:'fa-car',              accept:'image/*' },
+      { key:'vehicleSide',         label:'Vehicle Side Photo',     section:'vehicle',  required:false, icon:'fa-car-side',         accept:'image/*' },
+      { key:'numberPlate',         label:'Number Plate Photo',     section:'vehicle',  required:false, icon:'fa-square',           accept:'image/*' },
+      { key:'grSticker',           label:'GR Sticker Photo',       section:'vehicle',  required:false, icon:'fa-tag',              accept:'image/*' },
+    ];
+    const REQUIRED_KEYS = DOC_DEFS.filter(d => d.required).map(d => d.key);
+
+    // ── State ──────────────────────────────────────────────────────────────────
+    let currentUser = null;
+    let appId       = null;
+    let loginEmail  = null;
+
+    const docFiles = {}; // key → File object (only filled docs)
+    const docMeta  = {}; // key → upload metadata (populated after upload)
+
+    // ── Helpers ────────────────────────────────────────────────────────────────
+    function nanoid() {
+      return Date.now().toString(36) + Math.random().toString(36).slice(2, 9);
+    }
+    function setAlert(elId, type, msg) {
+      const el = document.getElementById(elId);
+      el.innerHTML = msg
+        ? `<div class="alert ${type}"><i class="fas fa-${type==='err'?'triangle-exclamation':type==='ok'?'circle-check':'circle-info'}"></i><span>${msg}</span></div>`
+        : '';
+    }
+    function val(id) { return document.getElementById(id).value.trim(); }
+
+    // ── Step navigation ────────────────────────────────────────────────────────
+    const STEPS = 5;
+    window.goStep = function(n) {
+      for (let i = 1; i <= STEPS; i++) {
+        document.getElementById('screen'  + i).classList.toggle('active', i === n);
+        document.getElementById('dot'     + i).classList.toggle('active', i === n);
+        document.getElementById('dot'     + i).classList.toggle('done',   i < n);
+        document.getElementById('lbl'     + i).classList.toggle('active', i === n);
+      }
+      for (let i = 1; i < STEPS; i++) {
+        const line = document.getElementById('line' + i + (i+1));
+        if (line) line.classList.toggle('done', i < n);
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    // ── Step 1: Google Sign-In ─────────────────────────────────────────────────
+    const _gProvider = new GoogleAuthProvider();
+    _gProvider.setCustomParameters({ prompt: 'select_account' });
+
+    function _showGoogleSignedIn(user) {
+      document.getElementById('googleSignInSection').style.display   = 'none';
+      document.getElementById('googleSignedInSection').style.display = 'block';
+      document.getElementById('btnContinueGoogle').style.display     = 'flex';
+      document.getElementById('googleAvatar').src                    = user.photoURL || '';
+      document.getElementById('googleDisplayName').textContent       = user.displayName || '';
+      document.getElementById('googleEmailDisplay').textContent      = user.email || '';
+    }
+
+    window.googleSignIn = async function() {
+      const btn = document.getElementById('btnGoogleSignIn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Signing in…';
+      setAlert('alertPhone', '', '');
+      try {
+        const result = await signInWithPopup(auth, _gProvider);
+        currentUser = result.user;
+        loginEmail  = currentUser.email;
+        if (!appId) appId = 'GR-WEB-' + nanoid().toUpperCase();
+        _showGoogleSignedIn(currentUser);
+        if (!val('inFullName') && currentUser.displayName) {
+          document.getElementById('inFullName').value = currentUser.displayName;
+        }
+      } catch (e) {
+        if (e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') {
+          setAlert('alertPhone', 'err', 'Google sign-in failed: ' + e.message);
+        }
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fab fa-google"></i> Continue with Google';
+      }
+    };
+
+    window.googleSignOut = async function() {
+      await signOut(auth);
+      currentUser = null; loginEmail = null; appId = null;
+      document.getElementById('googleSignedInSection').style.display = 'none';
+      document.getElementById('googleSignInSection').style.display   = 'block';
+      document.getElementById('btnContinueGoogle').style.display     = 'none';
+      const btn = document.getElementById('btnGoogleSignIn');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fab fa-google"></i> Continue with Google';
+      setAlert('alertPhone', '', '');
+    };
+
+    window.continueAfterGoogle = function() {
+      if (!val('inFullName'))           { setAlert('alertPhone', 'err', 'Please enter your full name.'); return; }
+      if (!currentUser || !loginEmail)  { setAlert('alertPhone', 'err', 'Please sign in with Google first.'); return; }
+      setAlert('alertPhone', '', '');
+      goStep(2);
+    };
+
+    // ── Step 2: Personal details ───────────────────────────────────────────────
+    window.submitPersonal = function() {
+      if (!/^\d{10}$/.test(val('inPhone'))) { setAlert('alertPersonal','err','Enter a valid 10-digit mobile number.'); return; }
+      if (!val('inCity'))       { setAlert('alertPersonal','err','Please select your city.'); return; }
+      if (!val('inExperience')) { setAlert('alertPersonal','err','Please select your driving experience.'); return; }
+      const langs = [...document.querySelectorAll('.lang-cb:checked')].map(c=>c.value);
+      if (!langs.length)        { setAlert('alertPersonal','err','Please select at least one language.'); return; }
+      setAlert('alertPersonal','','');
+      goStep(3);
+    };
+
+    // ── Step 3: Vehicle ────────────────────────────────────────────────────────
+    window.submitVehicle = function() {
+      if (!val('inVehicleType'))   { setAlert('alertVehicle','err','Please select vehicle type.'); return; }
+      if (!val('inVehicleNumber')) { setAlert('alertVehicle','err','Please enter vehicle number.'); return; }
+      if (!val('inVehicleYear'))   { setAlert('alertVehicle','err','Please enter manufacture year.'); return; }
+      if (!val('inVehicleMake'))   { setAlert('alertVehicle','err','Please enter vehicle make.'); return; }
+      if (!val('inVehicleModel'))  { setAlert('alertVehicle','err','Please enter vehicle model.'); return; }
+      setAlert('alertVehicle','','');
+      goStep(4);
+    };
+
+    // ── Step 4: KYC Doc Cards ─────────────────────────────────────────────────
+    function renderDocCards() {
+      ['personal','vehicle'].forEach(section => {
+        const grid = document.getElementById(section + 'DocsGrid');
+        DOC_DEFS.filter(d => d.section === section).forEach(def => {
+          const card = document.createElement('div');
+          card.className = 'doc-card';
+          card.id = 'dc-' + def.key;
+          card.innerHTML = `
+            <div class="dc-thumb" id="dct-${def.key}"><i class="fas ${def.icon}"></i></div>
+            <div class="dc-body">
+              <div class="dc-header">
+                <span class="dc-name">${def.label}</span>
+                <span class="dc-badge ${def.required ? 'req' : 'opt'}">${def.required ? 'Required' : 'Optional'}</span>
+              </div>
+              <div class="dc-fname" id="dcf-${def.key}">No file selected</div>
+              <div class="dc-progress" id="dcp-${def.key}">
+                <div class="dc-prog-bar"><div class="dc-prog-fill" id="dcpf-${def.key}"></div></div>
+                <span class="dc-prog-pct" id="dcpt-${def.key}">0%</span>
+              </div>
+              <div class="dc-actions">
+                <label class="dc-upload-btn" title="Upload ${def.label}">
+                  <i class="fas fa-upload"></i> Upload
+                  <input type="file" id="dci-${def.key}" accept="${def.accept}" style="display:none" onchange="docFileChosen('${def.key}',this)" />
+                </label>
+                <button class="dc-replace-btn" onclick="replaceDoc('${def.key}')" type="button"><i class="fas fa-arrow-rotate-left"></i> Replace</button>
+                <button class="dc-remove-btn"  onclick="removeDoc('${def.key}')"  type="button"><i class="fas fa-xmark"></i></button>
+              </div>
+            </div>`;
+          grid.appendChild(card);
+        });
+      });
+    }
+
+    function updateReqProgress() {
+      const done = REQUIRED_KEYS.filter(k => !!docFiles[k]).length;
+      document.getElementById('reqDone').textContent = done;
+      document.getElementById('reqProgFill').style.width = (done / REQUIRED_KEYS.length * 100) + '%';
+    }
+
+    window.docFileChosen = function(key, input) {
+      const file = input.files?.[0];
+      if (!file) return;
+      if (file.size > 10 * 1024 * 1024) {
+        setAlert('alertDocs','err','File too large (max 10 MB): ' + file.name);
+        input.value = '';
+        return;
+      }
+      if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+        setAlert('alertDocs','err','Only JPG, PNG or PDF files are supported.');
+        input.value = '';
+        return;
+      }
+      docFiles[key] = file;
+      const card  = document.getElementById('dc-' + key);
+      const thumb = document.getElementById('dct-' + key);
+      card.classList.add('has-file');
+      document.getElementById('dcf-' + key).textContent = file.name;
+      if (file.type.startsWith('image/')) {
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(file);
+        thumb.innerHTML = '';
+        thumb.appendChild(img);
+      } else {
+        thumb.innerHTML = '<i class="fas fa-file-pdf" style="color:#ff6b6b;font-size:20px"></i>';
+      }
+      updateReqProgress();
+      setAlert('alertDocs','','');
+    };
+
+    window.replaceDoc = function(key) {
+      document.getElementById('dci-' + key).click();
+    };
+
+    window.removeDoc = function(key) {
+      delete docFiles[key];
+      const def  = DOC_DEFS.find(d => d.key === key);
+      const card = document.getElementById('dc-' + key);
+      card.classList.remove('has-file');
+      document.getElementById('dcf-' + key).textContent = 'No file selected';
+      document.getElementById('dct-' + key).innerHTML = `<i class="fas ${def.icon}"></i>`;
+      document.getElementById('dci-' + key).value = '';
+      updateReqProgress();
+    };
+
+    window.submitDocs = function() {
+      const missingKeys = REQUIRED_KEYS.filter(k => !docFiles[k]);
+      if (missingKeys.length) {
+        const labels = missingKeys.map(k => DOC_DEFS.find(d => d.key === k).label).join(', ');
+        setAlert('alertDocs','err','Please upload: ' + labels);
+        return;
+      }
+      setAlert('alertDocs','','');
+      populateReview();
+      goStep(5);
+    };
+
+    // ── Step 5: Review ─────────────────────────────────────────────────────────
+    function populateReview() {
+      document.getElementById('rv-name').textContent  = val('inFullName');
+      document.getElementById('rv-email').textContent = loginEmail || '—';
+      document.getElementById('rv-phone').textContent = '+91 ' + val('inPhone');
+      document.getElementById('rv-city').textContent  = val('inCity');
+      const expMap = { less_than_1:'<1 year', '1_to_3':'1–3 years', '3_to_5':'3–5 years', '5_plus':'5+ years' };
+      document.getElementById('rv-exp').textContent   = expMap[val('inExperience')] || val('inExperience');
+      const langs = [...document.querySelectorAll('.lang-cb:checked')].map(c=>c.value).join(', ');
+      document.getElementById('rv-langs').textContent = langs;
+      document.getElementById('rv-vtype').textContent = val('inVehicleType');
+      document.getElementById('rv-vnum').textContent  = val('inVehicleNumber').toUpperCase();
+      document.getElementById('rv-vmake').textContent = val('inVehicleMake') + ' ' + val('inVehicleModel');
+      document.getElementById('rv-vyear').textContent = val('inVehicleYear');
+
+      const reqCount = REQUIRED_KEYS.filter(k => docFiles[k]).length;
+      const optCount = Object.keys(docFiles).filter(k => !REQUIRED_KEYS.includes(k)).length;
+      document.getElementById('rv-docs-req').innerHTML =
+        `<span class="rv-doc"><i class="fas fa-circle-check"></i> ${reqCount} / ${REQUIRED_KEYS.length} uploaded</span>`;
+      document.getElementById('rv-docs-opt').textContent =
+        optCount > 0 ? `${optCount} additional document${optCount > 1 ? 's' : ''} uploaded` : 'None';
+
+      const listEl = document.getElementById('rv-docs-list');
+      listEl.innerHTML = '';
+      Object.keys(docFiles).forEach(k => {
+        const def  = DOC_DEFS.find(d => d.key === k);
+        const chip = document.createElement('span');
+        chip.style.cssText = 'display:inline-flex;align-items:center;gap:5px;font-size:11px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);border-radius:999px;padding:3px 10px;color:#86efac';
+        chip.innerHTML = `<i class="fas fa-circle-check" style="font-size:9px"></i> ${def.label}`;
+        listEl.appendChild(chip);
+      });
+    }
+
+    // ── Final submission ────────────────────────────────────────────────────────
+    window.submitApplication = async function() {
+      const btn   = document.getElementById('btnSubmit');
+      const label = document.getElementById('submitLabel');
+      const icon  = document.getElementById('submitIcon');
+      btn.disabled  = true;
+      icon.className = 'spinner';
+      setAlert('alertSubmit','','');
+
+      try {
+        // 1. Upload every selected doc file to Firebase Storage
+        const keysToUpload = Object.keys(docFiles);
+        for (let i = 0; i < keysToUpload.length; i++) {
+          const key  = keysToUpload[i];
+          const file = docFiles[key];
+          const def  = DOC_DEFS.find(d => d.key === key);
+          label.textContent = `Uploading ${i + 1}/${keysToUpload.length}: ${def.label}…`;
+
+          const ext         = file.name.includes('.') ? file.name.split('.').pop().toLowerCase() : 'bin';
+          const storagePath = `driver-documents/${currentUser.uid}/${key}-${Date.now()}.${ext}`;
+          const sRef        = ref(storage, storagePath);
+
+          const card = document.getElementById('dc-' + key);
+          card?.classList.add('uploading');
+
+          const url = await new Promise((resolve, reject) => {
+            const task = uploadBytesResumable(sRef, file);
+            task.on('state_changed',
+              snap => {
+                const pct  = Math.round(snap.bytesTransferred / snap.totalBytes * 100);
+                const fill = document.getElementById('dcpf-' + key);
+                const pctEl = document.getElementById('dcpt-' + key);
+                if (fill)  fill.style.width = pct + '%';
+                if (pctEl) pctEl.textContent = pct + '%';
+              },
+              reject,
+              async () => resolve(await getDownloadURL(task.snapshot.ref))
+            );
+          });
+
+          card?.classList.remove('uploading');
+
+          docMeta[key] = {
+            url,
+            downloadUrl:  url,
+            fileName:     file.name,
+            fileType:     file.type,
+            fileSize:     file.size,
+            uploadedAt:   new Date().toISOString(),
+            storagePath,
+            source:       'website',
+            status:       'uploaded',
+          };
+        }
+
+        // 2. Build documents map — each entry is a metadata object
+        //    Also add backward-compat string aliases read by driver-admin.html
+        const documents = {};
+        for (const [k, m] of Object.entries(docMeta)) documents[k] = m;
+        if (docMeta.licenseFront)  documents.drivingLicense = docMeta.licenseFront.url;
+        if (docMeta.profilePhoto)  documents.driverPhoto    = docMeta.profilePhoto.url;
+
+        // 3. Write to Firestore — structure matches Driver App KYC exactly
+        label.textContent = 'Saving application…';
+        const langs  = [...document.querySelectorAll('.lang-cb:checked')].map(c => c.value);
+        const expMap = { less_than_1:'<1 year', '1_to_3':'1–3 years', '3_to_5':'3–5 years', '5_plus':'5+ years' };
+
+        await setDoc(doc(db, 'driverApplications', appId), {
+          applicationId:      appId,
+          userId:             currentUser.uid,
+          source:             'website',
+          registrationSource: 'website',
+          status:             'pending',
+          kycStatus:          'pending',
+          kycSubmitted:       true,
+          statusNote:         '',
+          submittedAt:        serverTimestamp(),
+          createdAt:          serverTimestamp(),
+          updatedAt:          serverTimestamp(),
+          reviewedAt:         null,
+
+          fullName:    val('inFullName'),
+          mobile:      val('inPhone'),
+          loginEmail:  loginEmail,
+          city:        val('inCity'),
+          experience:  expMap[val('inExperience')] || val('inExperience'),
+          languages:   langs,
+
+          vehicleType:   val('inVehicleType'),
+          vehicleNumber: val('inVehicleNumber').toUpperCase(),
+          vehicleYear:   val('inVehicleYear'),
+          vehicleMake:   val('inVehicleMake'),
+          vehicleModel:  val('inVehicleModel'),
+          vehicleColor:  val('inVehicleColor') || '',
+
+          documents,
+
+          kycDocCount: {
+            total:    Object.keys(docMeta).length,
+            required: REQUIRED_KEYS.filter(k => !!docMeta[k]).length,
+            optional: Object.keys(docMeta).filter(k => !REQUIRED_KEYS.includes(k)).length,
+          },
+        });
+
+        // 4. Show success screen
+        document.getElementById('successAppId').textContent = 'Application ID: ' + appId;
+        document.getElementById('successPhone').textContent  = '+91 ' + val('inPhone');
+        document.getElementById('waLink').href += encodeURIComponent(appId);
+        document.getElementById('stepBar').closest('.steps-wrap').style.display = 'none';
+        for (let i = 1; i <= STEPS; i++) document.getElementById('screen' + i).classList.remove('active');
+        document.getElementById('screenSuccess').classList.add('active');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      } catch (e) {
+        setAlert('alertSubmit','err','Submission failed: ' + e.message + ' — Please try again or call +91 9597815889.');
+        btn.disabled     = false;
+        label.textContent = 'Submit Application';
+        icon.className   = 'fas fa-paper-plane';
+      }
+    };
+
+    // ── Init ───────────────────────────────────────────────────────────────────
+    renderDocCards();
+
+    // Auto-populate Google section if user already has a valid session
+    const _unsub = auth.onAuthStateChanged(user => {
+      _unsub();
+      if (user?.providerData?.some(p => p.providerId === 'google.com') && user.email) {
+        currentUser = user;
+        loginEmail  = user.email;
+        if (!appId) appId = 'GR-WEB-' + nanoid().toUpperCase();
+        _showGoogleSignedIn(user);
+        if (!document.getElementById('inFullName').value && user.displayName) {
+          document.getElementById('inFullName').value = user.displayName;
+        }
+      }
+    });
+  </script>
+</body>
+</html>

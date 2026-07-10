@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Bookings — Galaxy Ride</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="css/styles.css?v=6" />
+  <link rel="stylesheet" href="css/account.css?v=1" />
+  <link rel="icon" href="/favicon.ico" />
+  <meta name="theme-color" content="#E31E24" />
+</head>
+<body>
+
+<!-- ── HEADER ─────────────────────────────────────────────── -->
+<header class="header" id="header">
+  <div class="header-top">
+    <div class="container">
+      <a href="tel:+919597815889" style="color:inherit;text-decoration:none;"><span><i class="fas fa-phone"></i> +91 95978 15889</span></a>
+      <a href="https://wa.me/919597815889" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;"><span><i class="fab fa-whatsapp"></i> WhatsApp Support</span></a>
+      <span><i class="fas fa-clock"></i> 24/7 Available</span>
+    </div>
+  </div>
+  <nav class="navbar" id="navbar">
+    <div class="container nav-container">
+      <a href="index.html" class="logo">
+        <div class="logo-icon">GR</div>
+        <div class="logo-text">
+          <span class="logo-name">Galaxy Ride</span>
+          <span class="logo-tagline">One Way Taxi from ₹13/KM</span>
+        </div>
+      </a>
+      <ul class="nav-links" id="navLinks">
+        <li><a href="index.html" class="nav-link">Home</a></li>
+        <li><a href="index.html#services" class="nav-link">Services</a></li>
+        <li><a href="index.html#contact" class="nav-link">Contact</a></li>
+        <li><a href="driver-register.html" class="nav-link nav-link-driver">Drive with Us</a></li>
+      </ul>
+      <div class="nav-actions">
+        <div class="auth-btns hidden" id="authBtns">
+          <a href="index.html" class="btn btn-primary">Login</a>
+        </div>
+        <div class="user-menu hidden" id="userMenu">
+          <button class="user-avatar-btn" onclick="toggleUserDropdown()" id="userAvatarBtn">
+            <div class="user-avatar" id="userAvatar">U</div>
+            <span id="userDisplayName">User</span>
+            <i class="fas fa-chevron-down"></i>
+          </button>
+          <div class="user-dropdown hidden" id="userDropdown">
+            <a href="profile.html"><i class="fas fa-user"></i> My Profile</a>
+            <a href="my-bookings.html" style="color:var(--primary,#E31E24);font-weight:600;"><i class="fas fa-car"></i> My Bookings</a>
+            <a href="wallet.html"><i class="fas fa-wallet"></i> Wallet</a>
+            <hr />
+            <a href="#" onclick="accSignOut()" class="danger"><i class="fas fa-sign-out-alt"></i> Sign Out</a>
+          </div>
+        </div>
+      </div>
+      <button class="hamburger" id="hamburger" aria-label="Toggle menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+</header>
+
+<!-- ── ACCOUNT TABS ────────────────────────────────────────── -->
+<div class="account-tabs-bar">
+  <div class="account-tabs">
+    <a href="profile.html"     class="account-tab"><i class="fas fa-user"></i> My Profile</a>
+    <a href="my-bookings.html" class="account-tab active"><i class="fas fa-car"></i> My Bookings</a>
+    <a href="wallet.html"      class="account-tab"><i class="fas fa-wallet"></i> Wallet</a>
+  </div>
+</div>
+
+<!-- ── MAIN ───────────────────────────────────────────────── -->
+<main class="account-body">
+
+  <div class="auth-loading" id="authLoading">
+    <i class="fas fa-circle-notch fa-spin fa-2x"></i>
+    <p>Loading your bookings…</p>
+  </div>
+
+  <div class="account-container" id="accountContent" style="display:none;">
+
+    <!-- Filter tabs -->
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+      <div style="font-size:20px;font-weight:700;color:#1a1a1a;">My Bookings <span id="bookingCount" style="font-size:14px;font-weight:500;color:#aaa;margin-left:4px;"></span></div>
+      <div class="filter-tabs" id="filterTabs">
+        <button class="filter-tab active" data-filter="all"       onclick="setFilter('all')">All</button>
+        <button class="filter-tab"        data-filter="active"    onclick="setFilter('active')">Active</button>
+        <button class="filter-tab"        data-filter="completed" onclick="setFilter('completed')">Completed</button>
+        <button class="filter-tab"        data-filter="cancelled" onclick="setFilter('cancelled')">Cancelled</button>
+      </div>
+    </div>
+
+    <!-- Booking list -->
+    <div id="bookingList" class="booking-list"></div>
+
+  </div>
+</main>
+
+<!-- ── BOOKING DETAIL MODAL ───────────────────────────────── -->
+<div class="acc-modal-overlay" id="detailOverlay" onclick="closeDetail(event)">
+  <div class="acc-modal" id="detailModal">
+    <div class="acc-modal-header">
+      <h3><i class="fas fa-receipt" style="color:var(--primary,#E31E24);margin-right:6px;"></i> Booking Details</h3>
+      <button class="acc-modal-close" onclick="closeDetail()">&times;</button>
+    </div>
+    <div class="acc-modal-body" id="detailBody"></div>
+  </div>
+</div>
+
+<!-- ── FOOTER ─────────────────────────────────────────────── -->
+<footer class="footer">
+  <div class="container footer-grid">
+    <div class="footer-brand">
+      <div class="footer-logo">
+        <div class="logo-icon">GR</div>
+        <div class="logo-text"><span class="logo-name">Galaxy Ride</span><span class="logo-tagline">One Way Taxi from ₹13/KM</span></div>
+      </div>
+      <p>South India's affordable one way taxi service. Sedan cabs from ₹13/KM across Tamil Nadu, Karnataka, Kerala and beyond.</p>
+      <ul class="footer-contact">
+        <li><i class="fas fa-phone"></i> <a href="tel:+919597815889">+91 9597815889</a></li>
+        <li><i class="fab fa-instagram"></i> <a href="https://www.instagram.com/galaxyride.ind.cabs/" target="_blank" rel="noopener">@galaxyride.ind.cabs</a></li>
+        <li><i class="fas fa-location-dot"></i> Nungambakkam, Chennai</li>
+      </ul>
+    </div>
+    <div class="footer-links"><h4>Quick Links</h4><ul>
+      <li><a href="index.html">Home</a></li>
+      <li><a href="index.html#services">Services</a></li>
+      <li><a href="index.html#contact">Contact</a></li>
+    </ul></div>
+    <div class="footer-links"><h4>My Account</h4><ul>
+      <li><a href="profile.html">My Profile</a></li>
+      <li><a href="my-bookings.html">My Bookings</a></li>
+      <li><a href="wallet.html">Wallet</a></li>
+    </ul></div>
+    <div class="footer-links"><h4>Support</h4><ul>
+      <li><a href="about-us.html">About Us</a></li>
+      <li><a href="refund-policy.html">Refund Policy</a></li>
+      <li><a href="privacy-policy.html">Privacy Policy</a></li>
+      <li><a href="terms-and-conditions.html">Terms of Service</a></li>
+    </ul></div>
+  </div>
+  <div class="footer-bottom"><div class="container">
+    <p>© 2025 Galaxy Ride. All rights reserved.</p>
+    <div class="payment-icons">
+      <i class="fab fa-cc-visa"></i><i class="fab fa-cc-mastercard"></i>
+      <i class="fab fa-cc-amex"></i><i class="fab fa-google-pay"></i>
+    </div>
+  </div></div>
+</footer>
+
+<!-- ── SCRIPTS ─────────────────────────────────────────────── -->
+<script type="module" src="js/firebase.js"></script>
+<script type="module">
+import { getApp }                from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+import { getAuth, onAuthStateChanged, signOut }
+                                 from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { getFirestore, collection, query, where, orderBy, getDocs }
+                                 from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+const auth = getAuth(getApp());
+const db   = getFirestore(getApp());
+
+let allBookings  = [];
+let activeFilter = 'all';
+
+// ── Navbar ────────────────────────────────────────────────────
+window.toggleUserDropdown = () => document.getElementById('userDropdown')?.classList.toggle('hidden');
+document.addEventListener('click', e => {
+  if (!e.target.closest('.user-menu')) document.getElementById('userDropdown')?.classList.add('hidden');
+});
+document.getElementById('hamburger')?.addEventListener('click', () => {
+  document.getElementById('hamburger').classList.toggle('active');
+  document.getElementById('navLinks')?.classList.toggle('open');
+});
+window.accSignOut = async () => { await signOut(auth); window.location.href = 'index.html'; };
+
+// ── Auth guard ────────────────────────────────────────────────
+onAuthStateChanged(auth, async user => {
+  if (!user) { window.location.href = 'index.html'; return; }
+  document.getElementById('authLoading').style.display = 'none';
+  document.getElementById('accountContent').style.display = 'flex';
+  await loadBookings(user.uid);
+});
+
+// ── Load bookings ─────────────────────────────────────────────
+async function loadBookings(uid) {
+  const list = document.getElementById('bookingList');
+  list.innerHTML = '<div class="account-card"><div class="skeleton" style="height:80px;margin-bottom:12px;border-radius:10px;"></div><div class="skeleton" style="height:80px;border-radius:10px;"></div></div>';
+
+  try {
+    // Try with orderBy (needs composite index); fall back to client sort
+    let snap;
+    try {
+      snap = await getDocs(query(
+        collection(db, 'bookings'),
+        where('userId', '==', uid),
+        orderBy('createdAt', 'desc')
+      ));
+    } catch (idxErr) {
+      snap = await getDocs(query(collection(db, 'bookings'), where('userId', '==', uid)));
+    }
+
+    allBookings = snap.docs.map(d => d.data());
+    // Client-side sort by createdAt descending (handles both Timestamp and string)
+    allBookings.sort((a, b) => {
+      const ta = a.createdAt?.seconds ?? (a.createdAt ? new Date(a.createdAt).getTime() / 1000 : 0);
+      const tb = b.createdAt?.seconds ?? (b.createdAt ? new Date(b.createdAt).getTime() / 1000 : 0);
+      return tb - ta;
+    });
+    renderBookings();
+  } catch (err) {
+    list.innerHTML = `<div class="account-card"><div class="acc-alert error" style="display:block;">Failed to load bookings: ${err.message}</div></div>`;
+  }
+}
+
+// ── Filter ────────────────────────────────────────────────────
+window.setFilter = function(filter) {
+  activeFilter = filter;
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.toggle('active', t.dataset.filter === filter));
+  renderBookings();
+};
+
+function filtered() {
+  if (activeFilter === 'all') return allBookings;
+  const ACTIVE = ['confirmed', 'assigned', 'pending', 'en_route', 'started'];
+  if (activeFilter === 'active')    return allBookings.filter(b => ACTIVE.includes(b.status?.toLowerCase()));
+  if (activeFilter === 'completed') return allBookings.filter(b => b.status?.toLowerCase() === 'completed');
+  if (activeFilter === 'cancelled') return allBookings.filter(b => b.status?.toLowerCase() === 'cancelled');
+  return allBookings;
+}
+
+// ── Render ────────────────────────────────────────────────────
+function renderBookings() {
+  const list  = document.getElementById('bookingList');
+  const items = filtered();
+
+  document.getElementById('bookingCount').textContent = allBookings.length > 0 ? `(${allBookings.length})` : '';
+
+  if (items.length === 0) {
+    list.innerHTML = `
+      <div class="account-card">
+        <div class="empty-state">
+          <i class="fas fa-car-side"></i>
+          <h4>${activeFilter === 'all' ? 'No bookings yet' : 'No ' + activeFilter + ' bookings'}</h4>
+          <p>${activeFilter === 'all' ? 'Your confirmed rides will appear here.' : 'No bookings match this filter.'}</p>
+          ${activeFilter === 'all' ? '<a href="index.html" class="btn-acc-primary" style="margin-top:16px;display:inline-flex;text-decoration:none;"><i class="fas fa-plus"></i> Book a Ride</a>' : ''}
+        </div>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = items.map((b, i) => bookingCard(b, i)).join('');
+}
+
+function fmtDate(val) {
+  if (!val) return '—';
+  try {
+    const d = val?.toDate ? val.toDate() : new Date(val.seconds ? val.seconds * 1000 : val);
+    return d.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
+  } catch { return String(val); }
+}
+
+function fmtDateTime(val) {
+  if (!val) return '—';
+  try {
+    const d = val?.toDate ? val.toDate() : new Date(val.seconds ? val.seconds * 1000 : val);
+    return d.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  } catch { return String(val); }
+}
+
+function statusBadge(s) {
+  const map = { confirmed:'confirmed', pending:'pending', assigned:'assigned', completed:'completed', cancelled:'cancelled', en_route:'active', started:'active' };
+  const cls = map[s?.toLowerCase()] || 'pending';
+  const icons = { confirmed:'✓', pending:'⏳', assigned:'🚗', completed:'✓', cancelled:'✕', active:'🟢' };
+  return `<span class="status-badge ${cls}">${icons[cls] || ''} ${s || 'Unknown'}</span>`;
+}
+
+function payBadge(ps) {
+  const s = ps?.toLowerCase() || '';
+  if (s === 'paid')         return `<span class="pay-badge paid"><i class="fas fa-check-circle"></i> Paid</span>`;
+  if (s === 'cash_pending') return `<span class="pay-badge cash-pending"><i class="fas fa-money-bill"></i> Cash</span>`;
+  if (s === 'refunded')     return `<span class="pay-badge refunded"><i class="fas fa-rotate-left"></i> Refunded</span>`;
+  if (s === 'failed')       return `<span class="pay-badge failed"><i class="fas fa-xmark"></i> Failed</span>`;
+  return `<span class="pay-badge pending"><i class="fas fa-clock"></i> Pending</span>`;
+}
+
+function shortCity(addr) {
+  if (!addr) return '—';
+  // Extract first comma-separated component
+  return addr.split(',')[0].trim().substring(0, 22);
+}
+
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function bookingCard(b, idx) {
+  const pickup = shortCity(b.pickup || b.pickupAddress || '');
+  const drop   = shortCity(b.drop   || b.dropAddress   || '');
+  const fare   = b.fare ?? b.estimatedFare ?? 0;
+
+  return `
+  <div class="booking-card" onclick="openDetail(${idx})">
+    <div class="booking-card-header">
+      <span class="booking-id">${esc(b.bookingId || b.tripId || '—')}</span>
+      ${statusBadge(b.status)}
+      <span class="booking-date">${fmtDate(b.createdAt || b.createdServer)}</span>
+    </div>
+    <div class="booking-route">
+      <span class="route-city" title="${esc(b.pickup||'')}"><i class="fas fa-circle-dot" style="color:#E31E24;font-size:10px;"></i> ${esc(pickup)}</span>
+      <span class="route-arrow"><i class="fas fa-arrow-right"></i></span>
+      <span class="route-city" title="${esc(b.drop||'')}"><i class="fas fa-location-dot" style="color:#555;font-size:10px;"></i> ${esc(drop)}</span>
+    </div>
+    <div class="booking-meta">
+      <span class="meta-chip"><i class="fas fa-car"></i> ${esc(b.vehicle || b.vehicleType || '—')}</span>
+      <span class="fare-chip">₹${Number(fare).toLocaleString('en-IN')}</span>
+      ${payBadge(b.paymentStatus)}
+      ${b.date ? `<span class="meta-chip"><i class="fas fa-calendar"></i> ${esc(b.date)}</span>` : ''}
+    </div>
+  </div>`;
+}
+
+// ── Detail modal ──────────────────────────────────────────────
+window.openDetail = function(idx) {
+  const b   = filtered()[idx];
+  if (!b) return;
+  const fare = b.fare ?? b.estimatedFare ?? 0;
+  const body = document.getElementById('detailBody');
+
+  body.innerHTML = `
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;">
+      ${statusBadge(b.status)} ${payBadge(b.paymentStatus)}
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">Route</div>
+      <div class="modal-row">
+        <span class="modal-row-label"><i class="fas fa-circle-dot" style="color:#E31E24;"></i> Pickup</span>
+        <span class="modal-row-value">${esc(b.pickup || b.pickupAddress || '—')}</span>
+      </div>
+      <div class="modal-row">
+        <span class="modal-row-label"><i class="fas fa-location-dot"></i> Drop</span>
+        <span class="modal-row-value">${esc(b.drop || b.dropAddress || '—')}</span>
+      </div>
+      ${b.distanceKm ? `<div class="modal-row"><span class="modal-row-label">Distance</span><span class="modal-row-value">${b.distanceKm} km</span></div>` : ''}
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">Trip Info</div>
+      <div class="modal-row"><span class="modal-row-label">Booking ID</span><span class="modal-row-value" style="font-family:monospace;font-size:12px;">${esc(b.bookingId || b.tripId || '—')}</span></div>
+      <div class="modal-row"><span class="modal-row-label">Vehicle</span><span class="modal-row-value">${esc(b.vehicle || b.vehicleType || '—')}</span></div>
+      <div class="modal-row"><span class="modal-row-label">Trip Type</span><span class="modal-row-value">${esc(b.tripType || '—')}</span></div>
+      <div class="modal-row"><span class="modal-row-label">Travel Date</span><span class="modal-row-value">${esc(b.date || '—')}</span></div>
+      <div class="modal-row"><span class="modal-row-label">Time</span><span class="modal-row-value">${esc(b.time || '—')}</span></div>
+      <div class="modal-row"><span class="modal-row-label">Passengers</span><span class="modal-row-value">${esc(b.passengers || '—')}</span></div>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">Payment</div>
+      <div class="modal-row"><span class="modal-row-label">Fare</span><span class="modal-row-value" style="font-size:16px;font-weight:700;">₹${Number(fare).toLocaleString('en-IN')}</span></div>
+      <div class="modal-row"><span class="modal-row-label">Method</span><span class="modal-row-value">${esc(b.paymentMethod || '—')}</span></div>
+      <div class="modal-row"><span class="modal-row-label">Payment Status</span><span class="modal-row-value">${esc(b.paymentStatus || '—')}</span></div>
+    </div>
+
+    ${b.driverName ? `
+    <div class="modal-section">
+      <div class="modal-section-title">Driver</div>
+      <div class="modal-row"><span class="modal-row-label">Name</span><span class="modal-row-value">${esc(b.driverName)}</span></div>
+      ${b.driverPhone ? `<div class="modal-row"><span class="modal-row-label">Phone</span><span class="modal-row-value"><a href="tel:${esc(b.driverPhone)}">${esc(b.driverPhone)}</a></span></div>` : ''}
+    </div>` : ''}
+
+    <div class="modal-section">
+      <div class="modal-section-title">Other</div>
+      <div class="modal-row"><span class="modal-row-label">Booked On</span><span class="modal-row-value">${fmtDateTime(b.createdAt || b.createdServer)}</span></div>
+      ${b.customerName  ? `<div class="modal-row"><span class="modal-row-label">Name</span><span class="modal-row-value">${esc(b.customerName)}</span></div>` : ''}
+      ${b.customerPhone ? `<div class="modal-row"><span class="modal-row-label">Phone</span><span class="modal-row-value">${esc(b.customerPhone)}</span></div>` : ''}
+    </div>
+
+    <div style="text-align:center;margin-top:8px;">
+      <a href="https://wa.me/919597815889?text=${encodeURIComponent('Hi, I have a query about booking ' + (b.bookingId || b.tripId || ''))}"
+         target="_blank" rel="noopener"
+         class="btn-acc-outline" style="text-decoration:none;">
+        <i class="fab fa-whatsapp"></i> Contact Support
+      </a>
+    </div>`;
+
+  document.getElementById('detailOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+};
+
+window.closeDetail = function(e) {
+  if (e && e.target !== document.getElementById('detailOverlay')) return;
+  document.getElementById('detailOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+};
+document.addEventListener('keydown', e => { if (e.key === 'Escape') window.closeDetail(); });
+</script>
+</body>
+</html>

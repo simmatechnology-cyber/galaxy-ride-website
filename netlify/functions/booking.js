@@ -52,6 +52,11 @@ exports.handler = async (event) => {
     };
   }
 
+  // Trip-start OTP — customer reads this from their confirmation, tells it
+  // to the driver at pickup. Canonical field name is `tripOtp` (driver app's
+  // DutyModel/DutyProvider.verifyOtp read this exact field).
+  const tripOtp = String(Math.floor(1000 + Math.random() * 9000));
+
   console.log('[booking] ✓ Request received | bookingId:', booking.bookingId);
   console.log('[booking] customer:', booking.customerName, '|', booking.customerPhone);
   console.log('[booking] vehicle:', booking.vehicle, '| fare: ₹' + booking.fare, '| payment:', booking.paymentMethod);
@@ -68,23 +73,50 @@ exports.handler = async (event) => {
     batch.set(bookingRef, {
       bookingId:     booking.bookingId,
       userId:        booking.userId,
+      customerId:    booking.userId,
       userEmail:     booking.userEmail      || '',
       customerName:  booking.customerName   || '',
       customerPhone: booking.customerPhone  || '',
       vehicle:       booking.vehicle,
+      vehicleType:   booking.vehicle,
       pickup:        booking.pickup,
+      pickupAddress: booking.pickup         || '',
+      pickupLat:     Number(booking.pickupLat) || 0,
+      pickupLng:     Number(booking.pickupLng) || 0,
       drop:          booking.drop           || '',
+      dropAddress:   booking.drop           || '',
+      dropLat:       Number(booking.dropLat)   || 0,
+      dropLng:       Number(booking.dropLng)   || 0,
       date:          booking.date           || '',
       time:          booking.time           || '',
       type:          booking.type           || 'oneway',
+      // Prefer the client's own `tripType` (new normalized field) and fall
+      // back to `type` for older clients that haven't picked up the change.
+      tripType:      booking.tripType || booking.type || 'oneway',
+      isRoundTrip:   typeof booking.isRoundTrip === 'boolean'
+                        ? booking.isRoundTrip
+                        : (booking.type || booking.tripType) === 'roundtrip',
+      tariffVersion: booking.tariffVersion  || 'v_current',
+      rentalPackageHours: booking.rentalPackageHours != null ? Number(booking.rentalPackageHours) : null,
+      rentalIncludedKm:   booking.rentalIncludedKm   != null ? Number(booking.rentalIncludedKm)   : null,
+      rentalBaseFare:     booking.rentalBaseFare     != null ? Number(booking.rentalBaseFare)     : null,
       distance:      Number(booking.distance)  || 0,
       fare:          Number(booking.fare)      || 0,
       coupon:        booking.coupon         || '',
       discount:      Number(booking.discount)  || 0,
       paymentMethod: booking.paymentMethod  || 'cash',
+      paymentStatus: booking.paymentStatus  || 'cash_pending',
       paymentId:     booking.paymentId      || null,
-      status:        booking.status         || 'confirmed',
-      createdAt:     booking.createdAt      || new Date().toISOString(),
+      status:        booking.status         || 'pending',
+      tripOtp:       tripOtp,
+      // Firestore Timestamp, not an ISO string — the driver app's Customer
+      // Duty "Nearby" tab runs `.orderBy('createdAt', descending: true)` on
+      // this collection, and a string-typed value there breaks sort
+      // ordering relative to Timestamp-typed docs from other sources
+      // (admin app, Cloud Functions). Matches trip_requests' createdAt.
+      createdAt:     FieldValue.serverTimestamp(),
+      // Kept as a readable string field for anything that displays it as text.
+      createdAtIso:  booking.createdAt      || new Date().toISOString(),
       confirmedAt:   booking.confirmedAt    || new Date().toISOString(),
       savedAt:       FieldValue.serverTimestamp(),
     });
@@ -136,6 +168,7 @@ exports.handler = async (event) => {
     body: JSON.stringify({
       success:   true,
       bookingId: booking.bookingId,
+      tripOtp:   tripOtp,
       message:   'Booking saved successfully',
     }),
   };

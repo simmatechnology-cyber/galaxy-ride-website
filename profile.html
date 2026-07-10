@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Profile — Galaxy Ride</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="css/styles.css?v=6" />
+  <link rel="stylesheet" href="css/account.css?v=1" />
+  <link rel="icon" href="/favicon.ico" />
+  <meta name="theme-color" content="#E31E24" />
+</head>
+<body>
+
+<!-- ── HEADER ─────────────────────────────────────────────── -->
+<header class="header" id="header">
+  <div class="header-top">
+    <div class="container">
+      <a href="tel:+919597815889" style="color:inherit;text-decoration:none;"><span><i class="fas fa-phone"></i> +91 95978 15889</span></a>
+      <a href="https://wa.me/919597815889" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;"><span><i class="fab fa-whatsapp"></i> WhatsApp Support</span></a>
+      <span><i class="fas fa-clock"></i> 24/7 Available</span>
+    </div>
+  </div>
+  <nav class="navbar" id="navbar">
+    <div class="container nav-container">
+      <a href="index.html" class="logo">
+        <div class="logo-icon">GR</div>
+        <div class="logo-text">
+          <span class="logo-name">Galaxy Ride</span>
+          <span class="logo-tagline">One Way Taxi from ₹13/KM</span>
+        </div>
+      </a>
+      <ul class="nav-links" id="navLinks">
+        <li><a href="index.html" class="nav-link">Home</a></li>
+        <li><a href="index.html#services" class="nav-link">Services</a></li>
+        <li><a href="index.html#contact" class="nav-link">Contact</a></li>
+        <li><a href="driver-register.html" class="nav-link nav-link-driver">Drive with Us</a></li>
+      </ul>
+      <div class="nav-actions">
+        <div class="auth-btns hidden" id="authBtns">
+          <a href="index.html" class="btn btn-primary">Login</a>
+        </div>
+        <div class="user-menu hidden" id="userMenu">
+          <button class="user-avatar-btn" onclick="toggleUserDropdown()" id="userAvatarBtn">
+            <div class="user-avatar" id="userAvatar">U</div>
+            <span id="userDisplayName">User</span>
+            <i class="fas fa-chevron-down"></i>
+          </button>
+          <div class="user-dropdown hidden" id="userDropdown">
+            <a href="profile.html" style="color:var(--primary,#E31E24);font-weight:600;"><i class="fas fa-user"></i> My Profile</a>
+            <a href="my-bookings.html"><i class="fas fa-car"></i> My Bookings</a>
+            <a href="wallet.html"><i class="fas fa-wallet"></i> Wallet</a>
+            <hr />
+            <a href="#" onclick="accSignOut()" class="danger"><i class="fas fa-sign-out-alt"></i> Sign Out</a>
+          </div>
+        </div>
+      </div>
+      <button class="hamburger" id="hamburger" aria-label="Toggle menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+</header>
+
+<!-- ── ACCOUNT TABS ────────────────────────────────────────── -->
+<div class="account-tabs-bar">
+  <div class="account-tabs">
+    <a href="profile.html"     class="account-tab active"><i class="fas fa-user"></i> My Profile</a>
+    <a href="my-bookings.html" class="account-tab"><i class="fas fa-car"></i> My Bookings</a>
+    <a href="wallet.html"      class="account-tab"><i class="fas fa-wallet"></i> Wallet</a>
+  </div>
+</div>
+
+<!-- ── MAIN ───────────────────────────────────────────────── -->
+<main class="account-body">
+
+  <div class="auth-loading" id="authLoading">
+    <i class="fas fa-circle-notch fa-spin fa-2x"></i>
+    <p>Loading your profile…</p>
+  </div>
+
+  <div class="account-container" id="accountContent" style="display:none;">
+
+    <!-- Profile header -->
+    <div class="profile-header-card">
+      <div class="profile-avatar-xl" id="avatarXL">U</div>
+      <div>
+        <div class="profile-header-name" id="headerName">—</div>
+        <div class="profile-header-email" id="headerEmail">—</div>
+      </div>
+    </div>
+
+    <!-- Edit form -->
+    <div class="account-card">
+      <div class="account-card-title"><i class="fas fa-pen-to-square"></i> Personal Information</div>
+      <form id="profileForm">
+        <div class="acc-field">
+          <label>Full Name</label>
+          <input type="text" id="fieldName" placeholder="Your full name" autocomplete="name" />
+        </div>
+        <div class="acc-field">
+          <label>Mobile Number</label>
+          <input type="tel" id="fieldPhone" placeholder="10-digit number" maxlength="10" autocomplete="tel-national" />
+          <div class="field-hint">Used for booking confirmations and driver coordination</div>
+        </div>
+        <div class="acc-field">
+          <label>Email Address</label>
+          <input type="email" id="fieldEmail" readonly />
+          <div class="field-hint">Linked to your sign-in method — cannot be changed here</div>
+        </div>
+        <div class="acc-alert" id="profileAlert"></div>
+        <button type="submit" class="btn-acc-primary" id="btnSave">
+          <i class="fas fa-floppy-disk"></i> Save Changes
+        </button>
+      </form>
+    </div>
+
+    <!-- Account details -->
+    <div class="account-card">
+      <div class="account-card-title"><i class="fas fa-shield-halved"></i> Account Details</div>
+      <div class="info-row">
+        <span class="info-label">User ID</span>
+        <span class="info-value mono" id="infoUid">—</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Joined On</span>
+        <span class="info-value" id="infoJoined">—</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Login Method</span>
+        <span class="info-value" id="infoProvider">—</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Email Verified</span>
+        <span class="info-value" id="infoVerified">—</span>
+      </div>
+    </div>
+
+    <!-- Sign out -->
+    <div>
+      <button class="btn-acc-danger" onclick="accSignOut()">
+        <i class="fas fa-right-from-bracket"></i> Sign Out of Galaxy Ride
+      </button>
+    </div>
+
+  </div>
+</main>
+
+<!-- ── FOOTER ─────────────────────────────────────────────── -->
+<footer class="footer">
+  <div class="container footer-grid">
+    <div class="footer-brand">
+      <div class="footer-logo">
+        <div class="logo-icon">GR</div>
+        <div class="logo-text"><span class="logo-name">Galaxy Ride</span><span class="logo-tagline">One Way Taxi from ₹13/KM</span></div>
+      </div>
+      <p>South India's affordable one way taxi service. Sedan cabs from ₹13/KM across Tamil Nadu, Karnataka, Kerala and beyond.</p>
+      <ul class="footer-contact">
+        <li><i class="fas fa-phone"></i> <a href="tel:+919597815889">+91 9597815889</a></li>
+        <li><i class="fab fa-instagram"></i> <a href="https://www.instagram.com/galaxyride.ind.cabs/" target="_blank" rel="noopener">@galaxyride.ind.cabs</a></li>
+        <li><i class="fas fa-location-dot"></i> Nungambakkam, Chennai</li>
+      </ul>
+    </div>
+    <div class="footer-links"><h4>Quick Links</h4><ul>
+      <li><a href="index.html">Home</a></li>
+      <li><a href="index.html#services">Services</a></li>
+      <li><a href="index.html#contact">Contact</a></li>
+      <li><a href="driver-register.html">Drive with Us</a></li>
+    </ul></div>
+    <div class="footer-links"><h4>My Account</h4><ul>
+      <li><a href="profile.html">My Profile</a></li>
+      <li><a href="my-bookings.html">My Bookings</a></li>
+      <li><a href="wallet.html">Wallet</a></li>
+    </ul></div>
+    <div class="footer-links"><h4>Support</h4><ul>
+      <li><a href="about-us.html">About Us</a></li>
+      <li><a href="refund-policy.html">Refund Policy</a></li>
+      <li><a href="privacy-policy.html">Privacy Policy</a></li>
+      <li><a href="terms-and-conditions.html">Terms of Service</a></li>
+    </ul></div>
+  </div>
+  <div class="footer-bottom"><div class="container">
+    <p>© 2025 Galaxy Ride. All rights reserved.</p>
+    <div class="payment-icons">
+      <i class="fab fa-cc-visa" title="Visa"></i>
+      <i class="fab fa-cc-mastercard" title="Mastercard"></i>
+      <i class="fab fa-cc-amex" title="Amex"></i>
+      <i class="fab fa-google-pay" title="Google Pay"></i>
+    </div>
+  </div></div>
+</footer>
+
+<!-- ── SCRIPTS ─────────────────────────────────────────────── -->
+<script type="module" src="js/firebase.js"></script>
+<script type="module">
+import { getApp }                              from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+import { getAuth, onAuthStateChanged, signOut, updateProfile }
+                                               from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { getFirestore, doc, getDoc, setDoc, serverTimestamp }
+                                               from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+const auth = getAuth(getApp());
+const db   = getFirestore(getApp());
+
+// ── Navbar wiring ─────────────────────────────────────────────
+window.toggleUserDropdown = () => document.getElementById('userDropdown')?.classList.toggle('hidden');
+document.addEventListener('click', e => {
+  if (!e.target.closest('.user-menu')) document.getElementById('userDropdown')?.classList.add('hidden');
+});
+document.getElementById('hamburger')?.addEventListener('click', () => {
+  document.getElementById('hamburger').classList.toggle('active');
+  document.getElementById('navLinks')?.classList.toggle('open');
+});
+
+window.accSignOut = async () => { await signOut(auth); window.location.href = 'index.html'; };
+
+// ── Auth guard ────────────────────────────────────────────────
+onAuthStateChanged(auth, async user => {
+  if (!user) { window.location.href = 'index.html'; return; }
+  document.getElementById('authLoading').style.display = 'none';
+  document.getElementById('accountContent').style.display = 'flex';
+  await loadProfile(user);
+});
+
+// ── Load profile ──────────────────────────────────────────────
+async function loadProfile(user) {
+  // Use auth data as the guaranteed base — header and form get this first
+  const authName = user.displayName || '';
+  const initial  = authName ? authName[0].toUpperCase()
+                 : user.email ? user.email[0].toUpperCase() : 'U';
+
+  document.getElementById('avatarXL').textContent    = initial;
+  document.getElementById('headerName').textContent  = authName || user.email.split('@')[0];
+  document.getElementById('headerEmail').textContent = user.email || '';
+  document.getElementById('fieldEmail').value        = user.email || '';
+  document.getElementById('infoUid').textContent     = user.uid;
+
+  const provider = user.providerData[0]?.providerId || 'password';
+  document.getElementById('infoProvider').textContent = provider === 'google.com' ? 'Google Sign-In' : 'Email & Password';
+
+  const verified = document.getElementById('infoVerified');
+  if (user.emailVerified) {
+    verified.textContent = '✓ Verified';
+    verified.className = 'info-value verified';
+  } else {
+    verified.textContent = 'Not verified';
+    verified.className = 'info-value unverified';
+  }
+
+  // Pre-fill form with auth data so fields are never blank even if Firestore fails
+  document.getElementById('fieldName').value  = authName;
+  document.getElementById('fieldPhone').value = '';
+
+  // Joined date: use Firebase Auth metadata as fallback
+  if (user.metadata?.creationTime) {
+    document.getElementById('infoJoined').textContent =
+      new Date(user.metadata.creationTime).toLocaleDateString('en-IN', { day:'numeric', month:'long', year:'numeric' });
+  }
+
+  // Overlay with Firestore data — this is the source of truth for saved name/phone
+  try {
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    if (snap.exists()) {
+      const data = snap.data();
+      // Only overwrite form fields if Firestore has non-empty values
+      if (data.displayName) {
+        document.getElementById('fieldName').value         = data.displayName;
+        document.getElementById('headerName').textContent  = data.displayName;
+        document.getElementById('avatarXL').textContent    = data.displayName[0].toUpperCase();
+      }
+      if (data.phone) {
+        document.getElementById('fieldPhone').value = data.phone;
+      }
+      // Prefer Firestore createdAt over auth metadata for display
+      if (data.createdAt?.toDate) {
+        document.getElementById('infoJoined').textContent =
+          data.createdAt.toDate().toLocaleDateString('en-IN', { day:'numeric', month:'long', year:'numeric' });
+      }
+    }
+  } catch (err) {
+    console.warn('Profile Firestore read failed:', err.message);
+  }
+}
+
+// ── Save profile ──────────────────────────────────────────────
+document.getElementById('profileForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const user = auth.currentUser;
+  if (!user) return;
+
+  const name  = document.getElementById('fieldName').value.trim();
+  const phone = document.getElementById('fieldPhone').value.trim();
+  const btn   = document.getElementById('btnSave');
+
+  if (!name)                                return showAlert('error', 'Full name is required.');
+  if (phone && !/^\d{10}$/.test(phone))    return showAlert('error', 'Enter a valid 10-digit mobile number.');
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Saving…';
+  hideAlert();
+
+  try {
+    await updateProfile(user, { displayName: name });
+    // Check if this is the first save so we can write createdAt once
+    const existingSnap = await getDoc(doc(db, 'users', user.uid));
+    const isNew = !existingSnap.exists() || !existingSnap.data().createdAt;
+    await setDoc(doc(db, 'users', user.uid), {
+      uid:         user.uid,
+      email:       user.email  || '',
+      displayName: name,
+      phone:       phone,
+      updatedAt:   serverTimestamp(),
+      ...(isNew ? { createdAt: serverTimestamp() } : {}),
+    }, { merge: true });
+
+    // Sync navbar
+    const nameEl   = document.getElementById('userDisplayName');
+    const avatarEl = document.getElementById('userAvatar');
+    if (nameEl)   nameEl.textContent   = name;
+    if (avatarEl) avatarEl.textContent = name.trim()[0]?.toUpperCase() || 'U';
+    document.getElementById('avatarXL').textContent   = name.trim()[0]?.toUpperCase() || 'U';
+    document.getElementById('headerName').textContent = name;
+
+    showAlert('success', '✓ Profile saved successfully!');
+  } catch (err) {
+    showAlert('error', 'Save failed: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-floppy-disk"></i> Save Changes';
+  }
+});
+
+function showAlert(type, msg) {
+  const el = document.getElementById('profileAlert');
+  el.textContent  = msg;
+  el.className    = 'acc-alert ' + type;
+  el.style.display = 'block';
+  if (type === 'success') setTimeout(() => { el.style.display = 'none'; }, 4000);
+}
+function hideAlert() { document.getElementById('profileAlert').style.display = 'none'; }
+</script>
+</body>
+</html>

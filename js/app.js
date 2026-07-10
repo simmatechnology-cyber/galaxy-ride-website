@@ -1,5 +1,5 @@
 /* ============================================================
-   GALAXY RIDE — MAIN APPLICATION SCRIPT
+   GALAXY RIDE — MAIN APPLICATION SCRIPT v9
    Covers: UI, booking logic, fare calc, Geoapify, Razorpay, Firebase auth
    ============================================================ */
 
@@ -496,6 +496,13 @@ const TARIFF = {
     sedan:  { base: 110, included: 3, perKm: 19, peakPerKm: 24, maxKm: 100 },
     suv:    { base: 150, included: 3, perKm: 22, peakPerKm: 28, maxKm: 100 },
     innova: { base: 250, included: 3, perKm: 24, peakPerKm: 30, maxKm: 100 },
+    // Tempo Traveller (12-seater). Base/included/perKm sourced from the
+    // existing `traveller` tier already live in tirupati-tour-taxi.html's
+    // GR_DEST.rules (the only pre-existing Tempo pricing data in this repo).
+    // peakPerKm is inferred using the same peak/normal ratio as the next
+    // tier up (innova, ~1.25x) since no peak rate exists in the source —
+    // confirm/adjust this ratio before relying on it for live peak pricing.
+    tempo:  { base: 250, included: 3, perKm: 28, peakPerKm: 35, maxKm: 100 },
   },
 
   // ── Outstation rides (> 100 km) ────────────────────────────────────────────
@@ -505,6 +512,8 @@ const TARIFF = {
     sedan:  { perKm: 13, driverBata: 400, minKmPerDay: 250 },
     suv:    { perKm: 18, driverBata: 400, minKmPerDay: 250 },
     innova: { perKm: 22, driverBata: 400, minKmPerDay: 250 },
+    // Tempo Traveller — authoritative Galaxy Ride rate (round-trip only).
+    tempo:  { perKm: 30, driverBata: 400, minKmPerDay: 250 },
     hillsCharge: 500,
   },
 
@@ -517,6 +526,13 @@ const TARIFF = {
   },
   // Included km per hourly package (index matches hours above)
   hourlyKmLimit: [15, 25, 40, 50, 60, 75, 85, 100, 110, 120],
+
+  // ── One-way minimum billable distance ─────────────────────────────────────
+  onewayMinKm: 135,               // fare is always computed on ≥135 km for one-way
+
+  // ── Tempo Traveller minimum billable ROUND-TRIP distance ───────────────────
+  // Applies to the doubled round-trip total km, not the one-way route km.
+  tempoRoundTripMinKm: 150,
 
   // ── Waiting charge ─────────────────────────────────────────────────────────
   waiting: { perMin: 2 },          // ₹2 per minute after first 5 min free
@@ -798,6 +814,22 @@ function switchTab(tab, el) {
   const dropGroup = $('drop')?.closest('.form-group');
   if (dropGroup) dropGroup.style.opacity = isHourly ? '0.5' : '1';
   $('drop').required = !isHourly;
+
+  // Tempo Traveller: fare-eligible only on Round Trip, but the card stays
+  // visible on One Way too (tapping it there redirects — see calculateFare()).
+  // Hidden only on Hourly, where no Tempo tariff exists at all.
+  const tempoOpt = document.querySelector('.vehicle-option[data-vehicle="tempo"]');
+  if (tempoOpt) {
+    tempoOpt.classList.toggle('hidden', isHourly);
+    // Switching away from Round Trip (to One Way or Hourly) while Tempo was
+    // selected must clear the selection — Tempo never "stays selected" outside
+    // Round Trip, even though its card remains visible on One Way.
+    if (!isRound && state.selectedVehicle === 'tempo') {
+      const tempoRadio = tempoOpt.querySelector('input[type="radio"]');
+      if (tempoRadio) tempoRadio.checked = false;
+      state.selectedVehicle = null;
+    }
+  }
 
   calculateFare();
 }
@@ -1113,20 +1145,26 @@ function showAcError(dropdownId, message, retryArgs) {
 }
 
 // ── Type priority table used by rankAndDedup ────────────────────────────────
-// Higher score = shown first. Amenity covers apartments, buildings, shops,
-// landmarks. Street beats locality/area. City/postcode are last resort.
+// Higher score = shown first. Settlements (city/village/locality) rank above
+// roads/amenities so "Dindigul city" beats "Dindigul Road" for a plain query.
 const RESULT_TYPE_SCORE = {
-  amenity:  50,
-  building: 50,
-  street:   30,
-  locality: 20,
-  village:  20,
-  hamlet:   20,
-  suburb:   15,
-  city:     10,
+  city:     40,   // settlements first — beats roads for city-name queries
+  town:     40,
+  village:  35,
+  hamlet:   30,
+  suburb:   25,
+  locality: 25,
+  amenity:  15,   // POIs: medium (airport/station boosted separately below)
+  building: 15,
+  street:    5,   // roads last — prevents highway from outranking city
   county:    5,
   postcode: -10,
 };
+
+// Road/highway keyword detector — used by rankAndDedup to penalise road results
+// when the user query is a plain place name (no road intent).
+// Defined here once so it is not recreated on every map() iteration.
+const ROAD_KW = /\b(road|highway|route|nh|sh|bypass|ring|avenue|lane|overpass|flyover)\b/i;
 
 /**
  * rankAndDedup — sort results by relevance and remove near-duplicates.
@@ -1222,6 +1260,20 @@ function rankAndDedup(features, query) {
       }
     }
 
+    // ── Plain place-name query: boost settlements, penalize roads ───────────────
+    // When the user types a bare place name like "Dindigul" or "Theni" (no road
+    // keyword in the query), they want a city/town/village — not a highway.
+    // Without this, a Nominatim road result named "Dindigul" (result_type=street)
+    // can outscore the actual Dindigul locality due to identical text matches.
+    if (!ROAD_KW.test(q)) {
+      const isSettlement = ['city', 'town', 'village', 'hamlet', 'suburb', 'locality'].includes(p.result_type);
+      const isRoad       = p.result_type === 'street' ||
+                           ROAD_KW.test(p.name || '') ||
+                           ROAD_KW.test(p.formatted || '');
+      if (isSettlement) score += 60;
+      if (isRoad)       score -= 60;
+    }
+
     return { f, score };
   });
 
@@ -1290,7 +1342,7 @@ async function fetchAutocomplete(query, dropdownId, onSelect, field, searchTier 
     return;
   }
 
-  const q         = query.trim();
+  const q         = query.trim().toLowerCase();   // always lowercase — every downstream comparison is case-insensitive
 
   // ── Cache hit — serve instantly, skip all API tiers ─────────────────────────
   if (searchTier === 1) {
@@ -1538,6 +1590,18 @@ async function fetchAutocomplete(query, dropdownId, onSelect, field, searchTier 
     console.log(`[Search] 🚫 India filter removed ${beforeFilter - features.length} non-India result(s)`);
   }
 
+  // ── Blend local TN village DB into API results (Tiers 1 & 2 only) ───────────
+  // Ensures well-known TN places like Dindigul, Theni, Devadanapatti always appear
+  // even when the geocoding API returns sparse coverage for a query.
+  // rankAndDedup handles deduplication by proximity so no duplicates leak through.
+  if (searchTier <= 2 && LOCAL_VILLAGE_DB && LOCAL_VILLAGE_DB.length > 0) {
+    const localBlend = searchLocalVillageDB(q);
+    if (localBlend.length > 0) {
+      features = [...features, ...localBlend];
+      console.log(`[Search] 📍 Local DB blend: +${localBlend.length} result(s) for "${q}"`);
+    }
+  }
+
   console.log(`[Search] Tier ${searchTier} (${tierLabel}) → ${features.length} raw results for "${q}"`);
 
   // ── Rank + dedup ─────────────────────────────────────────────────────────
@@ -1599,9 +1663,9 @@ function renderAutocomplete(features, dropdownId, onSelect, query = '') {
       <div class="ac-empty" style="padding:14px 16px; text-align:left;">
         <div style="font-weight:600; margin-bottom:4px;">Location not found</div>
         <div style="font-size:12px; opacity:0.75;">
-          Village may not be in OpenStreetMap yet.<br>
-          Try: full name + taluk (e.g. "Pullakapatti Periyakulam")<br>
-          or search by nearby town / district.
+          Search is limited to India.<br>
+          Try the full town / district name (e.g. "Dindigul", "Theni District")<br>
+          or add taluk context (e.g. "Pullakapatti Periyakulam").
         </div>
       </div>`;
     dropdown.classList.remove('hidden');
@@ -2403,7 +2467,13 @@ function computeFare(vehicle, km, tab, applyPeak, hourlyHrs, waitingMins = 0) {
   let waitingCharge = 0;
   let extraKmCharge = 0;   // for hourly over-limit km
 
-  const isOutstation = km > 100 && tab !== 'hourly';
+  // ── One-way minimum billable distance ─────────────────────────────────────
+  // For one-way trips the fare is always calculated on at least 135 km even if
+  // the actual route is shorter. Round-trip and hourly are unaffected.
+  const billableKm   = (tab === 'oneway' && km > 0) ? Math.max(km, TARIFF.onewayMinKm) : km;
+  const isMinApplied = tab === 'oneway' && km > 0 && km < TARIFF.onewayMinKm;
+
+  const isOutstation = billableKm > 100 && tab !== 'hourly';
 
   // ── Hourly package ────────────────────────────────────────────────────────
   if (tab === 'hourly') {
@@ -2416,7 +2486,28 @@ function computeFare(vehicle, km, tab, applyPeak, hourlyHrs, waitingMins = 0) {
     const subtotal = baseFare + extraKmCharge;
     return { baseFare, cityFare:0, outstationFare:0, driverBata:0,
              peakSurcharge:0, waitingCharge:0, extraKmCharge, subtotal,
-             isOutstation:false, isHourly:true };
+             isOutstation:false, isHourly:true, billableKm:km, isMinApplied:false };
+  }
+
+  // ── Tempo Traveller — flat ₹30/km, round-trip only ──────────────────────
+  // Formula: actualRoundTripKm = one-way route km × 2, then billableKm =
+  // max(actualRoundTripKm, 150). driverBata is added once (never doubled).
+  // No city/outstation split.
+  if (vehicle === 'tempo') {
+    const ot                = TARIFF.outstation.tempo;
+    const perKm             = ot?.perKm      ?? 30;
+    const bata              = ot?.driverBata ?? 400;
+    const minRoundTripKm    = TARIFF.tempoRoundTripMinKm;
+    const actualRoundTripKm = tab === 'roundtrip' ? km * 2 : km;
+    const tempoTotalKm      = Math.max(actualRoundTripKm, minRoundTripKm);
+    const isTempoMinApplied = actualRoundTripKm < minRoundTripKm;
+    const distanceFare      = Math.round(tempoTotalKm * perKm);
+    const subtotal          = distanceFare + bata;
+    return { baseFare: 0, cityFare: distanceFare, outstationFare: 0, driverBata: bata,
+             peakSurcharge: 0, waitingCharge: 0, extraKmCharge: 0,
+             subtotal, isOutstation: false, isHourly: false,
+             isTempoTraveller: true, tempoTotalKm, isTempoMinApplied,
+             billableKm: km, isMinApplied: false };
   }
 
   // ── One-way / Round-trip ──────────────────────────────────────────────────
@@ -2427,13 +2518,13 @@ function computeFare(vehicle, km, tab, applyPeak, hourlyHrs, waitingMins = 0) {
   if (isOutstation) {
     // 3-tier: base covers first `included` km, city rate up to 100 km, outstation rate beyond
     const cityKm       = Math.max(0, 100 - t.included);
-    const outstationKm = Math.max(0, km - 100);
+    const outstationKm = Math.max(0, billableKm - 100);
     const ot           = TARIFF.outstation[vehicle];
     cityFare       = Math.round(cityKm * t.perKm);
     outstationFare = ot ? Math.round(outstationKm * ot.perKm) : Math.round(outstationKm * t.perKm);
     driverBata     = ot ? ot.driverBata : 400;
   } else {
-    const extraKm = Math.max(0, km - t.included);
+    const extraKm = Math.max(0, billableKm - t.included);
     // cityFare is always at the NORMAL per-km rate
     cityFare      = Math.round(extraKm * t.perKm);
     // peakSurcharge = extra per km during peak (difference, never duplicated)
@@ -2454,7 +2545,26 @@ function computeFare(vehicle, km, tab, applyPeak, hourlyHrs, waitingMins = 0) {
 
   const subtotal = baseFare + cityFare + outstationFare + driverBata + peakSurcharge + waitingCharge;
   return { baseFare, cityFare, outstationFare, driverBata, peakSurcharge,
-           waitingCharge, extraKmCharge:0, subtotal, isOutstation };
+           waitingCharge, extraKmCharge:0, subtotal, isOutstation, billableKm, isMinApplied };
+}
+
+/**
+ * Tempo Traveller has no one-way tariff. When it's tapped while on the One
+ * Way (or Hourly, defensively) tab, redirect to Round Trip instead of
+ * computing a fare that doesn't exist.
+ *
+ * Pickup/drop/date/passenger fields are untouched by design — switchTab()
+ * only toggles tab-specific UI (returnDateRow, hourlyPackageGroup, vehicle
+ * visibility) and never resets form field values, so they carry over as-is.
+ * The Tempo radio is already checked in the DOM from the user's tap and
+ * switchTab() does not uncheck it when moving TO Round Trip, so the
+ * calculateFare() call at the end of switchTab() picks it up automatically —
+ * no manual re-selection needed here.
+ */
+function redirectTempoToRoundTrip() {
+  showToast('info', 'Tempo Traveller is available only for Round Trip bookings. Switching to Round Trip.');
+  const roundTripBtn = document.querySelector('.tab-btn[data-tab="roundtrip"]');
+  if (roundTripBtn) switchTab('roundtrip', roundTripBtn);
 }
 
 function calculateFare() {
@@ -2462,6 +2572,14 @@ function calculateFare() {
   state.selectedVehicle = vehicle;
 
   if (!vehicle) { hide('farePreview'); return; }
+
+  // Tempo Traveller has no one-way tariff. Its card is visible on One Way
+  // (and Hourly, if ever enabled later) purely so tapping it can redirect the
+  // user to Round Trip — it must never compute a one-way/hourly fare itself.
+  if (vehicle === 'tempo' && state.currentTab !== 'roundtrip') {
+    redirectTempoToRoundTrip();
+    return;
+  }
 
   const dateVal  = $('date')?.value;
   const timeVal  = $('time')?.value;
@@ -2472,8 +2590,14 @@ function calculateFare() {
   const km        = (typeof rawKm === 'number' && isFinite(rawKm) && rawKm > 0) ? rawKm : 0;
   const tab       = state.currentTab;
   const hourlyHrs = tab === 'hourly' ? (parseInt($('hourlyPackage')?.value) || 0) : 0;
+  // Persisted so buildBookingData() can write rentalPackageHours/rentalIncludedKm/
+  // rentalBaseFare into the booking payload — otherwise this value is lost once
+  // the customer moves past the fare-preview step.
+  state.selectedHourlyHrs = hourlyHrs;
+  // For peak check use the effective billable km (minimum may push city km to outstation range)
+  const effectiveKm = (tab === 'oneway' && km > 0) ? Math.max(km, TARIFF.onewayMinKm) : km;
   // Peak surcharge applies only to city one-way/roundtrip rides ≤ 100 km
-  const applyPeak = isPeak && tab !== 'hourly' && km <= 100;
+  const applyPeak = isPeak && tab !== 'hourly' && effectiveKm <= 100;
 
   const fare = computeFare(vehicle, km, tab, applyPeak, hourlyHrs);
   if (!fare) return;
@@ -2481,7 +2605,8 @@ function calculateFare() {
   const {
     baseFare, cityFare, outstationFare, driverBata,
     peakSurcharge, waitingCharge, extraKmCharge,
-    subtotal, isOutstation, isHourly,
+    subtotal, isOutstation, isHourly, billableKm, isMinApplied,
+    isTempoTraveller = false, tempoTotalKm = 0, isTempoMinApplied = false,
   } = fare;
 
   // Hill charge: ₹400 when pickup or drop is a known hill station
@@ -2500,7 +2625,12 @@ function calculateFare() {
     if (km > 0) {
       const dur     = state.duration ? ` · ${formatDuration(state.duration)}` : '';
       const estMark = state.durationEstimated ? ' (est.)' : '';
-      routeInfoEl.textContent = `${km} km${dur}${estMark}`;
+      const minNote = isMinApplied
+        ? ` · min. ${TARIFF.onewayMinKm} km billed`
+        : isTempoMinApplied
+        ? ` · min. ${TARIFF.tempoRoundTripMinKm} km round-trip billed`
+        : '';
+      routeInfoEl.textContent = `${km} km${dur}${estMark}${minNote}`;
       routeInfoRow.classList.remove('hidden');
     } else {
       routeInfoRow.classList.add('hidden');
@@ -2508,18 +2638,25 @@ function calculateFare() {
   }
 
   // ── Fare breakdown UI ─────────────────────────────────────────────────────
-  $('baseFareDisplay').textContent     = `₹${baseFare}`;
+  // Base fare row: hidden for Tempo (baseFare = 0, clutters the display)
+  $('baseFareRow')?.classList.toggle('hidden', isTempoTraveller);
+  $('baseFareDisplay').textContent = `₹${baseFare}`;
 
-  // Distance fare row: hide for hourly (package rate shown via base fare)
-  const showDistRow = !isHourly;
-  // For outstation: show the city-rate portion (included km → 100 km)
-  // For local: show the actual trip km beyond the free included distance
+  // Distance fare row: hidden for hourly and for Tempo (Tempo uses its own row)
+  const showDistRow = !isHourly && !isTempoTraveller;
   const cityBillKm  = isOutstation
     ? (100 - (TARIFF.local[vehicle]?.included || 3))
-    : Math.max(0, km - (TARIFF.local[vehicle]?.included || 3));
+    : Math.max(0, billableKm - (TARIFF.local[vehicle]?.included || 3));
   $('distanceDisplay').textContent     = cityBillKm;
   $('distanceFareDisplay').textContent = `₹${cityFare}`;
   $('distanceFareRow')?.classList.toggle('hidden', !showDistRow || cityFare === 0);
+
+  // ── Tempo Traveller fare row ──────────────────────────────────────────────
+  $('tempoFareRow')?.classList.toggle('hidden', !isTempoTraveller);
+  if (isTempoTraveller) {
+    if ($('tempoKmDisplay'))   $('tempoKmDisplay').textContent   = tempoTotalKm;
+    if ($('tempoFareDisplay')) $('tempoFareDisplay').textContent = `₹${cityFare}`;
+  }
 
   // Extra km row (hourly over-limit km)
   const extraKmRow = $('extraKmRow');
@@ -2529,13 +2666,14 @@ function calculateFare() {
     if (extraKmEl) extraKmEl.textContent = `₹${extraKmCharge}`;
   }
 
-  // Outstation rows
+  // Outstation rows — use billableKm so the displayed outstation km matches the fare
   $('outstationFareRow').classList.toggle('hidden', !isOutstation);
-  $('outstationKmDisplay').textContent   = Math.max(0, km - 100);
+  $('outstationKmDisplay').textContent   = Math.max(0, billableKm - 100);
   $('outstationFareDisplay').textContent = `₹${outstationFare}`;
 
-  $('driverBataRow').classList.toggle('hidden', !isOutstation);
-  $('driverBataDisplay').textContent     = `₹${driverBata}`;
+  // Driver bata: shown for outstation trips AND for Tempo Traveller
+  $('driverBataRow').classList.toggle('hidden', !isOutstation && !isTempoTraveller);
+  $('driverBataDisplay').textContent = `₹${driverBata}`;
 
   // Hill charge row + badge
   $('hillChargeRow')?.classList.toggle('hidden', hillCharge === 0);
@@ -2570,6 +2708,15 @@ function calculateFare() {
       ? `₹${f.subtotal + hillCharge}`
       : `₹${TARIFF.local[v]?.base || '—'}`;
   });
+
+  // Tempo price badge — only shown when round-trip tab is active
+  const tempoEl = $('tempoPrice');
+  if (tempoEl) {
+    const tf = (km > 0 && tab === 'roundtrip')
+      ? computeFare('tempo', km, 'roundtrip', false, 0)
+      : null;
+    tempoEl.textContent = tf ? `₹${tf.subtotal}` : '₹30/km';
+  }
 
   show('farePreview');
 
@@ -2618,6 +2765,17 @@ function showCouponMsg(type, text) {
   show('couponMessage');
   if (type === 'error') setTimeout(() => hide('couponMessage'), 3000);
 }
+
+// Human-readable vehicle labels — used in booking summaries and notifications
+const VEHICLE_DISPLAY_NAMES = {
+  mini:   'Mini',
+  sedan:  'Sedan',
+  suv:    'MUV/SUV',
+  innova: 'Innova Crysta',
+  tempo:  'Tempo Traveller',
+  bike:   'Bike',
+  auto:   'Auto',
+};
 
 // ==================== PRICING TABS ====================
 
@@ -2727,23 +2885,57 @@ function buildBookingData() {
   // otherwise fall back to whatever the user typed.
   const pickupFull  = pickupInput?.dataset?.fullAddress || pickupInput?.value || '';
 
+  // Rental (hourly) package details, if this is an hourly booking — sourced
+  // straight from TARIFF so the driver app can settle the trip without
+  // guessing which package/km-limit/base-fare applied.
+  const isHourlyTab      = state.currentTab === 'hourly';
+  const hourlyHrs        = isHourlyTab ? (state.selectedHourlyHrs || 0) : 0;
+  const rentalPackageHours = isHourlyTab && hourlyHrs > 0 ? hourlyHrs : null;
+  const rentalIncludedKm   = isHourlyTab && hourlyHrs > 0 ? (TARIFF.hourlyKmLimit[hourlyHrs - 1] ?? null) : null;
+  const rentalBaseFare     = isHourlyTab && hourlyHrs > 0
+    ? ((TARIFF.hourly[state.selectedVehicle] || TARIFF.hourly.sedan)[hourlyHrs - 1] ?? null)
+    : null;
+
   state.bookingData = {
     type:          state.currentTab,
+    // Normalized fields (2024 schema sync) — additive only, `type` above is
+    // kept unchanged for backward compatibility with existing readers.
+    tripType:            state.currentTab,                    // 'oneway' | 'roundtrip' | 'hourly'
+    isRoundTrip:         state.currentTab === 'roundtrip',
+    tariffVersion:       'v_current',
+    rentalPackageHours,                                       // number | null
+    rentalIncludedKm,                                         // number | null
+    rentalBaseFare,                                           // number | null
     pickup:        pickupFull,
+    pickupAddress: pickupFull,                              // alias for admin app model
+    pickupLat:     state.pickupCoords?.lat  ?? 0,
+    pickupLng:     state.pickupCoords?.lon  ?? 0,
     drop:          $('drop')?.value || '',
+    dropAddress:   $('drop')?.value || '',                  // alias for admin app model
+    dropLat:       state.dropCoords?.lat    ?? 0,
+    dropLng:       state.dropCoords?.lon    ?? 0,
     date:          $('date').value,
     time:          $('time').value,
     passengers:    state.passengers,
     vehicle:       state.selectedVehicle,
+    vehicleType:   state.selectedVehicle,                   // alias for admin app model
     distance:      state.distance,
     fare:          state.fare,
     coupon:        state.appliedCoupon,
     discount:      state.couponDiscount,
-    userId:        window._currentUser?.uid,
+    userId:        window._currentUser?.uid     || null,
+    customerId:    window._currentUser?.uid     || null,    // alias for admin app model
     userEmail:     cust.email   || window._currentUser?.email || '',
     customerName:  cust.name    || window._currentUser?.displayName || 'Guest',
     customerPhone: cust.phone   || window._currentUserPhone || '',
     createdAt:     new Date().toISOString(),
+    // Tempo Traveller specific — present only for tempo bookings so Admin/Driver app
+    // can distinguish the fare model without re-deriving it from vehicleType alone.
+    ...(state.selectedVehicle === 'tempo' ? {
+      isTempoTraveller:  true,
+      farePerKm:         30,
+      driverBata:        400,
+    } : {}),
   };
   resetPaymentState(); // Reset payment UI to active state for each fresh booking
   renderBookingSummary();
@@ -2757,7 +2949,7 @@ function renderBookingSummary() {
     <div class="summary-row"><span>Pickup</span><span>${d.pickup}</span></div>
     ${d.drop ? `<div class="summary-row"><span>Drop</span><span>${d.drop}</span></div>` : ''}
     <div class="summary-row"><span>Date & Time</span><span>${formatDate(d.date)} at ${d.time}</span></div>
-    <div class="summary-row"><span>Vehicle</span><span>${capitalize(d.vehicle)}</span></div>
+    <div class="summary-row"><span>Vehicle</span><span>${(VEHICLE_DISPLAY_NAMES[d.vehicle] || capitalize(d.vehicle))}</span></div>
     <div class="summary-row"><span>Passengers</span><span>${d.passengers}</span></div>
     ${d.distance ? `<div class="summary-row"><span>Distance</span><span>~${d.distance} km</span></div>` : ''}
     ${d.discount > 0 ? `<div class="summary-row"><span>Discount</span><span style="color:var(--success)">-₹${d.discount}</span></div>` : ''}
@@ -2890,7 +3082,7 @@ function sendWhatsAppBooking(e) {
     `From: ${d.pickup}`,
     d.drop ? `To: ${d.drop}` : null,
     `Date: ${formatDate ? formatDate(d.date) : d.date} at ${d.time}`,
-    `Vehicle: ${capitalize(d.vehicle)}`,
+    `Vehicle: ${(VEHICLE_DISPLAY_NAMES[d.vehicle] || capitalize(d.vehicle))}`,
     `Trip: ${capitalize(d.type)}`,
     `Fare: ₹${d.fare}`,
     d.customerName ? `Name: ${d.customerName}` : null,
@@ -3107,9 +3299,10 @@ async function confirmBooking(paymentMethod, paymentId) {
     ...state.bookingData,
     bookingId,
     paymentMethod,
-    paymentId:   paymentId || null,
-    status:      'confirmed',
-    confirmedAt: new Date().toISOString(),
+    paymentId:     paymentId || null,
+    status:        'pending',      // admin app action buttons (Accept/Reject/Assign) require 'pending'
+    confirmedAt:   new Date().toISOString(),
+    paymentStatus: paymentMethod === 'online' ? 'paid' : 'cash_pending',
   };
 
   console.log('[GR] confirmBooking() start');
@@ -3163,7 +3356,11 @@ async function confirmBooking(paymentMethod, paymentId) {
         customerPhone: booking.customerPhone,
         customerEmail: booking.userEmail,
         pickup:        booking.pickup,
+        pickupLat:     booking.pickupLat || 0,
+        pickupLng:     booking.pickupLng || 0,
         drop:          booking.drop,
+        dropLat:       booking.dropLat   || 0,
+        dropLng:       booking.dropLng   || 0,
         tripType:      booking.type,
         vehicleType:   booking.vehicle,
         date:          booking.date,
@@ -3180,6 +3377,42 @@ async function confirmBooking(paymentMethod, paymentId) {
   } catch (e) {
     console.warn('[GR] Step 3 ✗ trip_requests save failed (non-fatal):', e.message);
   }
+
+  // Step 4: Write notification to Firestore (admin app reads this)
+  try {
+    const fns = window._firebaseFns;
+    if (fns?.saveNotification) {
+      await fns.saveNotification({
+        id:            bookingId + '_booking',
+        bookingId,
+        type:          'new_booking',
+        title:         'New Booking',
+        body:          `${booking.customerName} — ${booking.pickup} → ${booking.drop || 'N/A'}`,
+        customerName:  booking.customerName,
+        customerPhone: booking.customerPhone,
+        vehicleType:   booking.vehicle,
+        fare:          booking.fare,
+        status:        'unread',
+        targetRole:    'admin',
+      });
+      console.log('[GR] Step 4 ✓ notification saved');
+    }
+  } catch (e) {
+    console.warn('[GR] Step 4 ✗ notification save failed (non-fatal):', e.message);
+  }
+
+  // Step 5: Send FCM push notification to admin via /api/notify (fire-and-forget)
+  fetch('/api/notify', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({
+      eventType:  'new_booking',
+      bookingId,
+      customerId: booking.userId || booking.customerId || null,
+    }),
+  }).then(r => r.json())
+    .then(d => console.log('[GR] Step 5 ✓ FCM admin notified:', d.sent, 'messages'))
+    .catch(e => console.warn('[GR] Step 5 ✗ FCM notify failed (non-fatal):', e.message));
 
   console.log('[GR] confirmBooking() complete → showing trip status screen');
   closeModal('bookingModal');
@@ -3255,6 +3488,70 @@ function updateTripStatusUI(data) {
   }
 }
 
+/**
+ * Close the booking-confirmed popup (X icon, Close button, overlay click,
+ * or Esc — all routes lead here) and return the user to a ready-to-use
+ * homepage booking form without a page reload.
+ *
+ * The trip itself is already confirmed server-side at this point (booking +
+ * trip_request docs are written, admin is notified) — so re-showing the same
+ * pickup/drop/vehicle/fare here would only invite an accidental duplicate
+ * booking if the user hits "Search Available Rides" again. Resetting the
+ * form is the safer choice; the confirmed trip is still tracked separately
+ * and reachable via the WhatsApp/Call support links using the Trip ID.
+ */
+function closeTripStatusModal() {
+  if (_tripStatusUnsubscribe) {
+    _tripStatusUnsubscribe();
+    _tripStatusUnsubscribe = null;
+  }
+  closeModal('tripStatusModal');
+  resetBookingFormForNewBooking();
+  $('bookingCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/** Restores the booking form to the same ready state it has on first page load. */
+function resetBookingFormForNewBooking() {
+  $('pickup').value = '';
+  $('drop').value   = '';
+  if ($('couponCode')) $('couponCode').value = '';
+  hide('couponMessage');
+
+  state.pickupCoords     = null;
+  state.dropCoords       = null;
+  state.distance         = null;
+  state.duration         = null;
+  state.durationEstimated = false;
+  state.fare             = 0;
+  state.couponDiscount   = 0;
+  state.appliedCoupon    = null;
+  state.bookingData      = null;
+  state.customerDetails  = null;
+  state.selectedHourlyHrs = 0;
+  state.passengers       = 1;
+  if ($('passengerCount')) $('passengerCount').textContent = 1;
+
+  const onewayBtn = document.querySelector('.tab-btn[data-tab="oneway"]');
+  if (onewayBtn) switchTab('oneway', onewayBtn);
+
+  setMinDate();
+
+  document.querySelectorAll('input[name="vehicle"]').forEach(r => r.checked = false);
+  const sedanRadio = document.querySelector('input[name="vehicle"][value="sedan"]');
+  if (sedanRadio) sedanRadio.checked = true;
+
+  hide('farePreview');
+  calculateFare();
+  updateBookingStep(1);
+}
+
+// Esc closes the booking-confirmed popup when it's open (scoped to this
+// modal only — no other modal in this app currently supports Esc-to-close).
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !$('tripStatusModal')?.classList.contains('hidden')) {
+    closeTripStatusModal();
+  }
+});
 
 function generateBookingId() {
   return 'GR' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substr(2, 4).toUpperCase();
@@ -3385,9 +3682,9 @@ function toggleUserDropdown() {
   toggle('userDropdown');
 }
 
-function showProfile()     { showToast('info', 'Profile page coming soon!'); }
-function showMyBookings()  { showToast('info', 'My bookings page coming soon!'); }
-function showWallet()      { showToast('info', 'Wallet feature coming soon!'); }
+function showProfile()    { window.location.href = 'profile.html'; }
+function showMyBookings() { window.location.href = 'my-bookings.html'; }
+function showWallet()     { window.location.href = 'wallet.html'; }
 // ==================== DRIVER REGISTRATION ====================
 
 const driverFiles = { drivingLicense: null, rcBook: null, insurance: null, driverPhoto: null };

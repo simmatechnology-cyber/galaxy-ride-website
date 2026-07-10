@@ -41,6 +41,11 @@ import {
   uploadBytes,
   getDownloadURL,
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
+import {
+  getMessaging,
+  getToken as getMessagingToken,
+  onMessage as onMessagingMessage,
+} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js';
 
 // ── Config ───────────────────────────────────────────────────────────────────
 // authDomain is set to galaxyride.in so the Google Sign-In popup handler
@@ -66,9 +71,64 @@ const auth           = getAuth(app);
 const db             = getFirestore(app);
 const storage        = getStorage(app);
 const googleProvider = new GoogleAuthProvider();
+let   messaging      = null;
+
+// Initialize FCM messaging (only works in browsers that support Service Workers)
+try {
+  messaging = getMessaging(app);
+} catch (_) {
+  // Safari / older browsers that don't support FCM — silently skip
+}
 
 // Persist login across page reloads
 setPersistence(auth, browserLocalPersistence).catch(console.warn);
+
+// ── FCM token helper ──────────────────────────────────────────────────────────
+const FCM_VAPID_KEY = 'YOUR_VAPID_KEY'; // Replace with your VAPID public key from Firebase Console
+
+async function fbRequestFcmToken(userId) {
+  if (!messaging) return null;
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') return null;
+
+    // Register the service worker before requesting token
+    let swReg;
+    try {
+      swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    } catch (swErr) {
+      console.warn('[FCM] SW register failed:', swErr.message);
+    }
+
+    const token = await getMessagingToken(messaging, {
+      vapidKey:          FCM_VAPID_KEY,
+      serviceWorkerRegistration: swReg,
+    });
+
+    if (token && userId) {
+      // Save token to users/{uid}
+      await setDoc(doc(db, 'users', userId), {
+        fcmToken:          token,
+        fcmTokenUpdatedAt: serverTimestamp(),
+      }, { merge: true });
+      console.log('[FCM] Token saved for user:', userId);
+    }
+
+    // Listen for foreground messages
+    onMessagingMessage(messaging, (payload) => {
+      console.log('[FCM] Foreground message:', payload);
+      const notif = payload.notification;
+      if (notif && typeof Notification !== 'undefined') {
+        new Notification(notif.title || 'Galaxy Ride', { body: notif.body, icon: '/assets/logo.png' });
+      }
+    });
+
+    return token;
+  } catch (e) {
+    console.warn('[FCM] Token request failed (non-fatal):', e.message);
+    return null;
+  }
+}
 
 // ── Auth helpers ──────────────────────────────────────────────────────────────
 
@@ -105,7 +165,13 @@ async function fbSaveBooking(booking) {
     // Full booking record
     await setDoc(doc(db, 'bookings', booking.bookingId), {
       ...booking,
-      createdServer: serverTimestamp(),
+      // Driver app Customer Duty orders/filters on `createdAt` as a
+      // Firestore Timestamp — overwrite whatever string was on `booking`
+      // (see netlify/functions/booking.js for the matching server-side fix).
+      createdAt:      serverTimestamp(),
+      createdAtIso:   booking.createdAt || new Date().toISOString(),
+      tripType:       booking.type || booking.tripType || 'oneway',
+      createdServer:  serverTimestamp(),
     });
 
     // Reference in user sub-collection
@@ -147,13 +213,20 @@ async function fbSaveTripRequest(trip) {
       customerPhone: trip.customerPhone || '',
       customerEmail: trip.customerEmail || '',
       pickup:        trip.pickup        || '',
+      pickupAddress: trip.pickup        || '',
+      pickupLat:     trip.pickupLat     || 0,
+      pickupLng:     trip.pickupLng     || 0,
       drop:          trip.drop          || '',
+      dropAddress:   trip.drop          || '',
+      dropLat:       trip.dropLat       || 0,
+      dropLng:       trip.dropLng       || 0,
       tripType:      trip.tripType      || 'oneway',
       vehicleType:   trip.vehicleType   || '',
       date:          trip.date          || '',
       time:          trip.time          || '',
       passengers:    trip.passengers    || 1,
       estimatedFare: trip.estimatedFare || 0,
+      fare:          trip.estimatedFare || 0,
       paymentMethod: trip.paymentMethod || 'cash',
       paymentStatus: trip.paymentStatus || 'cash_pending',
       status:        'pending',
@@ -166,6 +239,19 @@ async function fbSaveTripRequest(trip) {
   } catch (e) {
     console.error('[Firebase] trip_requests save failed:', e.message);
     throw e;
+  }
+}
+
+async function fbSaveNotification(notification) {
+  try {
+    const ref = doc(db, 'notifications', notification.id || notification.bookingId + '_new');
+    await setDoc(ref, {
+      ...notification,
+      createdAt: serverTimestamp(),
+      read: false,
+    });
+  } catch (e) {
+    console.warn('[Firebase] notification save failed (non-fatal):', e.message);
   }
 }
 
@@ -585,6 +671,8 @@ window._firebaseFns = {
   getDriverTrips:        fbGetDriverTrips,
   listenDriverTrips:     fbListenDriverTrips,
   updateTripStatus:      fbUpdateTripStatus,
+  saveNotification:      fbSaveNotification,
+  requestFcmToken:       fbRequestFcmToken,
 };
 
 // ── Auth state listener ───────────────────────────────────────────────────────
@@ -609,6 +697,9 @@ onAuthStateChanged(auth, async (user) => {
     } catch {
       window._currentUserPhone = '';
     }
+
+    // Request FCM push notification token (fire-and-forget, non-blocking)
+    fbRequestFcmToken(user.uid).catch(() => {});
   } else {
     authBtns?.classList.remove('hidden');
     userMenu?.classList.add('hidden');

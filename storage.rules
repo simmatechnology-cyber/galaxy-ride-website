@@ -6,14 +6,20 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // Driver document uploads (license, RC, insurance, photo).
-    // Public registration form: anyone may upload their own documents
-    // (max 10 MB, images or PDF). Reads restricted to admins via console / Admin SDK.
-    match /driver-documents/{appId}/{fileName} {
-      allow write: if request.resource.size < 10 * 1024 * 1024
+    // Driver document uploads (website registration + driver app KYC).
+    // Storage folder is always the authenticated user's UID so the rule
+    // can verify ownership.  Website uses currentUser.uid; driver app
+    // uses its own auth.uid — both are covered by the same rule.
+    match /driver-documents/{driverId}/{fileName} {
+      allow write: if request.auth != null
+                   && request.auth.uid == driverId
+                   && request.resource.size < 10 * 1024 * 1024
                    && (request.resource.contentType.matches('image/.*')
                        || request.resource.contentType == 'application/pdf');
-      allow read:  if request.auth != null && request.auth.token.admin == true;
+      // getDownloadURL() tokens bypass rules, so admin download links always work.
+      allow read:  if request.auth != null
+                   && (request.auth.uid == driverId
+                       || request.auth.token.admin == true);
     }
 
     // Everything else: locked down by default.

@@ -2,152 +2,231 @@ rules_version = '2';
 
 // ─────────────────────────────────────────────────────────────
 //  Galaxy Ride — Firestore Security Rules
-//  Last updated: 2026-05-18
+//  Last updated: 2026-07-01
 // ─────────────────────────────────────────────────────────────
 //
-//  Collections:
-//    users/{uid}                    — user profiles
-//    users/{uid}/bookings/{id}      — per-user booking references
-//    bookings/{id}                  — full booking records
-//    trip_requests/{id}             — live admin dispatch board
-//    stats/global                   — aggregate counters
-//
 //  Admin identity:
-//    Firestore does not know which Firebase Auth user is "admin."
-//    We use a custom claim  admin == true  set via Firebase Admin SDK.
-//    Admin app must call  auth.setCustomUserClaims(uid, { admin: true })
-//    once for each admin user.  Until then the admin app should use the
-//    Firebase Admin SDK directly (bypasses these rules entirely).
+//    Document-based: admins/{uid} with isActive == true grants admin access.
+//    The admin app creates/manages the admins collection.
+//    To add an admin: create Firestore doc  admins/{uid}  with
+//    fields  { isActive: true, role: "super_admin", ... }
+//
+//  Collections covered:
+//    Customer website:   users, bookings, trip_requests, stats, driverApplications,
+//                        travelRedirectAnalytics, contact_messages, payment_failures
+//    Admin app:          admins, drivers, vendors, vehicles, subscriptions,
+//                        wallets, walletTransactions, tripBids, fakeTrips,
+//                        notifications, payments, analytics, temporaryDrivers,
+//                        activityFeed
 // ─────────────────────────────────────────────────────────────
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ── helpers ──────────────────────────────────────────────
-    function isSignedIn()  { return request.auth != null; }
-    function isOwner(uid)  { return isSignedIn() && request.auth.uid == uid; }
-    function isAdmin()     { return isSignedIn() && request.auth.token.admin == true; }
+    // ── helpers ──────────────────────────────────────────────────────────────
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(uid) { return isSignedIn() && request.auth.uid == uid; }
 
-    // Fields the customer is allowed to send (no role/status spoofing)
+    // Admin check via Firestore document (no custom Auth claim required).
+    // Reads the admins/{uid} doc to verify isActive == true.
+    function isAdmin() {
+      return request.auth != null &&
+             exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+    function isActiveAdmin() {
+      return isAdmin() &&
+             get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.isActive == true;
+    }
+    function isSuperAdmin() {
+      return isActiveAdmin() &&
+             get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'super_admin';
+    }
+
+    // Fields allowed on a new trip request (prevents status/driver spoofing)
     function validTripCreate() {
       let allowed = [
         'tripId','customerName','customerPhone','customerEmail',
-        'pickup','drop','tripType','vehicleType','date','time',
-        'passengers','estimatedFare','paymentMethod','paymentStatus',
-        'distanceKm','createdAt',
-        // system defaults written by fbSaveTripRequest — keep them read-only after creation
-        'status','driverId','driverName'
+        'pickup','pickupAddress','pickupLat','pickupLng',
+        'drop','dropAddress','dropLat','dropLng',
+        'tripType','vehicleType','date','time',
+        'passengers','estimatedFare','fare','paymentMethod','paymentStatus',
+        'distanceKm','createdAt','status','driverId','driverName'
       ];
       return request.resource.data.keys().hasOnly(allowed);
     }
 
-    // ── users/{uid} ───────────────────────────────────────────
-    match /users/{uid} {
-      // Owner can read / write their own profile; admin can read any profile
-      allow read:  if isOwner(uid) || isAdmin();
-      allow write: if isOwner(uid);   // merge: true keeps existing fields
+    // ── ADMINS ────────────────────────────────────────────────────────────────
+    match /admins/{adminId} {
+      allow read:   if request.auth.uid == adminId && isActiveAdmin();
+      allow write:  if isSuperAdmin();
+      allow update: if request.auth.uid == adminId &&
+                       request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['lastLogin', 'fcmToken', 'fcmTokenUpdatedAt']);
+    }
 
-      // Per-user booking references (lightweight copy)
+    // ── USERS ─────────────────────────────────────────────────────────────────
+    match /users/{uid} {
+      allow read:  if isOwner(uid) || isActiveAdmin();
+      allow write: if isOwner(uid);
+
       match /bookings/{bookingId} {
-        allow read:  if isOwner(uid) || isAdmin();
+        allow read:  if isOwner(uid) || isActiveAdmin();
         allow write: if isOwner(uid);
-        allow delete: if false;       // never delete booking history
+        allow delete: if false;
       }
     }
 
-    // ── bookings/{bookingId} ──────────────────────────────────
+    // ── BOOKINGS ──────────────────────────────────────────────────────────────
     match /bookings/{bookingId} {
-      // Customer can create their own booking; admin can read all
-      allow create: if isSignedIn()
-                    && request.resource.data.userId == request.auth.uid;
-      allow read:   if isSignedIn()
-                    && (resource.data.userId == request.auth.uid || isAdmin());
-      // Allow customer or admin to update status (e.g. cancellation)
-      allow update: if isAdmin()
+      // Customer creates their own booking; unauthenticated guests also allowed
+      // (guest checkout) — admin app can always create/read/write.
+      allow create: if true;
+      allow read:   if isActiveAdmin()
                     || (isSignedIn() && resource.data.userId == request.auth.uid);
-      // No one deletes bookings
+      allow update: if isActiveAdmin()
+                    || (isSignedIn() && resource.data.userId == request.auth.uid);
       allow delete: if false;
     }
 
-    // ── trip_requests/{tripId} ────────────────────────────────
+    // ── TRIP REQUESTS ─────────────────────────────────────────────────────────
+    // Admin dispatch board — customer website writes here after booking.
+    // Collection name: trip_requests  (snake_case, matches customer website JS)
     match /trip_requests/{tripId} {
-      // Any authenticated customer can create a trip request
       allow create: if isSignedIn() && validTripCreate();
-
-      // Customer can read their own trip; admin can read all
-      allow read:   if isSignedIn()
-                    && (resource.data.customerEmail == request.auth.token.email
-                        || isAdmin());
-
-      // Admin can update any field (assign driver, change status).
-      // Driver can update only status/updatedAt on trips assigned to them.
-      allow update: if isAdmin()
+      allow read:   if isActiveAdmin()
+                    || (isSignedIn() && resource.data.customerEmail == request.auth.token.email);
+      allow update: if isActiveAdmin()
                     || (isSignedIn()
                         && resource.data.driverId == request.auth.uid
                         && request.resource.data.diff(resource.data).affectedKeys()
-                                           .hasOnly(['status','updatedAt']));
-
-      // Nobody deletes trip requests
+                                           .hasOnly(['status', 'updatedAt']));
       allow delete: if false;
     }
 
-    // ── stats/global ──────────────────────────────────────────
+    // ── TRIP BIDS ─────────────────────────────────────────────────────────────
+    match /tripBids/{bidId} {
+      allow read:   if isActiveAdmin() || isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isActiveAdmin();
+      allow delete: if isSuperAdmin();
+    }
+
+    // ── DRIVERS ──────────────────────────────────────────────────────────────
+    match /drivers/{driverId} {
+      allow read:   if isOwner(driverId) || isActiveAdmin();
+      allow create: if isSignedIn();
+      allow update: if isActiveAdmin()
+                    || (isOwner(driverId)
+                        && request.resource.data.diff(resource.data).affectedKeys()
+                                           .hasOnly(['status', 'updatedAt', 'onlineStatus', 'location']));
+      allow delete: if false;
+    }
+
+    // ── DRIVER APPLICATIONS ───────────────────────────────────────────────────
+    match /driverApplications/{appId} {
+      allow create: if request.resource.data.status == 'pending';
+      allow read:   if isActiveAdmin()
+                    || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow update: if isActiveAdmin();
+      allow delete: if false;
+    }
+
+    // ── VENDORS ──────────────────────────────────────────────────────────────
+    match /vendors/{vendorId} {
+      allow read:   if isActiveAdmin();
+      allow create: if isSignedIn();
+      allow update: if isActiveAdmin();
+      allow delete: if isSuperAdmin();
+    }
+
+    // ── VEHICLES ─────────────────────────────────────────────────────────────
+    match /vehicles/{vehicleId} {
+      allow read:   if isActiveAdmin() || isSignedIn();
+      allow write:  if isActiveAdmin();
+    }
+
+    // ── SUBSCRIPTIONS ─────────────────────────────────────────────────────────
+    match /subscriptions/{subId} {
+      allow read:   if isActiveAdmin()
+                    || (isSignedIn() && resource.data.driverId == request.auth.uid);
+      allow write:  if isActiveAdmin();
+    }
+
+    // ── WALLETS ───────────────────────────────────────────────────────────────
+    match /wallets/{walletId} {
+      allow read:   if isActiveAdmin() || isOwner(walletId);
+      allow write:  if isActiveAdmin();
+    }
+
+    match /walletTransactions/{txId} {
+      allow read:   if isActiveAdmin()
+                    || (isSignedIn() && resource.data.driverId == request.auth.uid)
+                    || (isSignedIn() && resource.data.userId   == request.auth.uid);
+      allow write:  if isActiveAdmin();
+    }
+
+    // ── GALAXY SMART (fakeTrips) ──────────────────────────────────────────────
+    match /fakeTrips/{tripId} {
+      allow read:   if isSignedIn();
+      allow create, update: if isActiveAdmin();
+      allow delete: if isActiveAdmin();
+      // Drivers can increment attemptCount
+      allow update: if isSignedIn() &&
+                       request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['attemptCount']);
+    }
+
+    // ── NOTIFICATIONS ─────────────────────────────────────────────────────────
+    match /notifications/{notifId} {
+      allow read, write: if isActiveAdmin();
+      allow create: if true;
+    }
+
+    // ── PAYMENTS ──────────────────────────────────────────────────────────────
+    match /payments/{paymentId} {
+      allow read:  if isActiveAdmin();
+      allow write: if isActiveAdmin();
+    }
+
+    // ── ANALYTICS ────────────────────────────────────────────────────────────
+    match /analytics/{docId} {
+      allow read, write: if isActiveAdmin();
+    }
+
+    // ── STATS ─────────────────────────────────────────────────────────────────
     match /stats/{doc} {
-      // Anyone authenticated can increment counters (increment only, via merge)
-      allow read:   if isAdmin();
+      allow read:   if isActiveAdmin();
       allow write:  if isSignedIn();
       allow delete: if false;
     }
 
-    // ── driverApplications/{appId} ────────────────────────────
-    // Public registration form: anyone may submit an application.
-    // Only admin can read all applications or change status.
-    match /driverApplications/{appId} {
-      allow create: if request.resource.data.status == 'pending';
-      allow read:   if isAdmin();
-      allow update: if isAdmin();      // approve / reject / request more docs
-      allow delete: if false;
+    // ── TEMPORARY DRIVERS ─────────────────────────────────────────────────────
+    match /temporaryDrivers/{driverId} {
+      allow read, write: if isActiveAdmin();
     }
 
-    // ── travelRedirectAnalytics/{id} ──────────────────────────
-    // Append-only analytics: anyone may log; only admin reads.
+    // ── ACTIVITY FEED ─────────────────────────────────────────────────────────
+    match /activityFeed/{itemId} {
+      allow read: if isActiveAdmin();
+      allow write: if true;
+    }
+
+    // ── TRAVEL REDIRECT ANALYTICS ─────────────────────────────────────────────
     match /travelRedirectAnalytics/{id} {
       allow create: if true;
-      allow read:   if isAdmin();
+      allow read:   if isActiveAdmin();
       allow update, delete: if false;
     }
 
-    // ── contact_messages/{id} ─────────────────────────────────
-    // Public contact form: anyone may submit; only admin reads.
+    // ── CONTACT MESSAGES ──────────────────────────────────────────────────────
     match /contact_messages/{id} {
       allow create: if request.resource.data.status == 'new';
-      allow read:   if isAdmin();
+      allow read:   if isActiveAdmin();
       allow update, delete: if false;
     }
 
-    // ── drivers/{driverId} ────────────────────────────────────
-    // Admin can create/update driver profiles.
-    // Driver can read their own profile and update their own status.
-    match /drivers/{driverId} {
-      allow read:   if isOwner(driverId) || isAdmin();
-      allow create: if isAdmin();
-      allow update: if isAdmin()
-                    || (isOwner(driverId)
-                        && request.resource.data.diff(resource.data).affectedKeys()
-                                           .hasOnly(['status','updatedAt']));
-      allow delete: if false;
-    }
-
-    // ── trip_requests — driver read access ────────────────────
-    // Drivers need to read/update trips assigned to them.
-    // Override the trip_requests rule to allow driver-level access.
-    // (Firestore uses the most specific matching rule.)
-
-    // ── payment_failures/{id} ──────────────────────────────────
-    // Written exclusively by the /api/payment-failure Netlify Function via
-    // the Firebase Admin SDK, which bypasses these rules entirely. No client
-    // (signed-in or not) may read or write this collection directly —
-    // it is an internal failure log for support/ops, not customer data.
+    // ── PAYMENT FAILURES (internal log) ──────────────────────────────────────
+    // Written only via Firebase Admin SDK (bypasses rules). Clients: no access.
     match /payment_failures/{id} {
       allow read, write: if false;
     }

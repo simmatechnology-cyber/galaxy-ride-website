@@ -154,9 +154,12 @@
       } catch (e) { alert('Update failed: ' + e.message); }
     };
 
-    function docLink(label, url) {
-      if (!url) return `<span class="doc-link missing"><i class="fas fa-file"></i> ${label}</span>`;
-      return `<a class="doc-link" href="${esc(url)}" target="_blank" rel="noopener"><i class="fas fa-file"></i> ${label}</a>`;
+    // Handles both old format (string URL) and new format ({ url, fileName, … })
+    function docLink(label, d) {
+      const url  = typeof d === 'string' ? d : (d?.url || d?.downloadUrl || null);
+      const name = typeof d === 'object' && d?.fileName ? d.fileName : label;
+      if (!url) return `<span class="doc-link missing"><i class="fas fa-file"></i> ${esc(label)}</span>`;
+      return `<a class="doc-link" href="${esc(url)}" target="_blank" rel="noopener" title="${esc(name)}"><i class="fas fa-file"></i> ${esc(label)}</a>`;
     }
 
     function render() {
@@ -165,32 +168,66 @@
       if (!rows.length) { listEl.innerHTML = '<div class="empty">No applications in this view.</div>'; return; }
       listEl.innerHTML = rows.map(a => {
         const d = a.documents || {};
+        const src = a.registrationSource || a.source || '';
+        const srcBadge = src === 'website' || src === 'web'
+          ? `<span style="font-size:10px;background:rgba(59,130,246,.15);color:#93c5fd;border:1px solid rgba(59,130,246,.2);border-radius:999px;padding:2px 8px;font-weight:700">WEB</span>`
+          : src === 'app'
+          ? `<span style="font-size:10px;background:rgba(34,197,94,.12);color:#86efac;border:1px solid rgba(34,197,94,.18);border-radius:999px;padding:2px 8px;font-weight:700">APP</span>`
+          : '';
+
+        // Personal docs
+        const personalDocs = [
+          ['Photo',        d.profilePhoto    || d.driverPhoto],
+          ['Aadhaar F',    d.aadhaarFront],
+          ['Aadhaar B',    d.aadhaarBack],
+          ['DL Front',     d.licenseFront || d.drivingLicenceFront || d.drivingLicense],
+          ['DL Back',      d.licenseBack  || d.drivingLicenceBack],
+          ['PAN',          d.panCard],
+          ['Police Verif', d.policeVerification],
+          ['Bank Proof',   d.bankProof],
+        ];
+        // Vehicle docs
+        const vehicleDocs = [
+          ['RC Book',     d.rcBook],
+          ['Insurance',   d.insurance],
+          ['Fitness',     d.fitnessCertificate],
+          ['Permit',      d.permit],
+          ['PUC',         d.puc],
+          ['Veh Front',   d.vehicleFront],
+          ['Veh Back',    d.vehicleBack],
+          ['Veh Side',    d.vehicleSide],
+          ['Number Plate',d.numberPlate],
+          ['GR Sticker',  d.grSticker],
+        ];
+
+        const kycCount = a.kycDocCount ? `<span style="font-size:11px;color:var(--muted)">KYC: ${a.kycDocCount.required}/${a.kycDocCount.required + (a.kycDocCount.optional||0)} docs</span>` : '';
+
         return `
         <div class="app-card">
           <div class="app-top">
             <div>
-              <div class="app-name">${esc(a.fullName || 'Unknown')}</div>
+              <div class="app-name">${esc(a.fullName || 'Unknown')} ${srcBadge}</div>
               <div class="app-meta">
                 <span><i class="fas fa-phone"></i>${esc(a.mobile||'—')}</span>
                 <span><i class="fas fa-location-dot"></i>${esc(a.city||'—')}</span>
+                ${a.loginEmail ? `<span><i class="fas fa-envelope"></i>${esc(a.loginEmail)}</span>` : ''}
                 <span><i class="fas fa-car"></i>${esc(a.vehicleType||'—')} · ${esc(a.vehicleNumber||'—')}</span>
                 <span><i class="fas fa-calendar"></i>${fmtDate(a.submittedAt)}</span>
+                ${kycCount}
               </div>
               <div class="appid">${esc(a.applicationId || a.id)}</div>
             </div>
             <span class="badge ${a.status||'pending'}">${(a.status||'pending').replace('_',' ')}</span>
           </div>
-          <div class="docs">
-            ${docLink('License', d.drivingLicense)}
-            ${docLink('RC Book', d.rcBook)}
-            ${docLink('Insurance', d.insurance)}
-            ${docLink('Photo', d.driverPhoto)}
-          </div>
-          ${a.statusNote ? `<div class="app-meta" style="margin-bottom:10px;"><span><i class="fas fa-note-sticky"></i>${esc(a.statusNote)}</span></div>` : ''}
+          <div style="font-size:11px;color:var(--muted);font-weight:700;margin:10px 0 5px;text-transform:uppercase;letter-spacing:.4px">Personal</div>
+          <div class="docs">${personalDocs.map(([l,v])=>docLink(l,v)).join('')}</div>
+          <div style="font-size:11px;color:var(--muted);font-weight:700;margin:10px 0 5px;text-transform:uppercase;letter-spacing:.4px">Vehicle</div>
+          <div class="docs">${vehicleDocs.map(([l,v])=>docLink(l,v)).join('')}</div>
+          ${a.statusNote ? `<div class="app-meta" style="margin:10px 0 4px;"><span><i class="fas fa-note-sticky"></i>${esc(a.statusNote)}</span></div>` : ''}
           <div class="actions">
             <button class="act approve" onclick="updateStatus('${a.id}','approved')"><i class="fas fa-check"></i> Approve</button>
             <button class="act reject"  onclick="updateStatus('${a.id}','rejected')"><i class="fas fa-xmark"></i> Reject</button>
-            <button class="act more"    onclick="updateStatus('${a.id}','more_docs')"><i class="fas fa-file-arrow-up"></i> Request More Documents</button>
+            <button class="act more"    onclick="updateStatus('${a.id}','more_docs')"><i class="fas fa-file-arrow-up"></i> Request More Docs</button>
           </div>
         </div>`;
       }).join('');
